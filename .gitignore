@@ -1,0 +1,41 @@
+# .gitignore del repo RAÍZ del workspace (C:\Proyectos).
+#
+# Este repo respalda SOLO la capa de orquestación (CLAUDE.md y docs de contexto).
+# NO debe versionar: los subproyectos (tienen su propio git + remoto en GitHub),
+# ni secretos, ni contenido privado de clientes, ni dependencias. Un "git add -A"
+# sin estas reglas filtraría datos sensibles a cualquier backup remoto.
+
+# ── Repos anidados: cada uno se respalda por su cuenta en GitHub ─────────────
+Workspace_Agencia/
+Workspace_Clientes/
+.claude/
+
+# ── Secretos y configuración sensible — NUNCA al backup ──────────────────────
+.config_segura/
+.env
+.env.*
+*secret*
+*token*
+*.key
+*.pem
+*.p12
+*.pfx
+*.pfx
+.claudecode/
+
+# ── Contenido privado de clientes (se aprovisiona fuera de banda) ────────────
+private/
+**/private/
+
+# ── Dependencias y artefactos de build ──────────────────────────────────────
+node_modules/
+dist/
+*.log
+package-lock.json
+
+# ── Material personal / basura / temporales ─────────────────────────────────
+nul)
+calc_times.ps1
+*.tmp
+*.bak
+scratchpad/
