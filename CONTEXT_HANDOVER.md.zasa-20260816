@@ -1,0 +1,57 @@
+# CONTEXT HANDOVER — Agente SDR (Vendedor IA) · zasa-orchestrator
+
+> Resumen ultracompacto para retomar en una sesión nueva. Fecha: 2026-08-15.
+> Abrir Claude Code en `C:\Proyectos` (workspace) — este repo es `zasa-orchestrator`.
+
+## Estado de git (CRÍTICO)
+
+- **HEAD local:** `5e3ecd8` — feat(sdr): cualificación BANT + sellado del X-Widget-Token.
+- **`main` está AHEAD 1 de `origin/main` — el commit NO está pusheado.** Deliberado.
+- Árbol limpio. Build `npm run build` exit 0 · `npm test` 145/145 en verde.
+
+## Qué se hizo en `5e3ecd8` (2 ficheros)
+
+### 1. Regla BANT — `src/services/salesAgentService.ts`
+- Modificado `SYSTEM_PROMPT_VENDEDOR_ADVANCED` (tier `advanced`, que corre en **DeepSeek `deepseek-chat`**, NO en Claude).
+- Añadido bloque **BANT** (Budget, Authority, Need, Timeline): cualifica una pregunta a la vez, sin interrogatorio.
+- **REGLA DE DESCALIFICACIÓN estricta:** solo leads con dolor real Y capacidad/rol pasan a `booking`. Curiosos / estudiantes / sin presupuesto → NO reciben agenda; se les ofrecen recursos gratuitos con calidez. Invierte el sesgo anterior ("nunca se pierde una venta").
+- ⚠️ **Es instrucción de PROMPT, no guardarraíl de código.** `/book` sigue creando la reunión si le llega la petición; la adherencia depende de DeepSeek. La cualificación "dura" (que el backend rechace un `/book` no cualificado) NO está implementada — requeriría pasar un flag de cualificación del chat al endpoint.
+
+### 2. Guarda 403 fail-closed — `src/controllers/salesAgentController.ts`
+- `guardarAccesoPublicoEstricto` (protege POST `/chat` y `/book`).
+- **Antes:** token opt-in — si `SALES_AGENT_WIDGET_TOKEN` no estaba definido, NO se exigía (guarda inerte; `/book` quedaba tras un Origin falsificable).
+- **Ahora:** OBLIGATORIO y fail-closed. Sin secreto configurado → **403** (cierra, no abre). Sin `x-widget-token` válido → **403**. Comparación en tiempo constante con `tokensIguales` (de `tenantAuth.ts`).
+
+## 🔴 BLOQUEANTE ANTES DE DESPLEGAR `5e3ecd8`
+
+**`SALES_AGENT_WIDGET_TOKEN` DEBE estar definido en DigitalOcean** y coincidir con:
+1. `VITE_SALES_AGENT_WIDGET_TOKEN` (inlineado en el bundle del widget `admin_solucionesconia`).
+2. El header `x-widget-token` que inyecta **nginx** en `location /api/sales-agent/` del VPS.
+
+Si los tres no cuadran → **TODO `/chat` y `/book` responde 403 y el Vendedor IA cae en producción.** No verificado desde esta sesión (requiere `doctl` para leer envs de DO). **Verificar las 3 variables ANTES de `git push`.**
+
+## Próximo objetivo estratégico
+
+**Refactorizar el SDR a Tool Calling NATIVO.** Hoy NO hay tool calling: es pre-fetch + inyección de contexto determinista por intención —
+- `construirBloqueDisponibilidad` llama a Google Calendar (`obtenerDisponibilidad`, freebusy, solo lectura) ANTES del LLM, solo si `intent==='booking'`, e inyecta horarios como texto.
+- `construirBloquePasarela` inyecta datos de cobro como texto si `intent==='sales'`.
+- El LLM nunca decide llamar una herramienta; lo decide el orquestador.
+
+Meta: que el modelo decida cuándo consultar Calendar/pasarela/CRM vía function calling real. **Decisión pendiente:** si se migra a Claude (`@anthropic-ai/sdk` ya instalado, `^0.95.2` — viejo; default recomendado `claude-opus-5`) o se usa el function calling de DeepSeek. Considerar que la cualificación BANT "dura" encaja bien como tool (`verificar_cualificacion` antes de `agendar_reunion`).
+
+## Mapa de ficheros del SDR
+
+| Fichero | Rol |
+|---|---|
+| `src/services/salesAgentService.ts` | Cerebro: router 2 etapas (deepseek) + prompts fast/advanced + BANT |
+| `src/controllers/salesAgentController.ts` | `/chat`, `/book`, `/config` + guarda 403 fail-closed |
+| `src/routes/salesAgentRoutes.ts` | Rate limit por endpoint |
+| `src/data/salesAgentTenants.ts` | Identidad/reglas/pasarela por tenant |
+| `src/services/calendarService.ts` | `obtenerDisponibilidad` (freebusy) + `crearReunion` (events.insert); auth Service Account JWT |
+| `src/services/crmService.ts` | `guardarLead` (SQLite + webhook) |
+| `src/services/llm/claudeService.ts` | Ruta médica "Sema" (ExamenFácil, `claude-sonnet-5`) — **NO es el SDR**, pero define `MODELO_SONNET`/`MODELO_HAIKU` que el SDR reutiliza |
+
+## Otro contexto del workspace (por si acaso)
+
+- Landing `solucionesconia.cl`: migrada a Tailwind build local, desplegada. Portal VIP en `vip.solucionesconia.cl` (rsync al VPS, no DO pipeline). Ambos ya en producción y verificados.
+- Regla de la casa: nunca tocar nginx sin backup + `nginx -t` antes de `reload`. Deploy de `zasa-orchestrator` = push a `main` → auto-deploy DO App Platform (verificar en `/health`, expone el commit vivo).
