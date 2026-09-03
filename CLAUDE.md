@@ -1,19 +1,24 @@
 # Workspace de Jaime — C:\Proyectos
 
-Espacio de trabajo centralizado con 6 proyectos que se referencian entre sí. Abrir Claude Code siempre en `C:\Proyectos`.
+Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referencian entre sí. Abrir Claude Code siempre en `C:\Proyectos`.
 
 ## Proyectos
 
-| Carpeta | Qué es | Producción |
-|---|---|---|
-| `Workspace_Agencia\Agencia_Solucionesconia\` | La agencia (landing, assets). Los clientes viven en `Clientes\` (Jose, _Plantilla_Portal_SPA) | solucionesconia.cl |
-| `Workspace_Clientes\Elrincon\` | Libro web "El Rincón de Don Selso": 11 capítulos + epílogo en HTML estático puro. El backend de pagos NO está aquí: vive en el repo hermano `Elrincon-backend\` | elrincondedonselso.cl |
-| `Workspace_Clientes\ExamenFacil\` | Plataforma ExamenFacil | examenfacil.cl |
-| `Workspace_Clientes\AuditorLegal\` | Web estática con `api_handler.php` | — |
-| `Workspace_Agencia\zasa-orchestrator\` | Orchestrator Fastify+TS (Cockpit ZASA + telemetría `src/data/telemetry.ts`). Deploy: push → DO App Platform | admin.solucionesconia.cl |
-| `Workspace_Clientes\GambusasChile\` | E-commerce de carnada de pesca (gambusas **curadas en sal / deshidratadas**, seleccionadas, se despachan congeladas — NO son vivas). PHP nativo, Resend/MercadoPago por cURL puro, Bóveda de Titanio. Repo: `github.com/jaimefaena-max/gambusaschile` | gambusaschile.cl (live, HTTPS) |
-| `Workspace_Clientes\Elrincon-backend\` | Microservicio de pagos y acceso de El Rincón (Node `http` nativo + SDK Mercado Pago, sin Express). **No tiene pipeline**: `scp` a `/opt/elrincon-backend` + `pm2 restart` | `/api/` de elrincondedonselso.cl |
-| `Workspace_Clientes\Elrincon-qa\` | Suite E2E del embudo de El Rincón (Playwright, 8 pruebas en ~15 s): muro de pago, precio y navegación. `cd Elrincon-qa && npm test` | — (local / CI) |
+> Nota de mapeo: la columna **Carpeta** es la ruta local; **Repo GitHub** es el nombre en `github.com/jaimefaena-max/`. No siempre coinciden (p. ej. `Agencia_Solucionesconia\` → repo `solucionesconia`). Mantener ambas columnas sincronizadas para no reintroducir drift.
+
+| Carpeta | Repo GitHub | Qué es | Producción |
+|---|---|---|---|
+| `Workspace_Agencia\Agencia_Solucionesconia\` | `solucionesconia` | La agencia (landing, assets). Los clientes viven en `Clientes\` (Jose, _Plantilla_Portal_SPA) | solucionesconia.cl |
+| `Workspace_Agencia\admin_solucionesconia\` | `admin_solucionesconia` | Frontend B2B (Vite/React) del chat/dashboard de admin.solucionesconia.cl. El backend operativo vive en `zasa-orchestrator` | admin.solucionesconia.cl (frontend) |
+| `Workspace_Clientes\Elrincon\` | `elrincondedonselso` | Libro web "El Rincón de Don Selso": 11 capítulos + epílogo en HTML estático puro. El backend de pagos NO está aquí: vive en el repo hermano `Elrincon-backend\` | elrincondedonselso.cl |
+| `Workspace_Clientes\ExamenFacil\` | `examenfacil-cl` | Plataforma ExamenFacil | examenfacil.cl |
+| `Workspace_Clientes\AuditorLegal\` | `auditorlegal` | Web estática con `api_handler.php` | — |
+| `Workspace_Agencia\zasa-orchestrator\` | `zasa-orchestrator` | Orchestrator Fastify+TS (Cockpit ZASA + telemetría `src/data/telemetry.ts`). Deploy: push → DO App Platform | admin.solucionesconia.cl |
+| `Workspace_Clientes\GambusasChile\` | `gambusaschile` | E-commerce de carnada de pesca (gambusas **curadas en sal / deshidratadas**, seleccionadas, se despachan congeladas — NO son vivas). PHP nativo, Resend/MercadoPago por cURL puro, Bóveda de Titanio | gambusaschile.cl (live, HTTPS) |
+| `Workspace_Clientes\Elrincon-backend\` | `elrincon-backend` | Microservicio de pagos y acceso de El Rincón (Node `http` nativo + SDK Mercado Pago, sin Express). **No tiene pipeline**: `scp` a `/opt/elrincon-backend` + `pm2 restart` | `/api/` de elrincondedonselso.cl |
+| `Workspace_Clientes\Elrincon-qa\` | `Elrincon-qa` | Suite E2E del embudo de El Rincón (Playwright, 8 pruebas en ~15 s): muro de pago, precio y navegación. `cd Elrincon-qa && npm test` | — (local / CI) |
+| `.` (raíz `C:\Proyectos`) | `agencia-root-orchestrator` | Repo de respaldo/orquestación de la raíz del workspace (`.gitignore` endurecido que excluye repos anidados, secretos y datos de clientes). Creado 2026-09-02 | — (meta / respaldo) |
+| `.claude\` | `claude-skills` | Skills, agentes y tooling de Claude Code del workspace (incluye `/inicio-sesion`, `/cierre-sesion` y `workspace-status.ps1`) | — (local / tooling) |
 
 ## Infraestructura compartida
 

@@ -34,7 +34,6 @@ dist/
 package-lock.json
 
 # ── Material personal / basura / temporales ─────────────────────────────────
-nul)
 calc_times.ps1
 *.tmp
 *.bak
