@@ -22,9 +22,22 @@ Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referenci
 
 ## Infraestructura compartida
 
-Los tres dominios se sirven desde **un mismo VPS DigitalOcean**: `159.223.213.237` (Ubuntu 24.04, nginx 1.24).
+El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (Ubuntu 24.04, nginx 1.24). Sirve **elrincondedonselso.cl y gambusaschile.cl**; el resto de dominios NO está aquí.
 
-- Acceso: `ssh -i ~/.ssh/elrincon_deploy root@159.223.213.237`
+> ⚠️ **La IP cambió (verificado 2026-09-04).** La anterior, `159.223.213.237`, está muerta: no responde en ningún puerto, ni siquiera el 443. Si un `ssh` da `Connection timed out`, la primera comprobación **no** es el firewall ni la llave — es a dónde resuelve el dominio ahora:
+> `curl -s -o /dev/null -w '%{remote_ip}\n' https://elrincondedonselso.cl/`
+> Si esa IP no coincide con la de aquí, este documento está desfasado otra vez.
+
+| Dominio | Dónde vive |
+|---|---|
+| elrincondedonselso.cl | `161.35.85.101` (VPS directo) |
+| gambusaschile.cl | `161.35.85.101` (mismo VPS) |
+| solucionesconia.cl · admin.solucionesconia.cl | detrás de Cloudflare |
+| examenfacil.cl | detrás de Cloudflare |
+
+Para los que están tras Cloudflare, la IP que devuelve `curl` es la del proxy, **no** la del origen.
+
+- Acceso: `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101`
 - Server blocks en `/etc/nginx/sites-available/`
 - elrincondedonselso.cl: web root `/var/www/elrincondedonselso.cl`; backend Node en :3000 vía PM2, expuesto como `/api/`; webhook de auto-deploy `/gh-webhook` (:9000)
 - Portal de Jose: repo en `Workspace_Agencia\privado_agencia\Clientes\Jose`, se despliega por GitHub Actions a `/var/www/elrincondedonselso/public/jose`, servido en `/jose/` mediante symlink desde el web root, protegido con Basic Auth (`/etc/nginx/.htpasswd_jose`)
