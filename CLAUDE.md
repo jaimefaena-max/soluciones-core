@@ -15,33 +15,69 @@ Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referenci
 | `Workspace_Clientes\AuditorLegal\` | `auditorlegal` | Web estática con `api_handler.php` | — |
 | `Workspace_Agencia\zasa-orchestrator\` | `zasa-orchestrator` | Orchestrator Fastify+TS (Cockpit ZASA + telemetría `src/data/telemetry.ts`). Deploy: push → DO App Platform | admin.solucionesconia.cl |
 | `Workspace_Clientes\GambusasChile\` | `gambusaschile` | E-commerce de carnada de pesca (gambusas **curadas en sal / deshidratadas**, seleccionadas, se despachan congeladas — NO son vivas). PHP nativo, Resend/MercadoPago por cURL puro, Bóveda de Titanio | gambusaschile.cl (live, HTTPS) |
-| `Workspace_Clientes\Elrincon-backend\` | `elrincon-backend` | Microservicio de pagos y acceso de El Rincón (Node `http` nativo + SDK Mercado Pago, sin Express). **No tiene pipeline**: `scp` a `/opt/elrincon-backend` + `pm2 restart` | `/api/` de elrincondedonselso.cl |
+| `Workspace_Clientes\Elrincon-backend\` | `elrincon-backend` | Microservicio de pagos y acceso de El Rincón (Node `http` nativo + SDK Mercado Pago, sin Express). **Sin CI**, pero `/opt/elrincon-backend` **es un checkout de git**: se despliega con `git pull` + `pm2 restart`, nunca por `scp` (ver Infraestructura) | `/api/` de elrincondedonselso.cl |
 | `Workspace_Clientes\Elrincon-qa\` | `Elrincon-qa` | Suite E2E del embudo de El Rincón (Playwright, 8 pruebas en ~15 s): muro de pago, precio y navegación. `cd Elrincon-qa && npm test` | — (local / CI) |
 | `.` (raíz `C:\Proyectos`) | `agencia-root-orchestrator` | Repo de respaldo/orquestación de la raíz del workspace (`.gitignore` endurecido que excluye repos anidados, secretos y datos de clientes). Creado 2026-09-02 | — (meta / respaldo) |
 | `.claude\` | `claude-skills` | Skills, agentes y tooling de Claude Code del workspace (incluye `/inicio-sesion`, `/cierre-sesion` y `workspace-status.ps1`) | — (local / tooling) |
 
 ## Infraestructura compartida
 
-El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (Ubuntu 24.04, nginx 1.24). Sirve **elrincondedonselso.cl y gambusaschile.cl**; el resto de dominios NO está aquí.
+El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (Ubuntu 24.04, nginx 1.24). Es el **origen** de elrincondedonselso.cl y gambusaschile.cl; el resto de dominios NO se sirve desde aquí.
 
-> ⚠️ **La IP cambió (verificado 2026-09-04).** La anterior, `159.223.213.237`, está muerta: no responde en ningún puerto, ni siquiera el 443. Si un `ssh` da `Connection timed out`, la primera comprobación **no** es el firewall ni la llave — es a dónde resuelve el dominio ahora:
-> `curl -s -o /dev/null -w '%{remote_ip}\n' https://elrincondedonselso.cl/`
-> Si esa IP no coincide con la de aquí, este documento está desfasado otra vez.
+> ⚠️ **La IP cambió (verificado 2026-09-04).** La anterior, `159.223.213.237`, está muerta: no responde en ningún puerto, ni siquiera el 443. Si un `ssh` da `Connection timed out`, la primera comprobación **no** es el firewall ni la llave — es a dónde resuelve el dominio ahora.
+>
+> 🔴 **Pero desde el 2026-09-05 ya NO sirve `curl -w '%{remote_ip}'` para averiguarlo.** Los CUATRO dominios están hoy tras Cloudflare, así que esa IP es siempre la del proxy. La comprobación que sí vale es preguntar al propio servidor por su interfaz:
+> `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'hostname -I'`
+> o medir contra el servidor saltándose el DNS: `curl -sk -H 'Host: <dominio>' https://161.35.85.101/`
 
-| Dominio | Dónde vive |
-|---|---|
-| elrincondedonselso.cl | `161.35.85.101` (VPS directo) |
-| gambusaschile.cl | `161.35.85.101` (mismo VPS) |
-| solucionesconia.cl · admin.solucionesconia.cl | detrás de Cloudflare |
-| examenfacil.cl | detrás de Cloudflare |
+| Dominio | Resuelve a | Origen real |
+|---|---|---|
+| elrincondedonselso.cl | Cloudflare (`188.114.9x.x`) | `161.35.85.101` |
+| gambusaschile.cl | Cloudflare (`104.21.x` / `172.67.x`) | `161.35.85.101` |
+| solucionesconia.cl · admin · vip | Cloudflare | hoy el droplet **1 GB** `161.35.157.69`; el 4 GB ya está listo, falta mover los registros A |
+| examenfacil.cl | Cloudflare | fuera de este VPS |
 
-Para los que están tras Cloudflare, la IP que devuelve `curl` es la del proxy, **no** la del origen.
+**Ningún dominio del workspace resuelve ya directo a una IP de origen.** La tabla anterior de este documento decía que los dos primeros iban «VPS directo»; era cierto hasta que se metieron tras el proxy, y esa afirmación desfasada convertía la comprobación de la IP en una pista falsa. Para cualquiera de ellos, la IP pública que devuelva `curl` es la de Cloudflare y no dice nada sobre qué servidor atiende.
 
 - Acceso: `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101`
 - Server blocks en `/etc/nginx/sites-available/`
 - elrincondedonselso.cl: web root `/var/www/elrincondedonselso.cl`; backend Node en :3000 vía PM2, expuesto como `/api/`; webhook de auto-deploy `/gh-webhook` (:9000)
 - Portal de Jose: repo en `Workspace_Agencia\privado_agencia\Clientes\Jose`, se despliega por GitHub Actions a `/var/www/elrincondedonselso/public/jose`, servido en `/jose/` mediante symlink desde el web root, protegido con Basic Auth (`/etc/nginx/.htpasswd_jose`)
 - Capítulos 4-11 y todos los `.md` de Elrincon devuelven 404 en producción (decisión de auditoría — siguen en el repo)
+
+### Despliegue del backend de pagos (`/opt/elrincon-backend`)
+
+**Se despliega con `git pull`, no con `scp`.** Este documento dijo lo contrario hasta el 2026-09-04; `/opt/elrincon-backend` es un **checkout de git**, con `origin` en `git@github.com:jaimefaena-max/elrincon-backend.git` por SSH y una Deploy Key **de solo lectura**.
+
+Que sea de solo lectura fija el sentido del flujo: el VPS **trae** cambios, nunca los sube. Commit y push se hacen siempre desde local; en el servidor no se edita código ni se commitea, porque ese commit no tendría a dónde ir.
+
+Vía normal — commit y push desde local, y traerlo en el VPS:
+
+```bash
+# local
+git add -A && git commit -m "…" && git push
+# VPS
+ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101
+cd /opt/elrincon-backend
+git pull --ff-only && npm install --production && pm2 restart elrincon-backend --update-env
+pm2 logs elrincon-backend --lines 20 --nostream
+```
+
+**Por qué `scp` está prohibido aquí, y no es una cuestión de estilo.** En ese directorio conviven el código y **cinco ficheros con datos reales de clientes**: `entregas.json`, `compras.json`, `canjes-directos.json`, `limites.json` y `reenvios-manuales.json`. Un `scp -r` o un `rsync` del directorio los machaca con las copias de desarrollo del portátil, y ahí se pierde el registro de quién ha pagado. No hay base de datos detrás: esos ficheros **son** la base de datos.
+
+Los cinco están en el `.gitignore` del repo y **no versionados**, precisamente para que `git pull` no pueda tocarlos. El `.env` con las credenciales reales de Mercado Pago y Resend tampoco se versiona y vive solo en el VPS. Comprobación antes de cualquier despliegue:
+
+```bash
+cd /opt/elrincon-backend && git check-ignore -v entregas.json compras.json canjes-directos.json limites.json reenvios-manuales.json .env
+```
+
+Si alguno dejara de aparecer en esa lista, **parar**: significa que se ha colado en el índice de git y el siguiente `pull` puede sobrescribirlo.
+
+Antes de desplegar, respaldar esos seis ficheros (los cinco libros + `.env`) en `/root/backups-elrincon-backend/<fecha>/`. Es lo único irrecuperable: el código sale de git y `node_modules` de `npm install`.
+
+Rollback: `git checkout <sha-anterior> && pm2 restart elrincon-backend`.
+
+> Nota sobre desplegar por `scp` en general: además de este riesgo, ensucia el árbol de trabajo y hace fallar el `pull` siguiente. Vale también para el web root de elrincondedonselso.cl, que se despliega por webhook.
 
 ## Protocolo Golden Standard (reglas de la casa)
 
