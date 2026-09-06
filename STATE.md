@@ -13,7 +13,7 @@
 | **A. Par de claves local** | Generar la clave maestra y exportar la pública | ✅ **Completada** (verificada) |
 | **B. Import y auditoría en el VPS** | Llevar la pública al servidor y probar que la privada no está ahí | ✅ **Rehecha y verificada el 2026-09-06** con la clave rotada |
 | **C. Shamir 2-de-3 de la passphrase** | Passphrase → cifrar la privada → partir la passphrase en 3 | ✅ **Completada y verificada el 2026-09-06** |
-| **D. Distribución a custodios** | Repartir los 3 shards a modos de fallo independientes | 🟡 **PREPARADA, no ejecutada** — plan y huellas de verificación en `~/.zasa-shards/DISTRIBUCION.md`; los tres fragmentos **siguen en este portátil** |
+| **D. Distribución a custodios** | Repartir los 3 shards a modos de fallo independientes | 🟡 **REINICIADA con juego limpio el 2026-09-06 03:01** — el primer juego se descartó por exposición de procedimiento; el nuevo está verificado, pero los tres fragmentos **siguen en este portátil** y el reparto no ha empezado |
 
 ### Fase A — completada
 
@@ -104,10 +104,40 @@ No hay ningún artefacto de la fase C en disco: ni `secure_backups/`, ni `~/.zas
    umbral 2-de-3 **no protege de nada**: quien se lleve la máquina se los lleva
    todos, y con ellos la clave.
 
-   **Preparada el 2026-09-06** en `~/.zasa-shards/DISTRIBUCION.md`: huellas de
-   verificación por fragmento, tabla de reparto a rellenar, procedimiento de
-   extracción uno a uno y comprobación final. Ejecutarlo es trabajo manual de
-   Jaime, en tres momentos distintos.
+   **Juego regenerado el 2026-09-06 03:01.** El primer juego (01:26) se descartó
+   por una exposición de procedimiento, no por un ataque: el `shard-1` se mostró
+   dentro de una sesión de asistente y quedó escrito de forma permanente en su
+   transcript. Eso convertía ese historial en una custodia no elegida — con él
+   más **uno solo** de los otros dos fragmentos se reconstruía la passphrase, y
+   el umbral efectivo caía de 2-de-3 a 1-de-2.
+
+   La regeneración lo cierra de raíz: el secreto nuevo tiene huella
+   `8542ead8aca45412` frente a `d8981a619fe7158a` del anterior, así que **todo el
+   material del juego viejo es hoy un dato muerto**. ⚠️ Queda una acción física:
+   el `shard-2` viejo se entregó a una custodia externa y hay que **recuperarlo y
+   destruirlo**, o quedará en el mundo un fragmento que parece válido y no lo es.
+
+   Verificación del juego nuevo, sin imprimir ningún valor:
+
+   | Comprobación | Resultado |
+   |---|---|
+   | Formato de los 3 fragmentos (`idx-hex`, 64 car. de hex) | OK los tres |
+   | Un fragmento aislado | «hacen falta al menos 2 shards» en los tres |
+   | Los 3 pares reconstruyen el mismo secreto | huella `8542ead8aca45412` |
+   | 2 fragmentos descifran el blob nuevo | devuelve `264BA15B…25BF3A7A` |
+
+   Huellas de los ficheros: `shard-1` `0c9931618b06d1b8…`, `shard-2`
+   `3d9fac8d7a5f6f13…`, `shard-3` `6b5159e63c21d498…`.
+
+   **Regla que motivó la regeneración:** ningún fragmento vuelve a pasar por un
+   canal que deje registro —chat, correo, ticket, captura—. Se leen en la
+   terminal local y se transcriben desde ahí.
+
+   El plan de reparto vive en `~/.zasa-shards/DISTRIBUCION.md` y **no se
+   versiona**: una vez rellenada su tabla de custodias es el mapa de dónde están
+   los fragmentos, y publicarlo en GitHub le ahorraría el trabajo a quien
+   quisiera juntarlos. Ejecutar el reparto es trabajo manual de Jaime, en tres
+   momentos distintos.
 
    Se descartó **empaquetar los tres juntos** —zip, tar o adjunto cifrado—. Un
    archivo con los tres es un objeto único que reconstruye la clave entera: en
