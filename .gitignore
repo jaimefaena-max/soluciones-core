@@ -6,9 +6,22 @@
 # sin estas reglas filtraría datos sensibles a cualquier backup remoto.
 
 # ── Repos anidados: cada uno se respalda por su cuenta en GitHub ─────────────
-Workspace_Agencia/
+#
+# 🔴 Se excluyen los HIJOS (/*), no el directorio. Git NO desciende dentro de un
+# directorio ignorado, así que con "Workspace_Agencia/" la excepción del Vault
+# de abajo sería inerte: la negación de un fichero no puede reactivar nada si su
+# directorio padre está excluido. Con /* cada subcarpeta sigue excluida una a una
+# (Agencia_Solucionesconia, admin_solucionesconia, zasa-orchestrator, …) y la
+# excepción sí puede reabrir exactamente una.
+Workspace_Agencia/*
 Workspace_Clientes/
 .claude/
+
+# ── Excepción: el Vault de contratos reutilizables ───────────────────────────
+# Documentación y plantillas, sin secretos. Es la única parte de
+# Workspace_Agencia/ que NO tiene repo propio: sin esta excepción vive solo en el
+# disco de esta máquina y ningún respaldo la cubre.
+!Workspace_Agencia/vault/
 
 # ── Secretos y configuración sensible — NUNCA al backup ──────────────────────
 .config_segura/
@@ -23,6 +36,11 @@ Workspace_Clientes/
 *.pfx
 .claudecode/
 
+# Las plantillas del Vault NO son secretos: llevan valores falsos y documentados,
+# y son justamente el contenido que este repo debe respaldar. Sin esta línea la
+# regla ".env.*" de arriba se las tragaría y el Vault quedaría a medias.
+!Workspace_Agencia/vault/**/.env.example
+
 # ── Contenido privado de clientes (se aprovisiona fuera de banda) ────────────
 private/
 **/private/
@@ -32,6 +50,16 @@ node_modules/
 dist/
 *.log
 package-lock.json
+
+# ── Respaldos de BD / dumps / sitios (datos sensibles — NUNCA al repo) ───────
+*.sql
+*.sql.gz
+*.tar.gz
+*.tgz
+db_backups/
+site_backups/
+full_backup_*
+sites_files_*
 
 # ── Material personal / basura / temporales ─────────────────────────────────
 calc_times.ps1
