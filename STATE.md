@@ -11,9 +11,9 @@
 | Fase | Qué es | Estado |
 |---|---|---|
 | **A. Par de claves local** | Generar la clave maestra y exportar la pública | ✅ **Completada** (verificada) |
-| **B. Import y auditoría en el VPS** | Llevar la pública al servidor y probar que la privada no está ahí | 🔴 **INVALIDADA por la rotación del 2026-09-06** — el VPS sigue con la pública de la clave VIEJA. Hay que rehacerla |
+| **B. Import y auditoría en el VPS** | Llevar la pública al servidor y probar que la privada no está ahí | ✅ **Rehecha y verificada el 2026-09-06** con la clave rotada |
 | **C. Shamir 2-de-3 de la passphrase** | Passphrase → cifrar la privada → partir la passphrase en 3 | ✅ **Completada y verificada el 2026-09-06** |
-| **D. Distribución a custodios** | Repartir los 3 shards a modos de fallo independientes | ⬜ **No iniciada** (depende de C) |
+| **D. Distribución a custodios** | Repartir los 3 shards a modos de fallo independientes | 🟡 **PREPARADA, no ejecutada** — plan y huellas de verificación en `~/.zasa-shards/DISTRIBUCION.md`; los tres fragmentos **siguen en este portátil** |
 
 ### Fase A — completada
 
@@ -22,35 +22,46 @@
 - Key ID corto: `8F82F64B25BF3A7A`
 - Algoritmo: **ed25519** [SC] + subclave **cv25519** [E]. **Sin caducidad** (decisión de la rotación del 2026-09-06; la clave anterior caducaba en 2028-09-02).
 - Nació protegida con passphrase: `KEYINFO --list` da `P` en los dos keygrips desde el primer minuto. La clave anterior estuvo `C` (en claro) desde su generación hasta el 2026-09-05.
-- 🔴 `Workspace_Clientes/ExamenFacil/public.key` **NO se ha regenerado**: sigue conteniendo la pública de la clave VIEJA `A1392D408D8D6A06` (sha256 `acda4b25…07ad4`, verificado el 2026-09-06 con `gpg --show-keys`). Hay que reexportarla.
+- ✅ Pública reexportada el 2026-09-06 en `Workspace_Clientes/ExamenFacil/public.key` — sha256 `fc1f4e245da46aae7de3af8e7d5a5d268eb9323fac7404c77b5de4d25d39994f` (la anterior, de la clave vieja, era `acda4b25…07ad4`). Comprobado que el fichero contiene **solo** el bloque público: cero ocurrencias de `PRIVATE`.
 - Certificado de revocación en `~/.gnupg/openpgp-revocs.d/264B…3A7A.rev` — **sigue en la misma máquina que la clave; hay que sacarlo de ahí.**
 
-### Fase B — 🔴 INVALIDADA por la rotación del 2026-09-06
-
-**Lo que sigue describe la clave VIEJA.** Verificado el 2026-09-06 contra el servidor:
-
-```
-$ ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'gpg --list-keys --keyid-format LONG'
-pub   ed25519/A1392D408D8D6A06 2026-09-03 [SC] [expires: 2028-09-02]
-      2D9B0DE5BD164F4FD7524ACEA1392D408D8D6A06
-uid                 [ unknown] Zasa Backups <admin@solucionesconia.cl>
-```
-
-El VPS conserva la pública de una clave cuya privada **ya no existe en ninguna
-parte**: se borró del llavero local y su respaldo cifrado se eliminó el
-2026-09-06. Cualquier cosa que se cifrara hoy contra ella sería irrecuperable.
-Nada lo está —el proceso de cifrado real nunca llegó a construirse—, pero la
-fase B hay que **rehacerla con la clave nueva** antes de cifrar el primer dato.
-
-Lo que SÍ sigue siendo válido de la auditoría original: el llavero **secreto**
-del VPS está vacío (`gpg --list-secret-keys` devuelve 0 líneas, recomprobado el
-2026-09-06). La separación pública/privada nunca se rompió.
-
-Registro de la auditoría original (clave vieja):
+### Fase B — rehecha con la clave rotada (2026-09-06)
 
 - Servidor: `161.35.85.101`, hostname **`zasa-server-restaurado`**, acceso `root` con `~/.ssh/elrincon_deploy`.
-- Pública importada en `/root/public.key` → llavero de root. SHA-256 idéntico en ambas puntas.
-- Auditoría de separación: llavero secreto vacío (0), `private-keys-v1.d/` vacío (0 ficheros `.key`), cero bloques `PRIVATE KEY BLOCK` en `/root /home /opt /var/backups /tmp`, `.bash_history` sin rastros.
+- Pública nueva subida por `scp` a `/root/public.key` e importada al llavero de root:
+
+```
+gpg: key 8F82F64B25BF3A7A: public key "Zasa Backups <admin@solucionesconia.cl>" imported
+gpg: Total number processed: 1
+gpg:               imported: 1
+```
+
+- **Integridad de la transferencia:** sha256 `fc1f4e24…39994f` idéntico en local y en el servidor.
+- **Huella presente en el llavero remoto:** `264BA15BA5D83EA58FAB0E648F82F64B25BF3A7A` (+ su subclave de cifrado `87F9DAAC…6BFAE3F2`).
+- **Auditoría de separación, recomprobada hoy:** llavero secreto vacío (`--list-secret-keys` → 0 líneas), `private-keys-v1.d/` sin ficheros `.key` (0), y **cero bloques `PRIVATE KEY BLOCK` reales** en `/root /home /opt /var/backups /tmp`. Dos ficheros contienen esa cadena —`/opt/zasa-orchestrator/app/{src,dist}/data/telemetry.{ts,js}`— pero es la prosa de esta misma auditoría citándose a sí misma, no material: `grep -l -- "-----BEGIN PGP PRIVATE KEY BLOCK-----"` devuelve 0.
+
+#### ✅ Clave vieja retirada del VPS (2026-09-06)
+
+Durante unos minutos convivieron las dos públicas con el mismo uid, lo que hacía
+ambiguo cifrar contra `admin@solucionesconia.cl`. Ya no: la vieja se borró del
+llavero remoto y quedó **una sola clave**.
+
+```
+$ gpg --list-keys --with-colons | awk -F: '/^pub:/{print $5}'
+8F82F64B25BF3A7A
+
+$ gpg --list-keys 2D9B0DE5BD164F4FD7524ACEA1392D408D8D6A06
+gpg: error reading key: No public key
+```
+
+Comprobado que cifrar contra el uid ya resuelve sin ambigüedad a la subclave
+vigente (`keyid 0E1B95536BFAE3F2`), y que el llavero secreto del servidor sigue
+vacío después del borrado (0 líneas, 0 ficheros `.key`).
+
+#### Registro de la auditoría original (clave vieja, 2026-09-03)
+
+- Pública importada en `/root/public.key`, SHA-256 idéntico en ambas puntas.
+- Llavero secreto vacío, `private-keys-v1.d/` vacío, `.bash_history` sin rastros.
 - **Prueba fuerte:** el import creó `/root/.gnupg` desde cero (`gpg: directory '/root/.gnupg' created`), o sea que root no tenía llavero GPG previo de ningún tipo.
 
 ---
@@ -86,24 +97,33 @@ No hay ningún artefacto de la fase C en disco: ni `secure_backups/`, ni `~/.zas
 
 ## Siguiente paso pendiente
 
-**La fase C está cerrada. Lo que queda es la fase D y rehacer la B.** En este orden:
+**Las fases A, B y C están cerradas y verificadas. Queda la D.** En este orden:
 
 1. **🔴 Fase D — repartir los shards. Es lo único urgente.**
    Los tres están HOY en `~/.zasa-shards` de este portátil. Mientras siga así, el
    umbral 2-de-3 **no protege de nada**: quien se lleve la máquina se los lleva
-   todos, y con ellos la clave. Hay que llevarlos a tres custodias con modos de
-   fallo independientes y borrar de aquí las dos que salgan.
+   todos, y con ellos la clave.
 
-2. **🔴 Rehacer la fase B con la clave nueva.** El VPS `161.35.85.101` sigue con
-   la pública de `A1392D408D8D6A06`, rotada y sin privada en ninguna parte.
-   Antes hay que reexportar `Workspace_Clientes/ExamenFacil/public.key`, que
-   también apunta a la clave vieja.
+   **Preparada el 2026-09-06** en `~/.zasa-shards/DISTRIBUCION.md`: huellas de
+   verificación por fragmento, tabla de reparto a rellenar, procedimiento de
+   extracción uno a uno y comprobación final. Ejecutarlo es trabajo manual de
+   Jaime, en tres momentos distintos.
 
-3. **Sacar los dos certificados de revocación de esta máquina**
+   Se descartó **empaquetar los tres juntos** —zip, tar o adjunto cifrado—. Un
+   archivo con los tres es un objeto único que reconstruye la clave entera: en
+   cuanto existe, el esquema deja de ser 2-de-3 y pasa a ser 1-de-1. Cifrarlo no
+   lo arregla, porque exigiría una contraseña nueva que recordar, que es el
+   problema que este esquema resuelve. Salen de uno en uno.
+
+   Comprobado que un fragmento aislado no revela nada: `combine` con uno solo
+   responde «hacen falta al menos 2 shards», y cualquier par reconstruye el mismo
+   secreto (huella `d8981a619fe7158a` en los tres pares).
+
+2. **Sacar los dos certificados de revocación de esta máquina**
    (`~/.gnupg/openpgp-revocs.d/`: el de la clave nueva y el de la vieja). Quien
    los tenga puede invalidar la clave; guardarlos donde no esté ella.
 
-4. **Conectar el respaldo a un proceso real.** Hay clave y custodia; no hay
+3. **Conectar el respaldo a un proceso real.** Hay clave y custodia; no hay
    todavía ningún proceso que cifre y saque datos de ExamenFácil. Eso es trabajo
    aparte y aún sin diseñar.
 
