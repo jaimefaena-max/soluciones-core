@@ -22,22 +22,36 @@ Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referenci
 
 ## Infraestructura compartida
 
-El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (Ubuntu 24.04, nginx 1.24). Es el **origen** de elrincondedonselso.cl y gambusaschile.cl; el resto de dominios NO se sirve desde aquí.
+El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (Ubuntu 24.04, nginx 1.24). Desde la consolidación del 2026-09-07 es el **único origen del workspace**: sirve **los 10 hostnames** de los cuatro dominios de producción —los cuatro de solucionesconia.cl (`@`, `www`, `admin`, `vip`), elrincondedonselso.cl (+`www`), examenfacil.cl (+`www`) y gambusaschile.cl (+`www`)—, todos tras el proxy de Cloudflare. No queda ningún segundo servidor.
+
+Verificado el 2026-09-07 con sonda de testigo: 10 peticiones con `User-Agent` único, las 10 registradas en el `access.log` de esta máquina. Es la única comprobación válida con todo tras el proxy (el método está más abajo).
 
 > ⚠️ **La IP cambió (verificado 2026-09-04).** La anterior, `159.223.213.237`, está muerta: no responde en ningún puerto, ni siquiera el 443. Si un `ssh` da `Connection timed out`, la primera comprobación **no** es el firewall ni la llave — es a dónde resuelve el dominio ahora.
 >
 > 🔴 **Pero desde el 2026-09-05 ya NO sirve `curl -w '%{remote_ip}'` para averiguarlo.** Los CUATRO dominios están hoy tras Cloudflare, así que esa IP es siempre la del proxy. La comprobación que sí vale es preguntar al propio servidor por su interfaz:
 > `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'hostname -I'`
-> o medir contra el servidor saltándose el DNS: `curl -sk -H 'Host: <dominio>' https://161.35.85.101/`
+>
+> 🔴 **Y desde el 2026-09-07 tampoco sirve medir contra la IP pública.** El `curl -sk -H 'Host: <dominio>' https://161.35.85.101/` que documentaba antes esta sección **ya no responde desde fuera**: `ufw` solo acepta 80/443 desde los 22 rangos de Cloudflare, así que devuelve `000` tras el timeout. **Ese `000` NO significa que el servidor esté caído** — significa que el firewall funciona. La medición equivalente se hace ahora *dentro* del VPS, contra el loopback:
+> ```bash
+> ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 \
+>   "curl -sk -H 'Host: <dominio>' https://127.0.0.1/"
+> ```
+> Y para atribuir un dominio a un servidor (qué máquina atiende de verdad), la única prueba fiable con todo tras el proxy es la **sonda con testigo**: lanzar `curl -A "marca-unica" https://<dominio>/` y buscar esa marca en `/var/log/nginx/access.log` del origen candidato.
 
-| Dominio | Resuelve a | Origen real |
-|---|---|---|
-| elrincondedonselso.cl | Cloudflare (`188.114.9x.x`) | `161.35.85.101` |
-| gambusaschile.cl | Cloudflare (`104.21.x` / `172.67.x`) | `161.35.85.101` |
-| solucionesconia.cl · admin · vip | Cloudflare | hoy el droplet **1 GB** `161.35.157.69`; el 4 GB ya está listo, falta mover los registros A |
-| examenfacil.cl | Cloudflare | fuera de este VPS |
+| Dominio | Resuelve a | Origen real | Qué sirve |
+|---|---|---|---|
+| solucionesconia.cl · `www` | Cloudflare | `161.35.85.101` | estático en `/var/www/solucionesconia.cl` |
+| admin.solucionesconia.cl | Cloudflare | `161.35.85.101` | proxy a `127.0.0.1:3001` (zasa-orchestrator, PM2) |
+| vip.solucionesconia.cl | Cloudflare | `161.35.85.101` | estático en `/opt/agencia/public/vip` + `/api/vip/` al orquestador |
+| elrincondedonselso.cl · `www` | Cloudflare | `161.35.85.101` | estático + `/api/` a `127.0.0.1:3000` (elrincon-backend, PM2) |
+| examenfacil.cl · `www` | Cloudflare | `161.35.85.101` | PHP |
+| gambusaschile.cl · `www` | Cloudflare | `161.35.85.101` | PHP |
 
-**Ningún dominio del workspace resuelve ya directo a una IP de origen.** La tabla anterior de este documento decía que los dos primeros iban «VPS directo»; era cierto hasta que se metieron tras el proxy, y esa afirmación desfasada convertía la comprobación de la IP en una pista falsa. Para cualquiera de ellos, la IP pública que devuelva `curl` es la de Cloudflare y no dice nada sobre qué servidor atiende.
+> 🟢 **El droplet de 1 GB `161.35.157.69` está FUERA DE SERVICIO** (consolidado en el 4 GB el 2026-09-07). Comprobado: puertos 22, 80, 443 y 3001 **cerrados**, sin respuesta por ninguna vía, y sin una sola referencia a esa IP en configuración viva del VPS. Versiones anteriores de esta tabla lo daban como origen de solucionesconia.cl; ya no lo es. Si algo apunta ahí, está roto por definición, no «pendiente de migrar».
+
+**Ningún dominio del workspace resuelve ya directo a una IP de origen.** Una versión anterior de esta tabla decía que los dos primeros iban «VPS directo»; era cierto hasta que se metieron tras el proxy, y esa afirmación desfasada convertía la comprobación de la IP en una pista falsa. Para cualquiera de ellos, la IP pública que devuelva `curl` es la de Cloudflare y no dice nada sobre qué servidor atiende.
+
+**Y desde el 2026-09-07 el origen solo acepta 80/443 desde los 22 rangos CIDR de Cloudflare** (`ufw`, 15 IPv4 + 7 IPv6; el 22 sigue abierto). No hay forma de llegar al origen saltándose el proxy, ni siquiera para depurar.
 
 - Acceso: `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101`
 - Server blocks en `/etc/nginx/sites-available/`
