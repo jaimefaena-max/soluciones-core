@@ -103,7 +103,7 @@ Rollback: `git checkout <sha-anterior> && pm2 restart elrincon-backend`.
 
 Ante **cualquier saludo** de Jaime ("hola", "buenas", "buenos días", "qué tal", "arrancamos"…) o cualquier pedido de estado, ejecutar **de inmediato y sin pedir permiso** la skill `/inicio-sesion` (en `.claude/skills/inicio-sesion/`). No esperar a que Jaime lo pida ni preguntar si quiere el resumen.
 
-La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 6 repos (rama, cambios sin commitear, ahead/behind, último commit) y la salud de los **7 endpoints de producción** (~8 s), lee las memorias, y entrega un **Resumen Ejecutivo del Estado Operativo** con cuatro bloques: (1) estado operativo con semáforo, (2) dónde quedamos, (3) bloqueadores activos con su vía de desbloqueo, y (4) plan inmediato priorizado **por cercanía a producción**.
+La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 6 repos (rama, cambios sin commitear, ahead/behind, último commit) y la salud de los **6 endpoints de producción** (~8 s), lee las memorias, y entrega un **Resumen Ejecutivo del Estado Operativo** con cuatro bloques: (1) estado operativo con semáforo, (2) dónde quedamos, (3) bloqueadores activos con su vía de desbloqueo, y (4) plan inmediato priorizado **por cercanía a producción**.
 
 Regla central del diagnóstico: separar siempre **repo / remoto / producción**. Un repo limpio y sincronizado NO significa desplegado — en este workspace la landing y el widget se despliegan a mano. Nombrar el **drift** explícitamente. Cuando una memoria choque con la salida del script, gana el script.
 
