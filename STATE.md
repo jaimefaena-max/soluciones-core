@@ -1,6 +1,6 @@
 # STATE — Respaldo soberano de la clave GPG (ExamenFácil / solucionesconia.cl)
 
-> Última actualización: **2026-09-06**
+> Última actualización: **2026-09-08**
 > Objetivo del hilo: cumplir Ley 20.584 con respaldos cifrados de ExamenFácil bajo un esquema de llave dividida.
 > Este documento es la fuente de verdad del avance. **Todo lo marcado ✅ fue verificado con salida real de comando; nada se da por hecho.**
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | **A. Par de claves local** | Generar la clave maestra y exportar la pública | ✅ **Completada** (verificada) |
 | **B. Import y auditoría en el VPS** | Llevar la pública al servidor y probar que la privada no está ahí | ✅ **Rehecha y verificada el 2026-09-06** con la clave rotada |
-| **C. Shamir 2-de-3 de la passphrase** | Passphrase → cifrar la privada → partir la passphrase en 3 | ✅ **Completada y verificada el 2026-09-06** |
+| **C. Shamir 2-de-3 de la passphrase** | Passphrase → cifrar la privada → partir la passphrase en 3 | ⚠️ **Ejecutada y verificada el 2026-09-06, pero SIN resolver antes el hallazgo del 09-05** — el blob resultante exige 2 shards **y** la passphrase de la clave. Pendiente regenerarlo (ver «Doble factor no intencionado») |
 | **D. Distribución a custodios** | Repartir los 3 shards a modos de fallo independientes | 🟡 **REINICIADA con juego limpio el 2026-09-06 03:01** — el primer juego se descartó por exposición de procedimiento; el nuevo está verificado, pero los tres fragmentos **siguen en este portátil** y el reparto no ha empezado |
 
 ### Fase A — completada
@@ -85,6 +85,8 @@ No hay ningún artefacto de la fase C en disco: ni `secure_backups/`, ni `~/.zas
 1. **Shamir se aplica a la passphrase, no al blob de la clave.**
    La privada se cifra con AES-256 bajo una passphrase aleatoria de 192 bits; lo que se parte 2-de-3 es esa passphrase. Motivos: shards de ~64 caracteres (transcribibles a papel o placa de acero, un blob armado son KB); el blob cifrado se puede respaldar libremente en nube/USB/NAS; y hay degradación grácil — 2 shards te salvan si olvidas la passphrase, la memoria te salva si pierdes los shards.
 
+   > 🔴 **La última frase NO se cumple con el material que existe hoy** (reconfirmado empíricamente el 2026-09-08, ver «Doble factor no intencionado» más abajo). El blob de la fase C contiene la privada **con su propia protección S2K intacta**, así que hacen falta los 2 shards **Y** la passphrase memorizada. La degradación grácil vuelve a ser cierta solo cuando se ejecute la regeneración pendiente. Hasta entonces, esta decisión describe la intención, no el estado.
+
 2. **Los shards viven fuera de todo árbol Git**, en `C:\Users\LENOVO\.zasa-shards\` con ACL de `icacls` (herencia rota, acceso exclusivo del usuario). Rechazado explícitamente ponerlos en `Workspace_Clientes/ExamenFacil/shards/`: un `git add .` los publicaría en GitHub.
 
 3. **La privada en claro nunca toca el disco.** El export va por *pipe* en memoria directo al cifrado. Esto sustituye al `shred` del plan original, que en SSD no borra: el wear-leveling del FTL deja el original en NAND no mapeada.
@@ -97,9 +99,17 @@ No hay ningún artefacto de la fase C en disco: ni `secure_backups/`, ni `~/.zas
 
 ## Siguiente paso pendiente
 
-**Las fases A, B y C están cerradas y verificadas. Queda la D.** En este orden:
+**Las fases A y B están cerradas. La C se ejecutó pero produjo un blob de doble factor; la D está bloqueada por ello.** En este orden:
 
-1. **🔴 Fase D — repartir los shards. Es lo único urgente.**
+0. **🔴 BLOQUEANTE — regenerar el blob sin protección S2K propia.**
+   Decidido el 2026-09-08 (opción 2). Hasta que se ejecute, los 2-de-3 **no**
+   recuperan nada por sí solos. Procedimiento: `~/.zasa-shards/REGENERAR.md`.
+   Lo ejecuta Jaime; requiere su passphrase y por eso no puede hacerlo un
+   asistente. Detalle y evidencia en «Doble factor no intencionado».
+
+1. **🔴 Fase D — repartir los shards. Urgente, pero DESPUÉS del paso 0.**
+   Repartirlos antes distribuye una recuperación que no funciona sola: los
+   custodios creerían tener capacidad de restaurar y no la tendrían.
    Los tres están HOY en `~/.zasa-shards` de este portátil. Mientras siga así, el
    umbral 2-de-3 **no protege de nada**: quien se lleve la máquina se los lleva
    todos, y con ellos la clave.
@@ -217,6 +227,50 @@ Dos salidas, hay que elegir una **antes** de ejecutar la fase C:
 2. **Cambiar el script** para que la privada se exporte sin protección propia dentro del pipe (quitar la passphrase, exportar, restaurarla) de modo que el único secreto que la protege sea `PASS`, la que sí está partida en 3. Es lo que la decisión nº 1 pretendía, y devuelve la degradación grácil.
 
 Mientras esto no se decida, la fase C **no** debe ejecutarse: produciría un respaldo cuyo modo de fallo real no es el documentado.
+
+---
+
+## 🔴 Doble factor no intencionado — reconfirmado el 2026-09-08
+
+**La advertencia de arriba no se atendió: la fase C se ejecutó igualmente el 2026-09-06 y el juego de shards vigente arrastra el problema.** No es una hipótesis; se probó de extremo a extremo sobre un respaldo real del VPS.
+
+### Evidencia (2026-09-08)
+
+| Paso | Resultado |
+|---|---|
+| `shard-1 + shard-3` → `shamir.pl combine` | ✅ passphrase reconstruida (32 car.) |
+| Un shard aislado | ✅ «hacen falta al menos 2 shards» |
+| Descifrado de `master_sec.aes256.asc` con esa passphrase | ✅ `rc=0` |
+| Importación en llavero aislado | ✅ huella `264BA15B…25BF3A7A` correcta |
+| **Descifrar un `.tar.gz.gpg` real con esa clave** | ❌ **`public key decryption failed: Bad passphrase`** |
+| `gpg --list-packets` del blob descifrado | `iter+salt S2K, algo: 7, SHA1 protection` en clave **y** subclave |
+
+Es exactamente el modo de fallo descrito el 09-05: el blob es `AES256(PASS_shamir, privada_bajo_KEYPASS)`. La regeneración del 09-06 cambió el secreto, no la estructura.
+
+Por contraste, con la subclave desbloqueada en `gpg-agent` el mismo respaldo se recupera entero: los 6 ficheros vuelven **idénticos byte a byte** al original vivo. El cifrado, el formato y el contenido son correctos; lo único roto es **por qué vía se llega a la clave**.
+
+### Por qué esto sobrevivió tres días sin verse
+
+`RESTORE.md` termina en «verifica que la huella sea 264BA15B…». Igual que el paso [6] del script, **confunde importar la clave con poder usarla**: la huella se imprime sin desbloquear nada. Toda prueba de recuperación tiene que terminar en un descifrado real, no en una huella.
+
+### Matriz de riesgo del estado ACTUAL
+
+| Escenario | ¿Se recuperan los respaldos hoy? |
+|---|---|
+| Se pierde el portátil, sobreviven 2 shards + Jaime recuerda la passphrase | ✅ Sí |
+| Se pierde el portátil, sobreviven 2 shards, **passphrase olvidada** | ❌ **No.** Pérdida total |
+| Portátil intacto, se pierden los 3 shards | ✅ Sí (la clave sigue en el llavero) |
+| Un tercero obtiene 2 shards **sin** la passphrase | ✅ No puede descifrar (mitigación no buscada, pero real) |
+
+La segunda fila es la que importa: **hay un secreto crítico sin respaldo, y vive solo en la memoria de una persona.**
+
+### Decisión tomada (2026-09-08): opción 2
+
+Se regenera el blob exportando la privada **sin** protección propia, de modo que el único secreto sea `PASS`, la que sí está partida 2-de-3. Se descartó documentar el doble factor: la segunda mitad no está custodiada en ningún sitio, y escribirla en un runbook como si lo estuviera convierte un fallo en política.
+
+**Pendiente de ejecución por Jaime** — requiere teclear la passphrase actual, que no debe pasar por una sesión de asistente (ver la regla de la fase D). Procedimiento en `~/.zasa-shards/REGENERAR.md`.
+
+🔴 **La fase D queda bloqueada hasta que esto se ejecute.** Repartir hoy los shards sería repartir una recuperación que no funciona sola.
 
 ---
 
