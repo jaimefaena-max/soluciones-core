@@ -33,7 +33,6 @@ Workspace_Clientes/
 *.pem
 *.p12
 *.pfx
-*.pfx
 .claudecode/
 
 # Las plantillas del Vault NO son secretos: llevan valores falsos y documentados,
@@ -66,3 +65,24 @@ calc_times.ps1
 *.tmp
 *.bak
 scratchpad/
+
+# ── Material criptográfico — defensa en profundidad ─────────────────────────
+#
+# Ninguna de estas reglas corrige una fuga: la auditoría del 2026-09-08 no
+# encontró ni un secreto, ni en el árbol ni en TODO el historial. Corrigen la
+# ausencia de red bajo la decisión de arquitectura nº2 de STATE.md, que rechaza
+# guardar los fragmentos de la llave dividida dentro del árbol «porque un
+# git add . los publicaría en GitHub» — hasta ahora eso dependía solo de la
+# disciplina de dónde se guardan, sin nada que lo impidiera.
+#
+# `shard-*` y `master_sec*` cubren el material de ~/.zasa-shards si alguien lo
+# copia aquí; `*.gpg` cubre los respaldos cifrados del VPS.
+# Nota: `*.asc` también atrapa exports de claves PÚBLICAS, que no son secretas.
+# Si alguna vez hay que versionar una, `git add -f` es la vía consciente.
+*.gpg
+*.asc
+shard-*
+master_sec*
+id_rsa*
+id_ed25519*
+*.ppk
