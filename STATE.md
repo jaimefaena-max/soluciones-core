@@ -302,6 +302,14 @@ En **`C:\Proyectos\tools\gpg-backup\`** — versionadas en `agencia-root-orchest
 
 Ninguno contiene secretos.
 
+> **Ubicación congelada hasta el cierre de la Fase D (2026-09-09).** En la
+> reestructuración de "monorepo lógico" se propuso mover `tools\` a
+> `Workspace_Agencia\packages\gpg-backup\`. Se **descartó**: esa ruta cae bajo
+> `Workspace_Agencia/*`, ignorado en el `.gitignore` raíz, así que el movimiento
+> habría sacado estos cinco ficheros del control de versiones sin generar ni un
+> aviso — y `shamir.pl` es **necesario para restaurar**. Además rompería la ruta
+> absoluta que documenta la fase C más arriba. Se revisa cuando la Fase D cierre.
+
 ---
 
 ## Nota sobre la numeración

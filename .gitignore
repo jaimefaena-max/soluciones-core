@@ -23,6 +23,16 @@ Workspace_Clientes/
 # disco de esta máquina y ningún respaldo la cubre.
 !Workspace_Agencia/vault/
 
+# ── Contra-excepción: los respaldos locales NO son contenido del Vault ───────
+#
+# 🔴 `backups-locales/` guarda volcados de producción (dump SQL con datos reales
+# de clientes y el tar del web root, ~608 MB). Cuelga de `vault/` solo por
+# cercanía física, y la excepción de arriba lo re-incluiría entero: un
+# `git add -A` intentaría commitear el dump. Se excluye explícitamente.
+# GitHub además rechaza ficheros >100 MB, así que el push fallaría igual —
+# pero para entonces el dump ya estaría en el historial local.
+Workspace_Agencia/vault/backups-locales/
+
 # ── Secretos y configuración sensible — NUNCA al backup ──────────────────────
 .config_segura/
 .env

@@ -20,6 +20,33 @@ Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referenci
 | `.` (raíz `C:\Proyectos`) | `agencia-root-orchestrator` | Repo de respaldo/orquestación de la raíz del workspace (`.gitignore` endurecido que excluye repos anidados, secretos y datos de clientes). Creado 2026-09-02 | — (meta / respaldo) |
 | `.claude\` | `claude-skills` | Skills, agentes y tooling de Claude Code del workspace (incluye `/inicio-sesion`, `/cierre-sesion` y `workspace-status.ps1`) | — (local / tooling) |
 
+## Topología del workspace (dónde va cada cosa)
+
+Consolidada el 2026-09-09. **Esto es un polirepo, no un monorepo**: 12 repos de git
+independientes que comparten una carpeta local. Ningún despliegue lee de una ruta
+local — DO App Platform y el server-pull del VPS clonan del remoto GitHub de cada
+repo (`repo: jaimefaena-max/<nombre>` en `do-app.yaml`). Mover carpetas en Windows
+no rompe ningún pipeline; fusionar los `.git` sí rompería todos.
+
+| Directorio | Qué admite | Qué NO admite |
+|---|---|---|
+| `Workspace_Clientes\` | Repos de clientes, uno por carpeta | Nada de la agencia; está entero en el `.gitignore` raíz |
+| `Workspace_Agencia\` | Infraestructura, apps internas y la bóveda `vault\` | Ídem: excluido por hijos (`/*`), con `vault\` como única excepción |
+| `tools\` | Scripts sin repo propio, versionados en el repo raíz | — |
+
+Tres reglas que se han roto antes y cuestan caras:
+
+1. **`tools\gpg-backup\` se queda en la raíz.** Está versionado en
+   `agencia-root-orchestrator`; moverlo bajo `Workspace_Agencia\` lo mete en una
+   ruta ignorada y lo saca del control de versiones sin avisar. Es el motor Shamir
+   de la llave dividida, con la Fase D todavía abierta, y `STATE.md` documenta su
+   ruta absoluta. Se revisará cuando la Fase D cierre, no antes.
+2. **`vault\backups-locales\` no se versiona.** Es la contra-excepción del
+   `.gitignore`: `vault\` sí se respalda, sus volcados de producción no.
+3. **Antes de reubicar cualquier carpeta, `git ls-files` primero.** Lo que ya
+   rastrea el repo raíz sale del control de versiones en silencio si aterriza bajo
+   `Workspace_Agencia\*` o `Workspace_Clientes\`.
+
 ## Infraestructura compartida
 
 El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (Ubuntu 24.04, nginx 1.24). Desde la consolidación del 2026-09-07 es el **único origen del workspace**: sirve **los 10 hostnames** de los cuatro dominios de producción —los cuatro de solucionesconia.cl (`@`, `www`, `admin`, `vip`), elrincondedonselso.cl (+`www`), examenfacil.cl (+`www`) y gambusaschile.cl (+`www`)—, todos tras el proxy de Cloudflare. No queda ningún segundo servidor.
