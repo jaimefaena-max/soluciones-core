@@ -134,6 +134,15 @@ La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 6 repo
 
 Regla central del diagnóstico: separar siempre **repo / remoto / producción**. Un repo limpio y sincronizado NO significa desplegado — en este workspace la landing y el widget se despliegan a mano. Nombrar el **drift** explícitamente. Cuando una memoria choque con la salida del script, gana el script.
 
+**Antes de redactar el resumen, leer `CONTEXT_HANDOVER.md` de la raíz.** Es el hand-off
+de la última sesión: qué se cerró, qué quedó a medias y con qué trampas. El bloque
+«dónde quedamos» sale de ahí, no de reconstruirlo desde los commits. El resumen debe
+terminar nombrando **el paso exacto siguiente** —uno solo, el primero de la cola—, no un
+menú de opciones. Si ese paso está bloqueado por una acción que solo puede hacer Jaime
+(passphrase, consola de DO, panel de Cloudflare), decirlo en la primera línea del bloque.
+
+Al cerrar, `/cierre-sesion` debe reescribir `CONTEXT_HANDOVER.md` con el estado nuevo.
+
 ## Protocolo de Cierre de Sesión
 
 Cuando Jaime indique que cerramos la sesión, ejecutar la skill `/cierre-sesion` (en `.claude/skills/cierre-sesion/`): mide el tiempo real trabajado desde el transcript (activo vs total, gaps >15 min descartados), audita tareas por proyecto (finalizadas/en ejecución/pendientes con % de avance anclado a evidencia git), calcula el costo (tiempo activo × $35.000 CLP/h) y publica la entrada en `zasa-orchestrator/src/data/telemetry.ts` → push → auto-deploy → dashboard en admin.solucionesconia.cl. Sin ingreso manual de Jaime.
