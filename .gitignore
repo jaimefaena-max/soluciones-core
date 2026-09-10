@@ -96,3 +96,12 @@ master_sec*
 id_rsa*
 id_ed25519*
 *.ppk
+
+# ── Archivo histórico local (2026-09-09) ────────────────────────────────────
+# `_archivo/` es el depósito de material congelado que NO debe versionarse ni
+# vivir en el árbol operativo: espejos bare pre-reescritura, bundles de
+# respaldo y documentación obsoleta retirada de las carpetas de cliente.
+# Hoy guarda 259 MB (_purga_mirror.git + _backups_historia de examenfacil-cl)
+# y el CLAUDE.md obsoleto que declaraba la IP muerta 159.223.213.237.
+# Es material de consulta puntual: se conserva en disco, fuera de git.
+_archivo/
