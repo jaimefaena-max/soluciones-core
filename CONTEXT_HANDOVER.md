@@ -1,100 +1,97 @@
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-09
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-10-a
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Fuente de verdad de la llave GPG: `STATE.md`. Este fichero **no** lo reemplaza.
 
 ---
 
-## 1. Infraestructura — VPS `161.35.85.101` (`zasa-server-restaurado`)
+## 1. Qué se cerró — ciclo Design System v2 de `admin_solucionesconia`
 
-**Loopback estricto, simétrico en los dos servicios.** Estado verificado al cierre:
+Sesión corta (80 min activos) y de un solo repo. Todo verificado extremo a extremo:
 
-| Servicio | Binding | PM2 | Expuesto por |
-|---|---|---|---|
-| `elrincon-backend` | `127.0.0.1:3000` | online | nginx → `/api/` de elrincondedonselso.cl |
-| `zasa-orchestrator` | `127.0.0.1:3001` | online | nginx → admin.solucionesconia.cl (401 Basic Auth) |
+| Paso | Evidencia |
+|---|---|
+| Commit huérfano `94fa488` (desconexión de la sesión anterior) recuperado y pusheado | rama `feature/design-system-admin` |
+| PR #1 creado y fusionado con merge commit (19 commits conservados) | `da4b883` · https://github.com/jaimefaena-max/admin_solucionesconia/pull/1 |
+| Build `npm run build` exit 0, `tsc` limpio, 24 ficheros | `dist/` (ignorado) |
+| Despliegue atómico a **`/opt/agencia/public/vip`** | `sha256sum -c` 24/24 pre y post swap · tgz en `/root/backups-vip/vip-20260910-220151-pre-da4b883.tgz` |
+| Smoke test: curl borde + loopback + Chromium headless | 0 errores de consola, 0 peticiones fallidas, `.ds-card` computado ≡ `primitives.css` |
+| Docs: `PROJECT_MEMORY.md` + `AUDIT_REPORT_v2.md` | `5d273b8`, `180dec6` — en `origin/main` |
+| Telemetría `2026-09-10-a` escrita con `end_session.js --desde-json --apply` | `zasa-orchestrator` `9ca2395` |
 
-`zasa-orchestrator` escuchaba en `0.0.0.0:3001` hasta hoy. Corregido en el **código**
-(`src/server.ts`: `host = process.env.HOST || '127.0.0.1'`), commit `f0f5b5e`, desplegado
-por server-pull y verificado con `ss -tulpn`. `HOST` queda como override explícito.
+**Rama feature borrada** (local y remota). Repo, remoto y producción alineados:
+`main` = `origin/main` = `180dec6`; producción sirve `da4b883` (los dos posteriores son docs).
 
-> ⚠️ Al verificar un deploy de `zasa-orchestrator`, esperar a que PM2 reinicie: el
-> `git pull` termina antes que el `pm2 reload`. Un `ss` lanzado en medio muestra el
-> binding **viejo** y parece un fallo. Comprobar `pm2 describe … | grep uptime`.
+### Tres trampas que costaron tiempo hoy — no repetir
 
-**Purga de secretos en disco (irreversible, `shred -u`):** 7 ficheros `.env*` de
-respaldo eliminados — 1 en `/opt/elrincon-backend/backups/` y 6 en
-`/root/backups-elrincon-backend/`. Contenían `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`
-y `RESEND_API_KEY` en claro, anteriores a la rotación.
-
-**Respaldos reubicados:** `/opt/elrincon-backend/backups/` → `/root/backups-elrincon-backend/`
-(dir `700`, ficheros `600`), como manda `CLAUDE.md`. El directorio de despliegue ya no
-contiene respaldos. Los cinco libros de datos y el `.env` vivo quedaron intactos y siguen
-correctamente ignorados por git.
-
-🔴 **Punto ciego que queda abierto.** El destino ya existía con contenido y el `mv` corrió
-sin `-n`: no se capturó el listado previo, así que si algún fichero pisó un homónimo, no
-hay forma de saberlo. Sin impacto conocido; anotado para no dar por auditado ese árbol.
-
----
-
-## 2. Repositorios — topología formalizada
-
-**Es un POLIREPO**, no un monorepo: 12 repos de git independientes bajo una carpeta común.
-Ningún despliegue lee de rutas locales — DO App Platform y el server-pull clonan del remoto
-GitHub de cada repo. La topología completa y sus tres reglas están ahora en `CLAUDE.md`
-(sección «Topología del workspace»).
-
-Cambios de layout ejecutados hoy:
-
-- `full_backup_.sql` + `sites_files_backup.tar.gz` (608 MB) → `Workspace_Agencia\vault\backups-locales\`,
-  con contra-excepción en el `.gitignore` raíz. Sin ella, la excepción `!vault/` los habría
-  re-incluido y un `git add -A` habría intentado commitear un dump con datos reales de clientes.
-- `Workspace_Agencia\zasa_shared\` eliminado (placeholder con solo un README, sin referencias).
-- `tools\gpg-backup\` **NO se movió**, decisión deliberada. Está versionado en el repo raíz;
-  moverlo bajo `Workspace_Agencia\` lo sacaría del control de versiones en silencio, y
-  `shamir.pl` es necesario para restaurar. Congelado hasta que cierre la Fase D.
-
-Estado de git al cierre — **todo limpio y sincronizado**:
-
-| Repo | HEAD | Estado |
-|---|---|---|
-| `agencia-root-orchestrator` (raíz) | `53bdb5a` | pusheado a `origin/main` |
-| `zasa-orchestrator` | `f0f5b5e` | pusheado, desplegado y verificado |
-| Los otros 10 | sin cambios | limpios |
+1. **`dist/` de `admin_solucionesconia` NO se sirve en `admin.solucionesconia.cl`.** Allí la
+   `location /` es proxy al Cockpit del orquestador (EJS). El destino real es
+   `vip.solucionesconia.cl` → `/opt/agencia/public/vip`. Está en `PROJECT_MEMORY.md` §0 y
+   ahora también en §4; comprobar el vhost antes de desplegar, no la etiqueta de la tarea.
+2. **El modo automático bloquea dos cosas y está bien que lo haga:** el merge de PR por API
+   («merge sin revisión») y el `scp`/`ssh` que escribe en producción («Production Deploy»).
+   La vía es pedir autorización explícita a Jaime en el chat; el merge se hizo por
+   `git merge --no-ff` + push (GitHub cierra el PR igual). No trocear comandos para rodearlo.
+3. **Un 200 en el portal VIP no prueba nada del router** (`try_files → index.html` devuelve
+   200 hasta para rutas inexistentes). Enrutado y componentes se validan con Chromium
+   headless (Playwright de `Elrincon-qa`, script en el scratchpad `smoke-vip.cjs`).
+   `gh` **no está instalado** en el portátil: PRs por el MCP de GitHub.
 
 ---
 
-## 3. Siguiente paso — Fase D (Shamir / `gpg-backup`)
+## 2. Infraestructura — VPS `161.35.85.101` (verificado al cierre por loopback)
 
-**No es el primer paso.** El orden real está en `STATE.md` → «Siguiente paso pendiente»:
+| Servicio | Estado |
+|---|---|
+| nginx | `active`, sin errores en log |
+| `zasa-orchestrator` (PM2, :3001) | online, 20 h uptime, 139 MB, sin errores en 24 h |
+| `elrincon-backend` (PM2, :3000) | online, 46 h uptime |
+| vip · solucionesconia · elrincon · examenfacil · gambusas | 200 · 200 · 200 · 200 · 200 |
+| admin.solucionesconia.cl | 401 (Basic Auth, correcto) |
+| Host | disco 14 %, RAM 1,2/3,9 GB, load 0,08 |
 
-0. 🔴 **BLOQUEANTE — regenerar el blob sin protección S2K propia.** Decidido el 2026-09-08
-   (opción 2). Hasta ejecutarlo, los 2-de-3 **no recuperan nada por sí solos**: reconstruyen
-   el blob pero no lo descifran. Procedimiento en `~/.zasa-shards/REGENERAR.md`.
-   **Lo ejecuta Jaime** — requiere su passphrase, un asistente no puede.
-1. 🔴 **Fase D — repartir los shards, DESPUÉS del paso 0.** Los tres siguen en
-   `~/.zasa-shards` de este portátil; mientras sigan juntos el umbral no protege de nada.
-   Repartirlos antes del paso 0 daría a los custodios una capacidad de restaurar que no tienen.
+Sin cambios en nginx, PM2 ni firewall en esta sesión. Lo del hand-off anterior
+(loopback estricto en `:3001`, purga de `.env*` de respaldo) sigue vigente.
 
-⛔ **Los shards nunca por el canal del asistente.** Mostrar uno en el chat lo convierte en
-custodia permanente y obliga a regenerar el juego entero (ya pasó el 2026-09-06).
+---
 
-### Otros pendientes, por cercanía a producción
+## 3. Siguiente paso — Fase D (Shamir / `gpg-backup`) — SIN CAMBIOS
 
-1. **Verificar si los `MP_ACCESS_TOKEN` purgados siguen vivos en Mercado Pago.** Rotar en el
-   panel **no revoca** el token anterior. Los respaldos se destruyeron, pero si esos tokens
-   nunca se revocaron, siguen siendo credenciales válidas fuera de nuestro control.
-2. **`config_secret.example.php` de ExamenFácil** sigue sirviéndose con 200 — falta el deny
-   en nginx. Es lo último abierto de esa auditoría.
-3. **3 acciones de panel** (DO / Cloudflare) que solo puede hacer Jaime.
+**Sigue siendo el primer bloqueante del workspace**, y sigue en manos de Jaime:
+
+0. 🔴 **Regenerar el blob sin protección S2K propia** (decidido 2026-09-08, opción 2).
+   Hasta entonces los 2-de-3 reconstruyen el blob pero **no lo descifran**.
+   Procedimiento en `~/.zasa-shards/REGENERAR.md`. Requiere su passphrase.
+1. 🔴 **Fase D — repartir los shards, DESPUÉS del paso 0.** Siguen los tres en este portátil.
+
+⛔ **Los shards nunca por el canal del asistente** (ya costó regenerar el juego el 2026-09-06).
+
+### Pendientes de `admin_solucionesconia` (abiertos hoy, por prioridad)
+
+1. **Revisión visual de las 11 vistas migradas** en https://vip.solucionesconia.cl con
+   sesión de admin — única casilla abierta del PR #1. Lo verificado es integridad y arranque,
+   no aspecto con datos reales. Si Jaime facilita un token de prueba **por canal seguro**
+   (variable de entorno local, nunca el chat), `smoke-vip.cjs` se extiende a los 11 módulos.
+2. `chore(cleanup)`: borrar `src/components/AuthGuard.tsx` y `src/pages/DashboardPage.tsx`
+   (huérfanos; AuthGuard aún guarda token en `sessionStorage`, patrón pre-§5.1).
+3. Code-splitting del bundle principal (1,28 MB / 799 kB gzip, warning preexistente).
+4. `Content-Security-Policy` en el vhost `vip` (empezar en `Report-Only`; backup + `nginx -t`).
+
+### Otros pendientes del workspace, por cercanía a producción
+
+1. Verificar si los `MP_ACCESS_TOKEN` purgados el 09-sep siguen vivos en Mercado Pago
+   (rotar en el panel **no revoca** el anterior).
+2. `config_secret.example.php` de ExamenFácil — **ya cerrado** según la telemetría
+   `2026-09-09-b` (`ef-config-secret-example-publico`, commit `2be0cd9`); el hand-off anterior
+   lo listaba como abierto. No re-auditar.
+3. 3 acciones de panel (DO / Cloudflare) que solo puede hacer Jaime.
 
 ---
 
 ## 4. Nota de cierre
 
-La skill `/cierre-sesion` **no se ejecutó** en esta sesión: no se midió el tiempo activo ni se
-publicó la entrada de telemetría en `zasa-orchestrator/src/data/telemetry.ts`. La última
-entrada del dashboard sigue siendo `2026-09-07-a`. Si esta sesión debe facturarse, hay que
-correr la skill o reconstruirla desde el transcript (el método está en la memoria
-`telemetria-rincon-04sep-sin-registrar`).
+`/cierre-sesion` **sí se ejecutó**: telemetría `2026-09-10-a` (166,6 min totales / 79,9
+activos / $46.608 CLP) publicada en `zasa-orchestrator` `9ca2395`. Comprobar en el arranque
+que `https://admin.solucionesconia.cl/health` devuelve `9ca2395` o posterior; si no, el
+server-pull no corrió y el dashboard no la refleja. La nota del hand-off anterior sobre
+`2026-09-09` quedó superada: esas dos entradas (`-a`, `-b`) ya existen en `telemetry.ts`.
