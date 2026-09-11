@@ -93,6 +93,7 @@ scratchpad/
 *.asc
 shard-*
 master_sec*
+zasa-shard-*.tar
 id_rsa*
 id_ed25519*
 *.ppk

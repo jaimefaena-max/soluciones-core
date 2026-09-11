@@ -8,6 +8,17 @@
 
 ## Estado actual
 
+> 🔴 **Rotación del 2026-09-11 — esto manda sobre todo lo de abajo.** La clave `8F82F64B` fue
+> sustituida por «Backup Zasa» `9632DDAB 4DA58357 A81D8A0F BBFBD5D4 67B8FFF0` (subclave [E]
+> `1244E251EABC3365`), **nacida sin passphrase**: el blob es `AES256(PASS_shamir, privada_sin_S2K)`
+> y 2 shards bastan — el «doble factor no intencionado» queda resuelto por diseño, no por parche.
+> Verificado dos veces (descifrado real sin passphrase); ojo al paso de conversión en Windows que
+> documenta `RESTORE.md`. El VPS cifra a la nueva desde las 21:54 UTC (los 3 scripts, prueba manual
+> rc=0); los respaldos anteriores siguen a la vieja hasta que la retención de 30 días los purgue.
+> La vieja **ya no tiene respaldo soberano**: vive solo en el llavero del portátil, con su passphrase.
+> Fase D: paquetes individuales listos (`entrega/zasa-shard-N.tar`), **ninguna entrega hecha**;
+> tabla de custodias en `DISTRIBUCION.md`, fuera de git. Detalle operativo en la memoria del asistente.
+
 | Fase | Qué es | Estado |
 |---|---|---|
 | **A. Par de claves local** | Generar la clave maestra y exportar la pública | ✅ **Completada** (verificada) |
