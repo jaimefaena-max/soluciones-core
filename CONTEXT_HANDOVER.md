@@ -1,78 +1,50 @@
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-11-a (+ avance 2026-09-12, sin cerrar)
-
-> ⚠️ **Sesión 2026-09-12 EN CURSO, no cerrada con /cierre-sesion.** Lo de abajo es el
-> hand-off del 11-sep; este bloque resume lo que ya está en producción hoy para que un
-> corte de contexto no lo pierda. Detalle en las memorias `modulo-novedades-clientes`,
-> `incidente-secretos-borde-en-chat-2026-09-12` y `rate-limit-ip-real-cloudflare`.
->
-> **Cerrado y verificado el 12-sep (orquestador HEAD `fbd498a`, SPA `f9c2288`):**
-> Fase D del reparto GPG (3/3 🟢, locales destruidos) · robot `audit:vip` en CI (40 OK) ·
-> CSP/Permissions-Policy en vip y admin · rotación de API_SECRET_TOKEN y EDGE_SECRET ·
-> rate limit unificado (5/min, 429 JSON) + IP real de Cloudflare en nginx · JWT estricto
-> + revocación de sesiones · refactor `src/core` (DIP) · facturación Fase 2 (tabla) ·
-> portal VIP: ojo en contraseñas, reglas «letras y números (mín. 6)», canje sin
-> contraseña actual · **Módulo Novedades** (Cockpit `/portal/novedades` → portal del
-> cliente, adjuntos en `/opt/agencia/private/clientes-novedades`).
->
-> **Paso exacto siguiente:** Jaime entra como FORTE en https://solucionesconia.cl/acceso/
-> y comprueba la novedad de prueba #1 con su PDF; luego la retira desde el Cockpit.
-> Después: `/cierre-sesion` (telemetría 2026-09-12-a y reescritura de este fichero).
-> Pendientes menores: seed $30.000 FORTE en prod (no ejecutado), apt+reboot del VPS,
-> certificado de revocación fuera del portátil.
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-12-a
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Fuente de verdad de la llave GPG: `STATE.md` (nota de cabecera del 2026-09-11) y la
-> memoria `gpg-clave-nueva-9632DDAB-estado`. Este fichero **no** los reemplaza.
+> Memoria de arranque: `arranque-2026-09-13`. Fuente de verdad de la llave GPG: `STATE.md`.
+> Telemetría `2026-09-12-a` publicada (453,8 min activos · $264.717 CLP), verificada en `/health`.
 
 ---
 
-## 1. Qué se cerró — rotación GPG completa y auditoría 100 %
+## 1. Qué se cerró (todo verificado en producción, no «escrito»)
 
-Sesión de 64 min activos sobre infraestructura, sin código de producto. Todo
-verificado extremo a extremo, no «escrito»:
-
-| Paso | Evidencia |
+| Frente | Evidencia |
 |---|---|
-| Clave «Backup Zasa» `9632DDAB…67B8FFF0` **sin S2K**: blob AES-256 + shards 2-de-3 verificados dos veces (3 parejas, shard aislado rechazado, descifrado real **sin passphrase**); `~/zgn` destruido | `~/.zasa-shards/` · sha256 `9d9d2448…` / `098a477c…` / `150bb39f…` / `ae36ba9b…` |
-| Juego **duplicado** de la clave nueva (carpeta mal llamada `clave-vieja-…`, generación 17:12) destruido con `shred` | 13 ficheros, oficiales intactos por `sha256sum -c` |
-| VPS cifra a la clave nueva desde **21:54 UTC**: pública en `/root/.gnupg`, `RECIPIENT` en los 3 scripts, prueba manual rc=0, keyid `1244E251EABC3365` en `--list-packets` | `/usr/local/bin/{elrincon-json-backup,zasa-secure-backup,backup-dbs}.sh` · copias en `/root/backups-scripts/20260911-rotacion-gpg/` |
-| Fase D **preparada**: un `.tar` por fragmento en `~/.zasa-shards/entrega/`, `DISTRIBUCION.md` y `RESTORE.md` reescritos para la clave nueva | tabla de custodias `_por rellenar_`, **0 entregas** |
-| Auditoría 100 %: repos sin secretos (historial incluido), CI `84fa811` en verde y = HEAD en el VPS, VPS sin Docker con internos en loopback y ufw solo Cloudflare, admin. y vip. con TLS/HSTS y 401/403 en toda la API sin sesión | memoria `auditoria-cierre-2026-09-11` |
-| Repo raíz: `f97981f` (STATE.md + `.gitignore` con `zasa-shard-*.tar`) · telemetría `2026-09-11-a` → `452f7a0`, **publicada y verificada** en `/health` | `origin/main` en ambos |
+| **Fase D GPG cerrada**: 3 shards de `9632DDAB…` a Francisco, María y Ramón en 3 soportes, sha256 en destino, locales destruidos | `~/.zasa-shards/DISTRIBUCION.md` 3/3 🟢 |
+| **Perímetro**: `/api/sales-agent/tenants` cerrado · CSP + Permissions-Policy en vip y admin · IP real de Cloudflare (`conf.d/cloudflare-real-ip.conf`) → los límites por IP vuelven a contar · `API_SECRET_TOKEN` y `EDGE_SECRET` rotados tras imprimirlos por error en el chat | robot `audit:vip --strict` **40/40** en CI (monitor 15 min + post-deploy) |
+| **Auth**: rate limit unificado (5/min, 429 JSON) · JWT estricto + fail-fast · revocación stateful de sesiones (rotar clave = cerrar todas) | `tests/authRateLimit`, `clienteAuthZeroTrust`, `sesionRevocacion` |
+| **Refactor `src/core`** (DIP, puertos fail-closed, shims) · **Facturación Fase 2** (tabla `billing_statements`) | `0712d88`, `760f20b` |
+| **Portal VIP operativo para FORTE**: ojo en contraseñas, reglas «letras y números (mín. 6)», canje sin contraseña actual, `RBAC_ADMIN_TOKENS` | confirmado por Jaime: «quedó perfecto» |
+| **Módulo Novedades**: Cockpit `/portal/novedades` → portal del cliente con adjuntos (lista blanca por firma binaria, fuera del web root, proxy autenticado), acuse de lectura | orquestador `1e5c526`+`fbd498a`, SPA `f9c2288`; **E2E 22/22 como FORTE** en producción y purga de la novedad de prueba; 868 tests |
+| **Correo al fijar/cambiar contraseña** (Resend): bienvenida / aviso de seguridad, maquetación por tablas, **BCC de supervisión** a Jaime | `2857a88`; 12 tests; `CORREO_SUPERVISION_BCC` para redirigir/apagar |
 
-## 2. Qué quedó a medias
+Repos: `zasa-orchestrator` HEAD `7661a6f` (telemetría) · `admin_solucionesconia` `f9c2288` desplegado a `/opt/agencia/public/vip` (sha256 26/26) · raíz este commit. Todo en `origin/main`.
 
-- **Fase D — reparto de los shards (45 %).** Solo Jaime puede hacerlo: elegir la
-  custodia 1, copiar `entrega/zasa-shard-1.tar` al soporte físico, verificar el
-  `sha256sum` **en destino**, borrar el `.tar` y `shard-1.txt` locales, pasar la
-  fila a 🟢 en `DISTRIBUCION.md`. Luego 2 y 3, en momentos distintos. Nunca los
-  tres en un paquete; nunca marcar «entregado» sin verificar en destino.
+## 2. Paso exacto siguiente
 
-## 3. Trampas descubiertas (no volver a tropezar)
+**Jaime cambia la contraseña de FORTE una vez** (portal → «Contraseña de acceso») y confirma
+que llegan **dos correos**: el aviso al cliente y la copia oculta a su Gmail. Es la única
+verificación que Claude no puede hacer. Si no llega en 2 min: spam, y luego
+`pm2 logs zasa-orchestrator | grep correoService` (registra el motivo, nunca el destinatario).
 
-1. **Restaurar en Windows (GnuPG 2.4.9):** recién importada, la subclave da
-   `Bad secret key` (0/6). Hace falta `gpg --export-secret-keys <FPR> >/dev/null`
-   (o una firma) antes de descifrar (3/3). Está en `RESTORE.md` como paso obligatorio.
-2. **La clave vieja `8F82F64B` ya no tiene respaldo soberano**: sus shards se
-   sobrescribieron el 11-sep; vive solo en `~/.gnupg` del portátil con su passphrase.
-   Es la única que abre los respaldos anteriores al 11-sep 21:54 UTC, hasta que la
-   retención de 30 días los purgue (~11-oct). No borrar ese llavero.
-3. `gh` **no está instalado**; la API REST con el token de `git credential fill` sirve.
-4. Los «1.700 errores» diarios de `nginx error.log` son sondas de bots a rutas
-   inexistentes; los 40 `err` del journal son escáneres SSH. No son incidentes.
+## 3. Cola (menor, nada bloquea)
 
-## 4. Hallazgos menores abiertos (tarea `cockpit-hardening-perimetro-pendiente`)
+1. `apt` + reinicio del VPS (59 paquetes desde el 11-sep) — tarea `cockpit-hardening-perimetro-pendiente` al 90 %.
+2. Decidir el seed de $30.000 CLP de FORTE en producción (`scripts/seed-facturacion.ts`, idempotente).
+3. Certificado de revocación GPG fuera del portátil.
+4. `shard-2` de la clave VIEJA (entregado 09-06) y carpeta `zasa-shard-1\` vieja del pendrive de Francisco: recuperar y destruir.
 
-`/api/sales-agent/tenants` público lista IDs de clientes · sin CSP ni
-Permissions-Policy en admin./vip. · nginx sin `set_real_ip_from` de Cloudflare ·
-locations `/api/vip/` y `/widget/` en admin. responden 404 · VPS con 59 paquetes
-apt y **reinicio pendiente**.
+## 4. Trampas descubiertas (no volver a tropezar)
 
-Higiene aparte: `Workspace_Agencia\privado_agencia\Clientes\Jose` tiene documentos
-de identidad **sin rastrear** dentro de un directorio git. No se tocaron.
+1. **`fetch` de Node descarta la cabecera `Host`** (undici): una sonda por loopback cae en el vhost por defecto (admin, Basic Auth → 401) y parece un fallo de auth. Usar `https.request` con `Host` + `servername`, o `curl -H 'Host:'`. Costó 8 falsos fallos en el E2E.
+2. Node del sistema en el VPS es **v18**; PM2 corre con `/opt/node20`. Scripts de prueba: `NODE_PATH=…/app/node_modules /opt/node20/bin/node` y `require` por ruta absoluta.
+3. `sed -i "/location \/api\/ {/a …"` sin escapar barras rompió el vhost de vip; `nginx -t` lo paró antes del reload. Editar nginx con python, siempre con backup.
+4. La clave de Resend es **solo envío**: `GET /api-keys` → 401 `restricted_api_key` es normal.
+5. Sesión de cliente para pruebas en producción: emitirla con `dist/core/auth/clienteAuth.js` en el VPS y **revocarla en un `finally`**; el token no se imprime. Receta en la memoria `modulo-novedades-clientes`.
+6. `tsconfig.check.json` incluye `tests/`: vitest no tipa, `npm run typecheck` sí — correr ambos antes de commitear.
 
-## 5. Paso exacto siguiente
+## 5. Secretos y credenciales
 
-**Reparto del fragmento 1 (fase D)** — acción física de Jaime, ver §2. Mientras
-tanto, lo automatizable de mayor valor es cerrar `/api/sales-agent/tenants` (una
-guarda o retirar la ruta) y programar la ventana de reinicio del VPS.
+Ninguno en el repo ni en el chat de esta parte de la sesión. Los dos que se imprimieron el
+12-sep de madrugada están ROTADOS (memoria `incidente-secretos-borde-en-chat-2026-09-12`).
+Regla vigente: filtrar `hex≥40` y `proxy_set_header (Authorization|X-Edge-Proof)` al volcar nginx.
