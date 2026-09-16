@@ -66,7 +66,34 @@ Números al cierre: suites de Sofía **87/87**, suite completa **1055/1055**, `t
 `src/sofia/`. `zasa-orchestrator` `main` = `origin/main` = **`e57d5c1`**; producción = `d0348f5` (correcto: `e57d5c1`
 solo toca `tests/`).
 
-Trampas de esta sesión:
+### 0.c Sesión 2026-09-16-b — telemetría por sub-cerebro, rutas de consumo, compuerta CI y **Node 22 en producción**
+
+| Frente | Estado | Evidencia |
+|---|---|---|
+| **Telemetría granular por sub-cerebro**: tabla hija `ejecuciones_cerebros` (cerebro, modelo, tokens_prompt/completion, latencia_ms, llamadas, costo_estimado_usd), `sofia/costos.ts` con tarifas por entorno, `metricas[]` + `consumo` en `ResultadoPipeline`; migración `CREATE TABLE IF NOT EXISTS` aplicada en el **Postgres** de producción sin tocar las 20 filas históricas | ✅ desplegado | `d7e0794` · +22 tests |
+| **Rutas protegidas de consumo**: `GET /api/admin/sofia/consumo[/sesion/:id]` (guard RBAC + borde) y `GET /api/vip/:tenantId/consumo` (token HS256 del cliente; inquilino de la SESIÓN). Sin auth nueva: reutiliza `requiereRolAdmin` y `crearGuardCliente` | ✅ desplegado, 401 desde fuera | `9e5b711` · `tests/adminVipPortal.test.ts` 22/22 |
+| **Compuerta CI/CD** `deploy-admin-vip.yml`: typecheck + lint + `npm test` + escáner Zero Trust (263/263 ficheros, rama huérfana) ANTES de desplegar; job de pruebas sin secrets; `deploy-vps-4gb.yml` queda solo como `workflow_dispatch` de emergencia | ✅ activa (run 35062639696 verde) | `642cdd9` → `cd39732` → `4386af8` |
+| **Runtime de producción: `zasa-orchestrator` corre oficialmente en Node 22.23.2** (`/opt/node22`, tarball oficial con SHA-256 verificada). PM2 configurado (`exec_interpreter` y dump `resurrect` → `/opt/node22/bin/node`), `desplegar.sh` y scripts hermanos con `NODE_BIN` por defecto a `/opt/node22` y mínimo exigido Node ≥ 22, `engines >=22`. `/opt/node20` se conserva para rollback. **PM2 (demonio) y `elrincon-backend` siguen en el Node 18 del sistema a propósito**: fuera de alcance, no validados | ✅ verificado 06:17Z: `/health` ok, 0 errores, 0 reinicios, chat 200 | `1f67404` · CI y VPS alineados |
+
+Por qué Node 22 (no cosmético): `better-sqlite3` 13 hace **segfault (exit 139)** al abrir una base bajo Node 20.20.2 en
+Linux, con el prebuild y compilado desde fuente. Producción no lo sufría porque `DATABASE_URL` enruta a Postgres, pero
+la suite sí abre SQLite: la compuerta CI lo destapó en su primera ejecución (run 35057336828, deploy bloqueado).
+
+Números al cierre: suite completa **1104/1104** (57 ficheros), `tsc`/typecheck del repo completo 0, eslint 0 errores.
+`zasa-orchestrator` `main` = `origin/main` = producción = **`1f67404`**.
+
+Trampas de esta sesión (0.b + 0.c):
+- **El `desplegar.sh` que ejecuta un deploy es el ANTERIOR al `pull`** que él mismo hace: un cambio en sus defaults
+  (p. ej. `NODE_BIN`) solo aplica desde el deploy siguiente. Tras cambiar el runtime hubo que conmutar a mano una
+  segunda vez (`NODE_BIN=/opt/node22/bin/node pm2 startOrReload ecosystem.config.js --update-env && pm2 save --force`).
+- El `node` "global" del VPS es el **18 de apt**; `/opt/node20` y `/opt/node22` no están en ningún PATH: el orquestador
+  elige intérprete por `NODE_BIN` (ecosystem). No tocar `/usr/local/bin/node`: arrastraría a `elrincon-backend`.
+- `workflow_call` local rechazado por GitHub con la compuerta ya en verde («'jobs.deploy.uses' is not allowed»): el job
+  de despliegue va inlinado en `deploy-admin-vip.yml`; la lógica SSH está duplicada en los dos YAML (documentado).
+- La API de Actions no expone el error de un `workflow_call` fallido; solo la UI. `head_sha=` exige el SHA completo.
+- `npm run typecheck` (tsconfig.check.json) incluye `tests/`; `tsc -p .` no. La compuerta usa el primero.
+- El escáner del pre-commit mira lo *staged contra HEAD*: en CI, `git checkout --orphan` + `git add -A` para que cubra
+  el árbol entero.
 - **El deploy NO va por tags**: `deploy-vps-4gb.yml` es `on: push: branches: [main]` con `paths: ['src/**']`. Un merge
   a `main` que toque `src/` despliega en ~2 min. Se pidió documentar lo contrario y se corrigió antes de fusionar.
 - `src/sofia/herramientas.ts` aparece como **binario** en `git diff`/GitHub por el carácter de control literal de
@@ -95,6 +122,8 @@ activos, 4 dominios 200, perímetro 401/403 en origen y borde.
 de test en verde); `admin_solucionesconia` `main` = `origin/main` = **`5871903`**, bundle del widget en producción ≡ HEAD.
 **Estado al cierre del 2026-09-16-a**: `zasa-orchestrator` `main` = `origin/main` = **`e57d5c1`**, producción = **`d0348f5`**
 (54 ficheros de test, 1055 en verde); ninguna rama de trabajo pendiente; multicerebro desplegado en Dark Launch (ver 0.b).
+**Estado al cierre del 2026-09-16-b**: `zasa-orchestrator` `main` = `origin/main` = producción = **`1f67404`** (57 ficheros,
+1104 tests en verde); **runtime Node 22.23.2 en /opt/node22**, compuerta CI activa; sin ramas de trabajo pendientes (ver 0.c).
 
 ## 2. Paso exacto siguiente
 
@@ -111,6 +140,9 @@ demás está medido en Chromium y en producción con el fixture.
    el PR #5: Llama 3.1 como fallback local (puerto de proveedor sobre la misma interfaz chat-completions + tools,
    `SOFIA_FALLBACK_MOTOR`, desactivado por defecto). La herramienta OSINT sigue **sin implementar**; requisitos
    previos: timeout por herramienta con `AbortController`, egress por API con allowlist, saneado del `tool_result`.
+0b. **Node 18 del sistema**: el demonio de PM2 y `elrincon-backend` siguen en 18.19.1 (apt). Planificar su subida a
+   22 con ensayo propio; hasta entonces no tocar `/usr/local/bin/node`. Widgets de consumo en la SPA
+   (`admin_solucionesconia`): la API ya está (`/api/admin/sofia/consumo`, `/api/vip/:tenantId/consumo`).
 1. **Aviso activo** cuando `security-telemetry.sh` devuelva `rc=10` (hoy solo escribe): correo por Resend o entrada
    en la telemetría del Cockpit. El cron ya corre; falta el canal.
 2. `tenant-purge.sh`: ejercitar el camino **COMMIT real** contra un fixture desechable (solo se ha probado en seco).
