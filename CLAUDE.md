@@ -1,6 +1,6 @@
 # Workspace de Jaime — C:\Proyectos
 
-Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referencian entre sí. Abrir Claude Code siempre en `C:\Proyectos`.
+Espacio de trabajo centralizado con **12 repos de git** (11 proyectos + el portal privado de Jose) que se referencian entre sí. Abrir Claude Code siempre en `C:\Proyectos`.
 
 ## Proyectos
 
@@ -8,12 +8,13 @@ Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referenci
 
 | Carpeta | Repo GitHub | Qué es | Producción |
 |---|---|---|---|
-| `Workspace_Agencia\Agencia_Solucionesconia\` | `solucionesconia` | La agencia (landing, assets). Los clientes viven en `Clientes\` (Jose, _Plantilla_Portal_SPA) | solucionesconia.cl |
-| `Workspace_Agencia\admin_solucionesconia\` | `admin_solucionesconia` | Frontend B2B (Vite/React) del chat/dashboard de admin.solucionesconia.cl. El backend operativo vive en `zasa-orchestrator` | admin.solucionesconia.cl (frontend) |
+| `Workspace_Agencia\Agencia_Solucionesconia\` | `solucionesconia` | La agencia (landing, assets, `nginx/vip-portal.conf.plantilla` y su `deploy.sh`). **Sin CI**: `deploy.sh` se lanza a mano en el VPS. El material privado de clientes NO está aquí: vive en `Workspace_Agencia\privado_agencia\Clientes\` (Jose, forte-spa, Liset Saavedra, `_Plantilla_Portal_SPA`), fuera de git salvo Jose | solucionesconia.cl |
+| `Workspace_Agencia\admin_solucionesconia\` | `admin_solucionesconia` | Frontend B2B (Vite/React): la SPA del Portal VIP/Cockpit y el bundle del widget de Sofía (`public/widget/vendedor-ia-v17.js`, rastreado). El backend operativo vive en `zasa-orchestrator`. El `dist/` de la SPA se copia a mano a `/opt/agencia/public/vip` (**vip.**, no admin.) y el widget a `/opt/agencia/public/widget/` | vip.solucionesconia.cl (SPA) · admin.solucionesconia.cl/widget/ (bundle) |
+| `Workspace_Agencia\privado_agencia\Clientes\Jose\` | (privado; **el clon local no tiene `origin` configurado**, rama `master`) | Portal privado del cliente Jose; su `.github/workflows/deploy.yml` lo despliega a `/var/www/elrincondedonselso/public/jose` (ver Infraestructura). Es el 12.º repo del workspace | elrincondedonselso.cl/jose/ (Basic Auth) |
 | `Workspace_Clientes\Elrincon\` | `elrincondedonselso` | Libro web "El Rincón de Don Selso": 11 capítulos + epílogo en HTML estático puro. El backend de pagos NO está aquí: vive en el repo hermano `Elrincon-backend\` | elrincondedonselso.cl |
 | `Workspace_Clientes\ExamenFacil\` | `examenfacil-cl` | Plataforma ExamenFacil | examenfacil.cl |
 | `Workspace_Clientes\AuditorLegal\` | `auditorlegal` | Web estática con `api_handler.php` | — |
-| `Workspace_Agencia\zasa-orchestrator\` | `zasa-orchestrator` | Orchestrator Fastify+TS (Cockpit ZASA + telemetría `src/data/telemetry.ts`). Deploy: push → DO App Platform | admin.solucionesconia.cl |
+| `Workspace_Agencia\zasa-orchestrator\` | `zasa-orchestrator` | Orchestrator Fastify+TS (Cockpit ZASA + telemetría `src/data/telemetry.ts`). Deploy: push a `main` → `deploy-admin-vip.yml` (typecheck + lint + tests + escáner Zero Trust) → VPS por SSH, PM2 en `:3001` (~2 min). DO App Platform se retiró el 2026-09-07 | admin.solucionesconia.cl |
 | `Workspace_Clientes\GambusasChile\` | `gambusaschile` | E-commerce de carnada de pesca (gambusas **curadas en sal / deshidratadas**, seleccionadas, se despachan congeladas — NO son vivas). PHP nativo, Resend/MercadoPago por cURL puro, Bóveda de Titanio | gambusaschile.cl (live, HTTPS) |
 | `Workspace_Clientes\Elrincon-backend\` | `elrincon-backend` | Microservicio de pagos y acceso de El Rincón (Node `http` nativo + SDK Mercado Pago, sin Express). **Sin CI**, pero `/opt/elrincon-backend` **es un checkout de git**: se despliega con `git pull` + `pm2 restart`, nunca por `scp` (ver Infraestructura) | `/api/` de elrincondedonselso.cl |
 | `Workspace_Clientes\Elrincon-qa\` | `Elrincon-qa` | Suite E2E del embudo de El Rincón (Playwright, 8 pruebas en ~15 s): muro de pago, precio y navegación. `cd Elrincon-qa && npm test` | — (local / CI) |
@@ -24,8 +25,8 @@ Espacio de trabajo centralizado con 11 proyectos (repos GitHub) que se referenci
 
 Consolidada el 2026-09-09. **Esto es un polirepo, no un monorepo**: 12 repos de git
 independientes que comparten una carpeta local. Ningún despliegue lee de una ruta
-local — DO App Platform y el server-pull del VPS clonan del remoto GitHub de cada
-repo (`repo: jaimefaena-max/<nombre>` en `do-app.yaml`). Mover carpetas en Windows
+local — los pipelines (GitHub Actions por SSH al VPS; DO App Platform se retiró el
+2026-09-07) clonan del remoto GitHub de cada repo. Mover carpetas en Windows
 no rompe ningún pipeline; fusionar los `.git` sí rompería todos.
 
 | Directorio | Qué admite | Qué NO admite |
@@ -39,8 +40,8 @@ Tres reglas que se han roto antes y cuestan caras:
 1. **`tools\gpg-backup\` se queda en la raíz.** Está versionado en
    `agencia-root-orchestrator`; moverlo bajo `Workspace_Agencia\` lo mete en una
    ruta ignorada y lo saca del control de versiones sin avisar. Es el motor Shamir
-   de la llave dividida, con la Fase D todavía abierta, y `STATE.md` documenta su
-   ruta absoluta. Se revisará cuando la Fase D cierre, no antes.
+   de la llave dividida y `STATE.md` documenta su ruta absoluta. La Fase D cerró el
+   2026-09-12; la reubicación puede revisarse, pero sigue sin haber motivo para moverlo.
 2. **`vault\backups-locales\` no se versiona.** Es la contra-excepción del
    `.gitignore`: `vault\` sí se respalda, sus volcados de producción no.
 3. **Antes de reubicar cualquier carpeta, `git ls-files` primero.** Lo que ya
@@ -119,7 +120,7 @@ Rollback: `git checkout <sha-anterior> && pm2 restart elrincon-backend`.
 
 Ante **cualquier saludo** de Jaime ("hola", "buenas", "buenos días", "qué tal", "arrancamos"…) o cualquier pedido de estado, ejecutar **de inmediato y sin pedir permiso** la skill `/inicio-sesion` (en `.claude/skills/inicio-sesion/`). No esperar a que Jaime lo pida ni preguntar si quiere el resumen.
 
-La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 6 repos (rama, cambios sin commitear, ahead/behind, último commit) y la salud de los **6 endpoints de producción** (~8 s), lee las memorias, y entrega un **Resumen Ejecutivo del Estado Operativo** con cuatro bloques: (1) estado operativo con semáforo, (2) dónde quedamos, (3) bloqueadores activos con su vía de desbloqueo, y (4) plan inmediato priorizado **por cercanía a producción**.
+La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 11 repos locales del polirepo (rama, cambios sin commitear, ahead/behind, último commit; el portal de Jose queda fuera porque su clon no tiene `origin`) y la salud de los **7 endpoints de producción** —incluido el Portal VIP en `vip.`— (~10 s), lee las memorias, y entrega un **Resumen Ejecutivo del Estado Operativo** con cuatro bloques: (1) estado operativo con semáforo, (2) dónde quedamos, (3) bloqueadores activos con su vía de desbloqueo, y (4) plan inmediato priorizado **por cercanía a producción**.
 
 Regla central del diagnóstico: separar siempre **repo / remoto / producción**. Un repo limpio y sincronizado NO significa desplegado — en este workspace la landing y el widget se despliegan a mano. Nombrar el **drift** explícitamente. Cuando una memoria choque con la salida del script, gana el script.
 

@@ -1,30 +1,45 @@
 # STATE — Respaldo soberano de la clave GPG (ExamenFácil / solucionesconia.cl)
 
-> Última actualización: **2026-09-08**
+> Última actualización: **2026-09-22** (cierre de la auditoría Zero Trust; ver la sección final)
 > Objetivo del hilo: cumplir Ley 20.584 con respaldos cifrados de ExamenFácil bajo un esquema de llave dividida.
 > Este documento es la fuente de verdad del avance. **Todo lo marcado ✅ fue verificado con salida real de comando; nada se da por hecho.**
+> Las secciones por debajo de «Estado actual» son el **registro histórico** de cómo se llegó aquí
+> (hallazgos del 09-05 y 09-08 incluidos): describen problemas ya cerrados por la rotación del 09-11.
 
 ---
 
 ## Estado actual
 
-> 🔴 **Rotación del 2026-09-11 — esto manda sobre todo lo de abajo.** La clave `8F82F64B` fue
-> sustituida por «Backup Zasa» `9632DDAB 4DA58357 A81D8A0F BBFBD5D4 67B8FFF0` (subclave [E]
+> 🟢 **Las cuatro fases están cerradas (2026-09-12).** La clave `8F82F64B` fue sustituida el
+> 2026-09-11 por «Backup Zasa» `9632DDAB 4DA58357 A81D8A0F BBFBD5D4 67B8FFF0` (subclave [E]
 > `1244E251EABC3365`), **nacida sin passphrase**: el blob es `AES256(PASS_shamir, privada_sin_S2K)`
 > y 2 shards bastan — el «doble factor no intencionado» queda resuelto por diseño, no por parche.
 > Verificado dos veces (descifrado real sin passphrase); ojo al paso de conversión en Windows que
-> documenta `RESTORE.md`. El VPS cifra a la nueva desde las 21:54 UTC (los 3 scripts, prueba manual
-> rc=0); los respaldos anteriores siguen a la vieja hasta que la retención de 30 días los purgue.
-> La vieja **ya no tiene respaldo soberano**: vive solo en el llavero del portátil, con su passphrase.
-> Fase D: paquetes individuales listos (`entrega/zasa-shard-N.tar`), **ninguna entrega hecha**;
-> tabla de custodias en `DISTRIBUCION.md`, fuera de git. Detalle operativo en la memoria del asistente.
+> documenta `RESTORE.md`. El VPS cifra a la nueva desde las 21:54 UTC del 09-11 (los 3 scripts,
+> prueba manual rc=0); los respaldos anteriores siguen a la vieja hasta que la retención de 30 días
+> los purgue. La vieja **ya no tiene respaldo soberano**: vive solo en el llavero del portátil.
+> **Fase D ejecutada el 2026-09-12**: los tres fragmentos están repartidos en tres custodias con
+> modos de fallo independientes (tabla en `~/.zasa-shards/DISTRIBUCION.md`, fuera de git);
+> comprobado el 2026-09-22 que en el portátil quedan **0 shards** y no existe `entrega/`.
+> El 2026-09-22 la **pública** de la clave nueva se importó al llavero del portátil (exportada del
+> VPS, huella verificada) para cifrar el volcado local `vault/backups-locales/full_backup_.sql.gpg`
+> a las dos claves (nueva + vieja), con round-trip real verificado.
 
 | Fase | Qué es | Estado |
 |---|---|---|
-| **A. Par de claves local** | Generar la clave maestra y exportar la pública | ✅ **Completada** (verificada) |
-| **B. Import y auditoría en el VPS** | Llevar la pública al servidor y probar que la privada no está ahí | ✅ **Rehecha y verificada el 2026-09-06** con la clave rotada |
-| **C. Shamir 2-de-3 de la passphrase** | Passphrase → cifrar la privada → partir la passphrase en 3 | ⚠️ **Ejecutada y verificada el 2026-09-06, pero SIN resolver antes el hallazgo del 09-05** — el blob resultante exige 2 shards **y** la passphrase de la clave. Pendiente regenerarlo (ver «Doble factor no intencionado») |
-| **D. Distribución a custodios** | Repartir los 3 shards a modos de fallo independientes | 🟡 **REINICIADA con juego limpio el 2026-09-06 03:01** — el primer juego se descartó por exposición de procedimiento; el nuevo está verificado, pero los tres fragmentos **siguen en este portátil** y el reparto no ha empezado |
+| **A. Par de claves local** | Generar la clave maestra y exportar la pública | ✅ **Completada** (rotada el 2026-09-11 a `9632DDAB`, sin S2K) |
+| **B. Import y auditoría en el VPS** | Llevar la pública al servidor y probar que la privada no está ahí | ✅ **Verificada el 2026-09-11** con la clave rotada (el llavero del VPS conserva también la pública vieja; uids distintos, sin ambigüedad) |
+| **C. Shamir 2-de-3 de la passphrase** | Passphrase → cifrar la privada → partir la passphrase en 3 | ✅ **Cerrada el 2026-09-11** por la rotación: el blob nuevo no arrastra S2K y 2 shards descifran y USAN la clave (el doble factor del 09-05/09-08 quedó resuelto) |
+| **D. Distribución a custodios** | Repartir los 3 shards a modos de fallo independientes | ✅ **Ejecutada el 2026-09-12** — 3 custodias, 0 fragmentos en el portátil (verificado en disco el 2026-09-22) |
+
+### Deuda que sigue abierta en este hilo (2026-09-22)
+
+1. **Los dos certificados de revocación** (`~/.gnupg/openpgp-revocs.d/`: clave vieja y nueva) siguen
+   en la misma máquina que la clave vieja. Guardarlos aparte.
+2. **`shard-2` del juego viejo** (entregado a una custodia externa el 09-06 y hoy inservible): recuperarlo
+   y destruirlo, o quedará un fragmento que parece válido y no lo es.
+3. **Ningún proceso real de ExamenFácil** cifra y saca datos todavía: hay clave y custodia, no flujo.
+4. Regla vigente: ningún fragmento vuelve a pasar por un canal que deje registro (chat, correo, captura).
 
 ### Fase A — completada
 
@@ -108,7 +123,11 @@ No hay ningún artefacto de la fase C en disco: ni `secure_backups/`, ni `~/.zas
 
 ---
 
-## Siguiente paso pendiente
+## Siguiente paso pendiente (HISTÓRICO — superado el 2026-09-11/12)
+
+> Esta sección describe el estado del **2026-09-08**. El paso 0 se resolvió el 09-11 rotando a una
+> clave sin S2K (no regenerando el blob de la vieja) y el paso 1 se ejecutó el 09-12. Se conserva
+> por el razonamiento; el estado vigente está en «Estado actual».
 
 **Las fases A y B están cerradas. La C se ejecutó pero produjo un blob de doble factor; la D está bloqueada por ello.** En este orden:
 
@@ -287,8 +306,8 @@ Se regenera el blob exportando la privada **sin** protección propia, de modo qu
 
 ## Deuda abierta, fuera de la ruta crítica
 
-- **`161.35.85.101` no está en `CLAUDE.md`.** Un `grep -rn` sobre `C:\Proyectos` da cero resultados; solo existía en `~/.ssh/known_hosts`. Recibe material criptográfico y nadie puede auditar qué corre ahí. Falta que Jaime confirme qué es y de qué se «restauró», y agregarlo a la tabla de infraestructura junto a `159.223.213.237` y `161.35.157.69`.
-- **La pública en el VPS quedó con confianza `[ unknown]`.** Cifrar contra ella exigirá `--trust-model always` o fijar ownertrust:
+- ~~**`161.35.85.101` no está en `CLAUDE.md`.**~~ **CERRADO**: desde el 2026-09-07 es el **origen único** del workspace (`zasa-server-restaurado`) y está documentado en la sección «Infraestructura compartida» de `CLAUDE.md`; `159.223.213.237` y `161.35.157.69` fueron destruidos en la consolidación.
+- **La pública en el VPS quedó con confianza `[ unknown]`.** Cifrar contra ella exigirá `--trust-model always` o fijar ownertrust (la huella de abajo es la de la clave vieja; para la nueva, `9632DDAB…67B8FFF0`):
   ```
   ! ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 "echo '264BA15BA5D83EA58FAB0E648F82F64B25BF3A7A:6:' | gpg --import-ownertrust && gpg --list-keys"
   ```
@@ -326,3 +345,31 @@ Ninguno contiene secretos.
 ## Nota sobre la numeración
 
 Los prompts de esta sesión usaron «Fase 1» y «Fase 2» con significados distintos en momentos distintos (`FASE2_VPS_OK` para el VPS, luego `FASE1_SHARDS_OK` para los shards, que es cronológicamente posterior). Este documento usa **A/B/C/D en orden cronológico real** para cortar esa ambigüedad. Si retomas con los nombres viejos, traduce contra la tabla de arriba.
+
+---
+
+## Auditoría Zero Trust del 2026-09-22 — estado de mitigación
+
+Auditoría no destructiva de `Workspace_Agencia` (seguridad, Design System v2, deuda técnica) ejecutada en
+tres fases el mismo día. **Todo lo marcado ✅ está verificado con salida real de comando** (sonda en loopback
+del VPS, `/health`, tests, `Get-Acl`); lo marcado 🟡 depende de una acción que solo puede hacer Jaime.
+
+| Id | Hallazgo | Corrección | Estado (2026-09-22) |
+|---|---|---|---|
+| **C1** | Token de Cloudflare `cfut_…` (purga de caché) impreso en la salida de una sesión de asistente al inspeccionar `zasa-orchestrator/.env.test.txt` | Fichero retirado (Papelera). **Rotar el token en Cloudflare → API Tokens** | 🟡 fichero fuera; **rotación pendiente de confirmación de Jaime** |
+| **C2** | Volcado MySQL de producción en claro (`ef_datos_clinicos`, `consultas_oncologicas`, `usuarios`, `pagos`, hashes de `mysql.user`) en `vault/backups-locales/` con ACL heredada | Cifrado a 2 destinatarios (`1244E251EABC3365` nueva + `0E1B95536BFAE3F2` vieja), **round-trip real** con sha256 idéntico; texto claro a la Papelera | ✅ cifrado verificado · 🟡 **vaciar la Papelera** (el texto claro sigue ahí hasta entonces) · `sites_files_backup.tar.gz` (607 MB) sigue en claro, fuera del alcance |
+| **A1** | nginx ocultaba la CSP estricta del orquestador y reabría `'unsafe-inline'` en `/vip/` | `solucionesconia#1` (`11a14c6`, fusionado 07:23Z): CSP pass-through desde `csp.ts`, `X-Edge-Proof` en `/api/auth/`, `/api/vip/`, `/vip/`; `verificar-portal.sh --plantilla` como `npm test` y sonda `--post` de CSP | ✅ fusionado · 🔴 **NO desplegado**: la landing no tiene CI; el snippet del VPS sigue siendo el viejo (0 `X-Edge-Proof` en `/api/vip/`, CSP laxa servida). Se aplica con `deploy.sh` en el VPS (renderiza, `--pre`, recarga, `--post`) |
+| **A2** | `POST /api/vip/:t/sesion` sin prueba de borde (impersonación con token maestro), sin actor ni vía en el log | `zasa-orchestrator#6` (`b6a05da`): el hook exige `X-Edge-Proof` a toda credencial de cabecera en `/api/vip`; la emisión lo exige antes de consultar la base y audita `via` (`bearer-inquilino`/`proxy-staff`) | ✅ desplegado (`/health` = `65d7709`, 07:28Z); sondas: Bearer sin borde → 403, con borde (`admin.`/`vip.`) → 401 del guard, cookie → 401 |
+| **A3** | `EDGE_SECRET` vacío = fail-open | `pruebaDeBordeValida` fail-closed; `pruebaDeBordeEstricta` alias; `verificar.sh` y `asegurar-env.mjs` alineados; ADR-002 §9 | ✅ desplegado con #6; producción tiene el secreto (0 rechazos reales en el log tras el arranque) |
+| **A4** | Vhosts `admin.`/`vip.` y `conf.d/cloudflare-real-ip.conf` solo en el VPS | — | ⬜ **abierto** (fuera de las fases 1-3) |
+| **A5** | Credenciales locales con custodia duplicada y ACL heredada | `do-env-vars.txt`, JSON de cuenta de servicio, `.env.forte-invitacion.txt`, `.env.test.txt` a la Papelera; `icacls` (solo LENOVO + SYSTEM) en `.env` ×2, `.env.production`, `gha_deploy_key` | ✅ ACL verificada con `Get-Acl` · 🟡 vaciar la Papelera · `.env.local.txt` (token público del widget) sin tocar |
+| **A6** | `localhost:5173/4173` en `allowedOrigins` de los 4 tenants y en la CORS global, en producción | `ORIGENES_DESARROLLO` solo con `NODE_ENV` `development`/`test` (ausente = deniega); datos de tenants sin localhost | ✅ desplegado con #6 (`ecosystem.config.js` fija `production`) |
+| **A7** | Host de DO destruido cableado en `analyzeController.ts` (toda `audioUrl` era 404) | `PUBLIC_BASE_URL` (`core/http/urlPublica.ts`); documentada en `.env.example` y plantilla de producción | ✅ fusionado y desplegado · 🟡 **`PUBLIC_BASE_URL` no está en el `.env` del VPS**: `audioUrl` va a `null` con aviso hasta añadirla (`https://admin.solucionesconia.cl`). `examenfacil-cl/claude_handler.php:19` (otro repo) sigue apuntando al host muerto |
+| **A8** | CSS del widget duplicado y divergente (254 líneas) entre `globals.css` y `salesAgentWidget.css` | `admin_solucionesconia#2` (`e96a2ee`): `SalesAgentWidgetAislado` (shadow DOM + la misma hoja) en la SPA; copia de `globals.css` eliminada (−587 líneas); regla `reduced-motion` portada al bundle | ✅ fusionado · swap del bundle en producción: ver Fase 3 · 🟡 revisión visual del FAB con sesión de admin (Jaime) |
+| **A9** | `--space-5` inexistente → `.td__metric` sin padding | `var(--space-4) var(--space-6)` | ✅ fusionado (en el `dist` servido resuelve el token correcto) |
+| **A10** | `.um` era a la vez UptimeMonitor y UserMenu (48 px de `margin-top` heredados en la cabecera) | UserMenu → bloque `.mu` | ✅ fusionado |
+| **A11** | `AuthGuard.tsx` y `DashboardPage.tsx` muertos | Eliminados con su CSS exclusivo (`dashboard.css` 360→192); `scripts/verificar-estilos.mjs` como `npm test` (detecta A8/A9/A10 contra el `main` anterior) | ✅ fusionado |
+
+Regla que deja esta auditoría: **repo ≠ producción**. Los tres PRs fusionados no significan tres cambios
+vivos: el orquestador despliega solo (`deploy-admin-vip.yml`), la SPA y el widget se copian a mano, y la
+landing/nginx se aplica con `deploy.sh` en el VPS. El cierre real de A1 es ese `deploy.sh`.
