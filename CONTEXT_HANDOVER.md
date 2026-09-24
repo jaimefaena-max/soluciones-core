@@ -1,81 +1,92 @@
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-23-a (webhook de leads, CSP del widget, auditoría de datos del Portal VIP)
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-24-a (copiloto de BI «M. Jesús»: ADR-003, roles de Postgres y panel en vip.)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memorias de arranque: `arranque-2026-09-24` (este estado) y `csp-vip-bloquea-style-inline-shadow` (trampa nueva).
-> Hand-off anterior (2026-09-22-b, hardening Zero Trust del VPS): en el historial de este fichero (`5ef9a95`).
-> Sesión del 2026-09-23 22:06 UTC al 2026-09-24 04:46 UTC: **278,3 min activos** de 399,1 totales, **$162.342 CLP**.
-> Telemetría **publicada** (`zasa-orchestrator` `2c529b1`, entrada `2026-09-23-a`).
+> Memorias de arranque: `arranque-2026-09-25` (este estado), `mjesus-copiloto-bi` (arquitectura) y
+> `push-main-despliega-leer-handover` (lección de hoy).
+> Hand-off anterior (2026-09-23-a, webhook de leads + CSP del widget): en el historial de este fichero (`2dbe3ce`).
+> Sesión del 2026-09-24 05:17 UTC al 08:01 UTC: **95,4 min activos** de 164,1 totales (hubo una pausa por límite
+> de uso), **$55.650 CLP**. Telemetría **publicada y verificada** (`zasa-orchestrator` `bf487c4`, entrada
+> `2026-09-24-a`; `/health` = `bf487c4` y `dist/data/telemetry.js` la contiene).
 
 ---
 
-## 0. Qué se cerró — todo verificado en producción (VPS, sondas, navegador con CSP real)
+## 0. Qué se cerró — verificado en producción
 
 | Frente | Estado | Evidencia |
 |---|---|---|
-| **Webhook de leads de Sofía** | ✅ | `POST /api/webhook/leads` (hook global + guard `API_SECRET_TOKEN`), tabla `leads_sofia`, correos Resend, emisor con Bearer solo a hosts propios, `location` nginx sin Basic Auth. `zasa-orchestrator` `0e58e64` + `20526d8`, tag **`v2.5.0-webhook-leads`**. E2E en prod: 200 / 401 / 401 / 405; fila de prueba borrada |
-| **`.sql` público en ExamenFácil** | ✅ | `esquema_db.sql` daba 200 → 403 (vhost + `--exclude` en deploy). `examenfacil-cl` `f4c489d` |
-| **Widget de Sofía sin estilos en vip.** | ✅ | **Causa raíz: CSP `style-src 'self'` bloqueaba el `<style>` del shadow root** (desde `e96a2ee`, 22-sep). Arreglo `adoptedStyleSheets` `c89a8fa`; Jaime confirmó a la vista. Antes se tocó el host (fixed, `document.body`, pointer-events: `d5bfad7` `de6182d` `6e38e6c` `c35e280`) — inocuo, no era la causa |
-| **Auditoría de datos del Portal VIP** | ✅ H1 H2 H3 H5 H6 | `admin_solucionesconia/docs/auditoria-datos-admin.md`. H1 2FA falso `ed27eb2` · H2 aviso demo `cb97761` · H3 Auditoría → `GET /api/admin/auditoria` `5699203` · H5 código muerto (−1.025 líneas) `d1ec264` · H6 Plantillas `2dd0683`. Además Webhooks reales `f5dd61c` `f03f6da` y AuditLogger sin eventos inventados `df1f90c` |
+| **ADR-003 «M. Jesús»** (copiloto de BI) | ✅ aceptado | `zasa-orchestrator/docs/architecture/003-copiloto-bi-mjesus.md`. Alcance: solo Cockpit (rol admin), solo datos internos. Tres reglas innegociables: catálogo cerrado sin Text-to-SQL, rol `mjesus_ro`, verificador determinista de cifras. §10 = cierre de roles. `4bb0f19` `dd6bd3e` `1dea6c6` |
+| **Traspaso de `public` a `zasa_app`** | ✅ | La app conectaba **como superusuario `postgres`** y todo `public` era suyo. `deploy/vps-4gb/000_traspaso_propiedad_zasa_app.sql` (`c625ff1`), aplicado por Jaime. VPS: 35/35 objetos de `zasa_app`, `DATABASE_URL` conecta como `zasa_app`, `/health` ok |
+| **Vistas `bi_*` + rol `mjesus_ro`** | ✅ | `sql/bi/postgres/001_vistas_bi.sql`, `002_rol_mjesus_ro.sql` (verificación de privilegios efectivos dentro de la transacción), `deploy/vps-4gb/mjesus-inicializar-bi.sh`, `tests/vistasBi.test.ts` (`dd6bd3e`). VPS: `--sondas` **21/21**; escritura denegada incluso quitando el read-only |
+| **Panel de M. Jesús en vip.** | ✅ | Solo rol admin; Sofía sigue para el resto de roles, en la landing (bundle idéntico byte a byte) y en `/sofia`. Sin motor: entrada desactivada y aviso visible (`MOTOR_CONECTADO = false`). `admin_solucionesconia` `c11cb02` |
+| **Desborde horizontal en móvil** | ✅ | `overflow-x: clip` en `.vip__cuerpo` (no `hidden`: rompería la cabecera sticky), guarda `min(Npx, 100%)` en 16 rejillas, botón a 16 px + safe-area. `2fbbe26`, servido en vip. (`index-RTzTzUDQ.css`) |
 
-**Repos al cierre:** `admin_solucionesconia`, `zasa-orchestrator` y raíz limpios y `= origin/main`.
-`examenfacil-cl` conserva `api_handler.php` e `index.html` modificados **que no son de esta sesión** (ya estaban el 22-b).
-`AuditorLegal` tiene 3 cambios sin commitear, tampoco de esta sesión.
+**Repos al cierre:** `zasa-orchestrator` y `admin_solucionesconia` limpios y `= origin/main`. Raíz: este fichero y
+CLAUDE.md (commit de cierre). `examenfacil-cl`, `AuditorLegal` y `privado_agencia/Clientes/Jose` tienen cambios sin
+commitear **que no son de esta sesión**.
 
 ---
 
 ## 1. Paso exacto para arrancar
 
-🔴 **Bloqueado por Jaime (panel de Cloudflare):** rotar el token **`cfut_`** filtrado el 22-sep. **Sigue vivo en
-producción**: misma huella sha256 (`8c488bd6`) que `CLOUDFLARE_API_TOKEN` en `/opt/solucionesconia/.env`, que usa
-`deploy.sh` de la landing. Pasos: crear token nuevo con los mismos permisos → escribirlo Jaime en ese `.env` (nunca
-por el chat) → revocar el viejo → borrar las 2 líneas con `cfut_` de `/root/.bash_history`. Después Claude verifica
-por huella que ya no es `8c488bd6`.
+🔴 **Bloqueado por Jaime (panel de Cloudflare), heredado sin cambios:** rotar el token **`cfut_`** filtrado el
+22-sep. Sigue vivo: huella `8c488bd6` = `CLOUDFLARE_API_TOKEN` de `/opt/solucionesconia/.env` (lo usa `deploy.sh` de
+la landing). Token nuevo con los mismos permisos → escribirlo Jaime en ese `.env` → revocar el viejo → borrar las
+2 líneas con `cfut_` de `/root/.bash_history`. Después Claude verifica por huella.
 
 ---
 
 ## 2. Cola (por cercanía a producción)
 
 0. **Acciones de Jaime:**
-   - Vaciar de la Papelera de Windows los ficheros sensibles: `full_backup_.sql` (volcado clínico en claro),
-     `.env.test`, `config_secret.php`, `do-env-vars`, `.env.forte-invitacion`, `agencia-solucionesconia-77b2fe2662ad.json`.
-   - Confirmar `SALES_WEBHOOK_URL=https://admin.solucionesconia.cl/api/webhook/leads` en `/opt/zasa-orchestrator/.env`
-     (dijo haber configurado nginx/PM2; la variable **no se verificó**). Claude puede comprobarlo sin imprimir valores.
-   - Abrir **Auditoría** en vip. con sesión de admin: debe mostrar `sesion.iniciada` y `gestion.auditoria.ver` reales.
-   - Limpiar el E2E del 22-b: prospecto `delivered@resend.dev` en `prospectos` y el evento «Pedro Prueba Ficticia» (28-sep 09:00).
-1. **H7** — el widget del Portal VIP se monta sin `tenantId`. Decidir primero qué identidad corresponde en el portal
-   del equipo (quizá la genérica es la correcta y se cierra sin código).
-2. **H8** — prueba automatizada: build de producción + CSP real + fallo ante `securitypolicyviolation`.
-3. **H4** — `/api/integrations/keys` sirve claves `sk_live_…` estáticas (rotuladas `provisional`); falta almacén real.
-4. **H2 de fondo** — conectar Uptime/Analíticas/Retención/Errores a fuentes reales y retirar `AvisoDatosDemo`.
-5. Heredado del 22-b, sin tocar hoy: túnel `cloudflared` y `127.0.0.1` fuera de `set_real_ip_from`; `elrincon-backend`
-   en Node 18 EOL y Postgres como superusuario; receta manual de plantillas que aún crea `.bak` en `sites-available`;
-   `sincronizar-secretos-borde.sh` sin `vip-portal.conf`; MVG pilares 3 y 4; GambusasChile CI con huella obsoleta.
-6. `zasa-orchestrator/package.json` dice `2.4.0` y el tag es `v2.5.0` (la release anterior tampoco lo alineó).
-7. Telemetría de las sesiones **09-16-b y 09-22-a** sigue sin reconstruir (el dashboard salta de 09-16-a a 09-22-b).
+   - 🔴 **`/opt/zasa-orchestrator/.env.bak_superuser`** (600, root, 24-sep 06:19 UTC) guarda la `DATABASE_URL`
+     del **superusuario `postgres` con su contraseña**. `postgres` tiene contraseña y `pg_hba` admite `scram` por
+     loopback → credencial casi seguro válida. Orden: confirmar que nada usa `postgres` por TCP (los respaldos van por
+     `runuser` + `peer`) → `ALTER ROLE postgres PASSWORD NULL` → borrar el `.bak`. Claude puede verificar después.
+   - **Panel de M. Jesús «aparece y desaparece» en su móvil:** falta un dato. Tras desaparecer, ¿la URL es `/login`?
+     Descartados CSS, lógica por ancho/UA y choque con Sofía; no se reproduce emulado (375/320 px). La única vía de
+     desmontaje es un 401 → `window.location.assign("/login")` (`admin_solucionesconia/src/api/httpClient.ts:90`).
+     Si es `/login`, mirar 401 con UA móvil en `access.log` de vip.
+   - Pendientes del 23-a sin tocar hoy: Papelera de Windows (ficheros sensibles), confirmar `SALES_WEBHOOK_URL`,
+     ver Auditoría con sesión admin, limpiar el E2E del 22-b.
+1. **M. Jesús — resto de F1** (ADR-003 §8): `catalogo.ts` con las 7 métricas sobre `bi_*` y `derivar.ts`, con tests,
+   **sin LLM todavía**. Todo el SQL cualificado `public.bi_*`.
+2. **M. Jesús — F2/F3:** enrutador (Haiku), analista (Sonnet + tool use), verificador de cifras, `/api/admin/mjesus/*`
+   con `protegerPlugin` + `requiereRolAdmin`, `MJESUS_HABILITADO=admin`, y conectar el panel (`MOTOR_CONECTADO`).
+3. **H7 / H8 / H4** del Portal VIP (ver handover 23-a): tenantId del widget, prueba CSP automatizada, claves `sk_live` estáticas.
+4. PM2 marca **61 reinicios** acumulados de `zasa-orchestrator` (estable 51 min tras el cambio de rol). Mirar si son históricos o hay bucle.
+5. Heredados: `cloudflared` y `127.0.0.1` fuera de `set_real_ip_from`; `elrincon-backend` en Node 18 EOL y Postgres
+   como superusuario (mismo problema que se arregló hoy en `zasa_portal`); `.bak` en `sites-available`;
+   `sincronizar-secretos-borde.sh` sin `vip-portal.conf`; MVG 3 y 4; GambusasChile CI; `package.json` 2.4.0 vs tag v2.5.0;
+   telemetría 09-16-b y 09-22-a sin reconstruir.
 
 ---
 
 ## 3. Trampas nuevas (no volver a tropezar)
 
-1. **El dev server de Vite no aplica la CSP de vip.** Todo cambio visual del Portal VIP se verifica con build de
-   producción + `<meta>` CSP idéntica + `vite preview` (preview `widget-preview` sirve `dist/`; config temporal con
-   `mergeConfig` e `input` al arnés; regenerar `dist/` real al acabar). Con contraprueba.
-2. **Compuerta del widget en `deploy-vip.yml`:** tocar `salesAgentWidget.css` obliga a regenerar y commitear
-   `public/widget/vendedor-ia-v17.js` (`npm run build:widget`, token de `.env.production`); si no, el deploy se bloquea
-   en silencio y producción se queda en el build anterior.
-3. **El CSS servido está minificado:** `top/right/bottom/left` salen como `inset:…`. Buscar la forma minificada.
-4. **ripgrep no ve `Workspace_Agencia/*` ni `Workspace_Clientes/*`** desde la raíz: el `.gitignore` raíz los excluye.
-   Usar `grep -r` con `--exclude-dir`.
-5. **El clasificador bloquea `curl` a `/health` desde local** (motivo «TLS/Auth Weaken»). Verificar por SSH en loopback.
-6. **`gh` no está instalado** y el repo es privado: el estado de Actions se infiere en el VPS (fechas de `index.html`,
-   nombre del chunk = hash de contenido idéntico al build local).
-7. **Sondas lanzadas en el mismo SSH que un `nginx reload`** ven workers viejos (dan el estado anterior). Esperar 1–2 s.
-8. **Un GET a `/api/admin/auditoria` escribe `gestion.auditoria.ver`**: nada de sondeo periódico sobre ese endpoint.
+1. **Un push a `main` de `admin_solucionesconia` DESPLIEGA a vip.** (`deploy-vip.yml`, ~40 s). Ya lo decía el handover
+   del 23-a; hoy se empujó `c11cb02` sin saberlo porque la sesión no pasó por `/inicio-sesion`. CLAUDE.md decía
+   «se copia a mano»: corregido. **Antes de cualquier push, mirar `.github/workflows/`.**
+2. **`/opt/zasa-orchestrator/app/.env` es un SYMLINK** a `/opt/zasa-orchestrator/.env` (`desplegar.sh` §4). Escribir
+   con `mv` sobre la ruta del enlace lo convierte en copia y el siguiente deploy la aparta como «huérfana». Resolver con
+   `readlink -f` (el script de M. Jesús ya lo hace).
+3. **`has_sequence_privilege()` lanza sobre relaciones que no son secuencias**, y el planificador puede evaluarla antes
+   que el filtro `relkind = 'S'`: protegerla con `CASE`. Lo cazó PGlite antes de producción.
+4. **Postgres embebido para probar SQL:** `@electric-sql/pglite` en el scratchpad + el `tsx` del orquestador, con los
+   `ESQUEMA_*.postgres` reales. Roles, `SET ROLE` y `has_*_privilege` funcionan; los defaults de `ALTER ROLE … SET`
+   **no** (solo aplican al login): esos los prueban las sondas del VPS.
+5. **`REASSIGN OWNED BY postgres` está prohibido** por Postgres: traspaso objeto a objeto (script `000_…`).
+6. **Verificar vip. con CSP real sin backend:** servidor Node mínimo en el scratchpad que sirve `dist/` con la cabecera
+   de `seguridad-vip.conf` (sin `upgrade-insecure-requests` en localhost) y stub de `/api/admin/health`; sesión admin
+   inyectando `sc.admin.session.perfil` en `sessionStorage`. En Windows, `path.resolve` para el prefijo de `dist/`.
+7. **La emulación de viewport del panel del navegador deja estilos rancios** de elementos fixed tras redimensionar:
+   forzar recálculo antes de concluir nada.
+8. **`gh` sigue sin estar** y la integración de GitHub no ve Actions: el despliegue se verifica por el recurso servido
+   (hash del bundle en vip., `/health` del orquestador).
 
 ---
 
 ## 4. Secretos
 
-- Ningún valor pasó por el chat. `API_SECRET_TOKEN` se leyó solo dentro del VPS y entró en `curl` por stdin; la
-  conexión a Postgres se hizo con `dotenv` + `pg` del propio orquestador, sin la cadena en argumentos.
-- `cfut_` comprometido y **vivo** (ver §1).
+- Ningún valor pasó por el chat. La clave de `mjesus_ro` la genera el script en el VPS, viaja a psql por stdin con el
+  registro apagado y a las sondas por un `PGPASSFILE` efímero.
+- `cfut_` comprometido y **vivo** (§1). Credencial de superusuario `postgres` en `.env.bak_superuser` (§2.0).
