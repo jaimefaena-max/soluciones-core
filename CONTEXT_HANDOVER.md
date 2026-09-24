@@ -1,100 +1,81 @@
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-22-b (hardening Zero Trust del VPS)
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-23-a (webhook de leads, CSP del widget, auditoría de datos del Portal VIP)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memorias de arranque: `hardening-vps-2026-09-23` (estado y riesgos) y `vps-firewall-solo-cloudflare`.
-> Hand-off anterior (2026-09-22-a, auditoría en 3 fases e incidente 526): en el historial de este fichero (`b21ec02`).
-> Sesión del 2026-09-23 00:20 a 06:45 UTC: **343 min activos** de 384,6 totales, **$200.083 CLP**. Telemetría
-> **escrita en local, SIN commit ni push** (ver §1).
+> Memorias de arranque: `arranque-2026-09-24` (este estado) y `csp-vip-bloquea-style-inline-shadow` (trampa nueva).
+> Hand-off anterior (2026-09-22-b, hardening Zero Trust del VPS): en el historial de este fichero (`5ef9a95`).
+> Sesión del 2026-09-23 22:06 UTC al 2026-09-24 04:46 UTC: **278,3 min activos** de 399,1 totales, **$162.342 CLP**.
+> Telemetría **publicada** (`zasa-orchestrator` `2c529b1`, entrada `2026-09-23-a`).
 
 ---
 
-## 0. Qué se cerró — todo verificado con salida real (VPS, sondas externas, CI)
+## 0. Qué se cerró — todo verificado en producción (VPS, sondas, navegador con CSP real)
 
 | Frente | Estado | Evidencia |
 |---|---|---|
-| **MVG A4: borde nginx versionado** | ✅ | Plantillas de `admin.`, `vip.` y `real_ip` en `zasa-orchestrator/deploy/vps-4gb/nginx-templates/`; `verificar-borde.sh` (14 casos envenenados); pre-commit sobre lo staged; `instalar-plantillas.sh` con gates G4/G5, rollback y vhosts **600 root:root**. `b735bd2` … `2ce79b3`. `docs/MVG.md` marca cerrados los huecos de los Pilares 1 y 2 |
-| **Escalada deploy→root (ExamenFácil)** | ✅ | El verificador sale del árbol que controla `deploy`: `/usr/local/sbin/ef-nginx-verificar` (root:root), sudoers sin argumentos, plantilla por stdin. `1685a77`; CI real con 0 denegaciones |
-| **Sofía no pierde el lead si Calendar falla** | ✅ desplegado | Se guarda como `sales-agent:agenda-pendiente` y se notifica con `estadoCita`. `0e2215d`; E2E en producción con datos ficticios (evento + fila en Postgres + Resend aceptado) |
-| **Portal VIP con despliegue automático** | ✅ | `admin_solucionesconia` `f62e3ec`: `deploy-vip.yml` → `desplegar-estaticos.sh --aplicar` (sha256, staging, gate 443, rollback) |
-| **Llaves de CI dedicadas con `restrict`** | ✅ | root: VIP `vlfmws/p` + orquestador `YV02wtEM`; deploy: EF `UKjsHf66`. Viejas (`KmLShir7`, `/1zkxlH7`) revocadas por huella y privadas locales borradas |
-| **Firewall: origen cerrado otra vez** | ✅ | La regla `Nginx Full` Anywhere (añadida el 09-22 08:03, casi seguro el parche del 526) reabría 80/443 a Internet. Eliminada con *deadman switch*; IP directa → `000`; 10 hostnames en verde por Cloudflare; `certbot renew --dry-run` 6/6 |
-| **Backups de vhosts con secretos** | ✅ | 34 ficheros de `sites-available/` (uno con `API_SECRET_TOKEN` y `EDGE_SECRET` vigentes, 644, legible por `deploy`/`www-data`/`postgres` desde el 09-15) → `/root/backups-nginx/sites-available-residuos-20260923-055727/` (700/600) |
-| **Rotación de `API_SECRET_TOKEN` y `EDGE_SECRET`** | ✅ | Huellas: API `694b45c1`→`43309db8`, EDGE `0eeda67a`→`3f6c5150`. 4 sitios; viejo → 403 y nuevo → 200; ventana de 7,1 s sin tráfico ajeno afectado. GitHub no consume estos secretos |
-| **`rotar-secretos-borde.sh` versionado** | ✅ desplegado | `933f166` (= `/health`). Gate de cobertura: se niega a rotar si los valores vigentes aparecen fuera de los 3 ficheros gestionados. `rotar-edge-secret.sh` retirado; la copia de `/root` se movió a `/root/backups-rotacion/` |
+| **Webhook de leads de Sofía** | ✅ | `POST /api/webhook/leads` (hook global + guard `API_SECRET_TOKEN`), tabla `leads_sofia`, correos Resend, emisor con Bearer solo a hosts propios, `location` nginx sin Basic Auth. `zasa-orchestrator` `0e58e64` + `20526d8`, tag **`v2.5.0-webhook-leads`**. E2E en prod: 200 / 401 / 401 / 405; fila de prueba borrada |
+| **`.sql` público en ExamenFácil** | ✅ | `esquema_db.sql` daba 200 → 403 (vhost + `--exclude` en deploy). `examenfacil-cl` `f4c489d` |
+| **Widget de Sofía sin estilos en vip.** | ✅ | **Causa raíz: CSP `style-src 'self'` bloqueaba el `<style>` del shadow root** (desde `e96a2ee`, 22-sep). Arreglo `adoptedStyleSheets` `c89a8fa`; Jaime confirmó a la vista. Antes se tocó el host (fixed, `document.body`, pointer-events: `d5bfad7` `de6182d` `6e38e6c` `c35e280`) — inocuo, no era la causa |
+| **Auditoría de datos del Portal VIP** | ✅ H1 H2 H3 H5 H6 | `admin_solucionesconia/docs/auditoria-datos-admin.md`. H1 2FA falso `ed27eb2` · H2 aviso demo `cb97761` · H3 Auditoría → `GET /api/admin/auditoria` `5699203` · H5 código muerto (−1.025 líneas) `d1ec264` · H6 Plantillas `2dd0683`. Además Webhooks reales `f5dd61c` `f03f6da` y AuditLogger sin eventos inventados `df1f90c` |
 
-**Auditoría de cierre (06:41 UTC):**
-- PM2: los 2 procesos `online`, 0 reinicios inestables.
-- ufw: 6 reglas SSH + 22 rangos de CF, 0 reglas Anywhere en 80/443.
-- 0 temporales en rutas críticas, 0 ficheros world-writable, 0 secretos legibles por `www-data`/`deploy`.
-- `nginx -t` OK; 0 unidades de systemd fallidas.
-
-**Repos al cierre:**
-- `zasa-orchestrator` `933f166` (= producción), limpio salvo `telemetry.ts` sin commitear (§1).
-- `admin_solucionesconia` `f62e3ec`, limpio, `0/0`.
-- `examenfacil-cl` `1685a77`, con `api_handler.php` e `index.html` modificados que no son de esta sesión.
-
-### Residuos que solo puede cerrar Jaime
-1. **Sofía:** `SALES_WEBHOOK_URL` está vacío en `/opt/zasa-orchestrator/.env`, así que el equipo **nunca** ha recibido avisos de leads. Fijarlo y `pm2 restart zasa-orchestrator --update-env`.
-2. **Limpieza del E2E:** `DELETE FROM prospectos WHERE id = 1 AND email = 'delivered@resend.dev'` y borrar el evento de Calendar «Pedro Prueba Ficticia» (lunes 28-sep 09:00).
-3. **Pendientes de la sesión 09-22-a, sin verificar en esta:** rotar el token `cfut_`, vaciar la Papelera, `PUBLIC_BASE_URL` y la revisión visual de Sofía/«Portales».
+**Repos al cierre:** `admin_solucionesconia`, `zasa-orchestrator` y raíz limpios y `= origin/main`.
+`examenfacil-cl` conserva `api_handler.php` e `index.html` modificados **que no son de esta sesión** (ya estaban el 22-b).
+`AuditorLegal` tiene 3 cambios sin commitear, tampoco de esta sesión.
 
 ---
 
 ## 1. Paso exacto para arrancar
 
-🔴 **Bloqueado por Jaime (necesita su OK para el push, que despliega):** publicar la telemetría de esta sesión.
-`zasa-orchestrator/src/data/telemetry.ts` ya tiene la entrada `2026-09-22-b`, escrita con `end_session.js` y con typecheck en verde:
-
-```powershell
-Set-Location C:\Proyectos\Workspace_Agencia\zasa-orchestrator
-git add src/data/telemetry.ts; git commit -m "telemetria: sesion 2026-09-22-b"; git push
-```
-
-Luego comprobar que `/health` devuelve el commit nuevo y
-`grep -c 2026-09-22-b /opt/zasa-orchestrator/app/dist/data/telemetry.js` ≥ 1. Borrar
-`src/data/telemetry.ts.bak-20260923064527.` cuando se dé por bueno.
-⚠️ La última sesión publicada en el dashboard es la **`2026-09-16-a`**: faltan la 09-16-b y la 09-22-a, que habrá que reconstruir.
+🔴 **Bloqueado por Jaime (panel de Cloudflare):** rotar el token **`cfut_`** filtrado el 22-sep. **Sigue vivo en
+producción**: misma huella sha256 (`8c488bd6`) que `CLOUDFLARE_API_TOKEN` en `/opt/solucionesconia/.env`, que usa
+`deploy.sh` de la landing. Pasos: crear token nuevo con los mismos permisos → escribirlo Jaime en ese `.env` (nunca
+por el chat) → revocar el viejo → borrar las 2 líneas con `cfut_` de `/root/.bash_history`. Después Claude verifica
+por huella que ya no es `8c488bd6`.
 
 ---
 
 ## 2. Cola (por cercanía a producción)
 
-0. Residuos de Jaime (§0) y reconstrucción de la telemetría 09-16-b y 09-22-a.
-1. **`examenfacil.cl/esquema_db.sql` se sirve con 200** (estructura de 6 tablas médicas, sin datos): sacarlo del web root o añadir un deny.
-2. **Túnel `cloudflared` con tráfico real** (admin./vip.) y `127.0.0.1` fuera de `set_real_ip_from`: los clientes del túnel comparten un único cupo de rate limit. Decidir entre retirar el túnel o confiar en loopback (y ajustar `verificar-borde.sh`).
-3. `elrincon-backend` (pagos) en **Node 18 EOL**; la app se conecta a Postgres como el **superusuario `postgres`**; `listarProspectos` devuelve `[]` si hay error; fallback silencioso a SQLite si `DATABASE_URL` se rompe.
-4. Recurrencia de backups expuestos: la **receta manual** en los comentarios de las plantillas `admin.`/`vip.` todavía hace `cp` a `sites-available/*.bak`. Cambiarla a `/root/backups-nginx/`.
-5. `sincronizar-secretos-borde.sh` no conoce `snippets/vip-portal.conf`; `/root/rotar-secretos-borde.sh` (09-11) es un script VIEJO que se llama igual que el versionado.
-6. MVG Pilares 3 y 4: `tools/verificar-integridad.ps1`; `uptime-monitor.yml` con invariantes de borde; canal de aviso para `security-telemetry.sh rc=10`.
-7. Menores:
-   - sshd con `X11Forwarding`/`AllowTcpForwarding` en las llaves admin;
-   - `www-data` escribe en el portal de Jose;
-   - 8 parches de seguridad pendientes;
-   - residuos inertes: `authorized_keys.bak-*` en `/root/.ssh`, `snippets/backups/*.bak`, `/tmp/*/ssr`;
-   - STATE.md A5 y handovers viejos mencionan `gha_deploy_key` (retirada);
-   - el texto «le llegará la invitación» de Sofía.
-8. GambusasChile CI roto: huella de host obsoleta (`hxUBSvY5`); necesita llave dedicada y `known_hosts` al día.
+0. **Acciones de Jaime:**
+   - Vaciar de la Papelera de Windows los ficheros sensibles: `full_backup_.sql` (volcado clínico en claro),
+     `.env.test`, `config_secret.php`, `do-env-vars`, `.env.forte-invitacion`, `agencia-solucionesconia-77b2fe2662ad.json`.
+   - Confirmar `SALES_WEBHOOK_URL=https://admin.solucionesconia.cl/api/webhook/leads` en `/opt/zasa-orchestrator/.env`
+     (dijo haber configurado nginx/PM2; la variable **no se verificó**). Claude puede comprobarlo sin imprimir valores.
+   - Abrir **Auditoría** en vip. con sesión de admin: debe mostrar `sesion.iniciada` y `gestion.auditoria.ver` reales.
+   - Limpiar el E2E del 22-b: prospecto `delivered@resend.dev` en `prospectos` y el evento «Pedro Prueba Ficticia» (28-sep 09:00).
+1. **H7** — el widget del Portal VIP se monta sin `tenantId`. Decidir primero qué identidad corresponde en el portal
+   del equipo (quizá la genérica es la correcta y se cierra sin código).
+2. **H8** — prueba automatizada: build de producción + CSP real + fallo ante `securitypolicyviolation`.
+3. **H4** — `/api/integrations/keys` sirve claves `sk_live_…` estáticas (rotuladas `provisional`); falta almacén real.
+4. **H2 de fondo** — conectar Uptime/Analíticas/Retención/Errores a fuentes reales y retirar `AvisoDatosDemo`.
+5. Heredado del 22-b, sin tocar hoy: túnel `cloudflared` y `127.0.0.1` fuera de `set_real_ip_from`; `elrincon-backend`
+   en Node 18 EOL y Postgres como superusuario; receta manual de plantillas que aún crea `.bak` en `sites-available`;
+   `sincronizar-secretos-borde.sh` sin `vip-portal.conf`; MVG pilares 3 y 4; GambusasChile CI con huella obsoleta.
+6. `zasa-orchestrator/package.json` dice `2.4.0` y el tag es `v2.5.0` (la release anterior tampoco lo alineó).
+7. Telemetría de las sesiones **09-16-b y 09-22-a** sigue sin reconstruir (el dashboard salta de 09-16-a a 09-22-b).
 
 ---
 
-## 3. Trampas (no volver a tropezar)
+## 3. Trampas nuevas (no volver a tropezar)
 
-1. **Un parche de incidente puede deshacer un invariante en silencio.** El 526 dejó `Nginx Full` Anywhere y nadie lo vio en 24 h. Tras cualquier incidente: `ufw status | grep Anywhere`, y probar la IP directa **desde fuera**.
-2. **`grep -r` no entra en los symlinks** de `sites-enabled/`: hay que usar `-R`, o el resultado sale vacío o sin los vhosts.
-3. **`stat` sin `-L` sobre `letsencrypt/live/*/privkey.pem` muestra 777** (el symlink). La llave real está en 600.
-4. **El render de las plantillas también rellena los marcadores de los comentarios**: el diff efectivo del instalador ignora comentarios, así que hay que contar las líneas con secretos SIN comentarios.
-5. **Con `set -euo pipefail`, un `grep -v` o un `grep -c` que no encuentra nada sale con 1** y aborta el script justo en el caso bueno. Usar `{ grep … || true; }`.
-6. **Una auditoría lanzada justo después de un push captura el despliegue a medias**: backup ya creado y HEAD todavía viejo. Esperar ~5 min antes de diagnosticar «la CI no desplegó».
-7. **`od -c | grep '\\r'` da falsos positivos**: los CR se cuentan por bytes (`node`: `match(/\r/g)`).
-8. Un barrido de «ficheros legibles con secretos» tiene que simular el **recorrido real de permisos** (`runuser -u www-data -- find -readable`). Mirar solo el `o+r` del fichero ignora que `/root` y `/opt/zasa-orchestrator` son 700.
-9. Sofía se niega a agendar si el nombre dice «PRUEBA… NO CONTACTAR»: en E2E usar datos ficticios verosímiles con `delivered@resend.dev`.
+1. **El dev server de Vite no aplica la CSP de vip.** Todo cambio visual del Portal VIP se verifica con build de
+   producción + `<meta>` CSP idéntica + `vite preview` (preview `widget-preview` sirve `dist/`; config temporal con
+   `mergeConfig` e `input` al arnés; regenerar `dist/` real al acabar). Con contraprueba.
+2. **Compuerta del widget en `deploy-vip.yml`:** tocar `salesAgentWidget.css` obliga a regenerar y commitear
+   `public/widget/vendedor-ia-v17.js` (`npm run build:widget`, token de `.env.production`); si no, el deploy se bloquea
+   en silencio y producción se queda en el build anterior.
+3. **El CSS servido está minificado:** `top/right/bottom/left` salen como `inset:…`. Buscar la forma minificada.
+4. **ripgrep no ve `Workspace_Agencia/*` ni `Workspace_Clientes/*`** desde la raíz: el `.gitignore` raíz los excluye.
+   Usar `grep -r` con `--exclude-dir`.
+5. **El clasificador bloquea `curl` a `/health` desde local** (motivo «TLS/Auth Weaken»). Verificar por SSH en loopback.
+6. **`gh` no está instalado** y el repo es privado: el estado de Actions se infiere en el VPS (fechas de `index.html`,
+   nombre del chunk = hash de contenido idéntico al build local).
+7. **Sondas lanzadas en el mismo SSH que un `nginx reload`** ven workers viejos (dan el estado anterior). Esperar 1–2 s.
+8. **Un GET a `/api/admin/auditoria` escribe `gestion.auditoria.ver`**: nada de sondeo periódico sobre ese endpoint.
 
 ---
 
 ## 4. Secretos
 
-- Ningún valor pasó por el chat: todo se reportó por huella sha256 de 8 caracteres y las sondas leían cabeceras de ficheros 600.
-- Rotados: `API_SECRET_TOKEN` y `EDGE_SECRET` (§0).
-- Valores viejos, inertes, en `/root/backups-rotacion/secretos-borde-20260923-060837/` (700). Además queda un directorio `…-060741` de un intento abortado, con valores que nunca se instalaron: se puede borrar.
-- Llaves privadas de CI: ninguna en el portátil. Quedan `elrincon_deploy`, `id_ed25519` e `id_rsa`; esta última no aparece en ningún `authorized_keys` del VPS.
-- `.env` del VPS en 600 root; vhosts con secretos en 600; `vip-portal.conf` en 640 root:root.
+- Ningún valor pasó por el chat. `API_SECRET_TOKEN` se leyó solo dentro del VPS y entró en `curl` por stdin; la
+  conexión a Postgres se hizo con `dotenv` + `pg` del propio orquestador, sin la cadena en argumentos.
+- `cfut_` comprometido y **vivo** (ver §1).
