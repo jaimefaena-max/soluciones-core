@@ -1,92 +1,78 @@
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-24-a (copiloto de BI «M. Jesús»: ADR-003, roles de Postgres y panel en vip.)
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-24-b (remediación de la matriz de 16 riesgos: VPS + Portal VIP)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memorias de arranque: `arranque-2026-09-25` (este estado), `mjesus-copiloto-bi` (arquitectura) y
-> `push-main-despliega-leer-handover` (lección de hoy).
-> Hand-off anterior (2026-09-23-a, webhook de leads + CSP del widget): en el historial de este fichero (`2dbe3ce`).
-> Sesión del 2026-09-24 05:17 UTC al 08:01 UTC: **95,4 min activos** de 164,1 totales (hubo una pausa por límite
-> de uso), **$55.650 CLP**. Telemetría **publicada y verificada** (`zasa-orchestrator` `bf487c4`, entrada
-> `2026-09-24-a`; `/health` = `bf487c4` y `dist/data/telemetry.js` la contiene).
+> Memorias de arranque: `arranque-2026-09-26` (este estado), `hardening-vps-2026-09-23` (riesgos del VPS, al día) y
+> `vps-access-model` (reescrita hoy con el servidor real).
+> Hand-off anterior (2026-09-24-a, copiloto de BI «M. Jesús»): en el historial de este fichero (`8a02116`).
+> Sesión del 2026-09-25 01:29 UTC al 05:14 UTC (22:29–02:14 hora de Chile; cuenta como 2026-09-24 por su inicio):
+> **224,4 min activos**, **$130.900 CLP**. Telemetría `2026-09-24-b` en `zasa-orchestrator` `06a494d` (ver §0 para
+> su estado de publicación).
+>
+> **Forma de trabajo de esta sesión:** Jaime dictó cada paso y el modo automático bloqueó a Claude casi todas las
+> escrituras en el VPS y los push que despliegan vip. Lo bloqueado lo ejecutó Jaime a mano; lo que Claude pudo, lo
+> verificó en solo lectura. Cada cierre de §2.1 dice qué vio Claude y qué reportó Jaime.
 
 ---
 
-## 0. Qué se cerró — verificado en producción
+## 0. Qué se cerró — con su evidencia
 
 | Frente | Estado | Evidencia |
 |---|---|---|
-| **ADR-003 «M. Jesús»** (copiloto de BI) | ✅ aceptado | `zasa-orchestrator/docs/architecture/003-copiloto-bi-mjesus.md`. Alcance: solo Cockpit (rol admin), solo datos internos. Tres reglas innegociables: catálogo cerrado sin Text-to-SQL, rol `mjesus_ro`, verificador determinista de cifras. §10 = cierre de roles. `4bb0f19` `dd6bd3e` `1dea6c6` |
-| **Traspaso de `public` a `zasa_app`** | ✅ | La app conectaba **como superusuario `postgres`** y todo `public` era suyo. `deploy/vps-4gb/000_traspaso_propiedad_zasa_app.sql` (`c625ff1`), aplicado por Jaime. VPS: 35/35 objetos de `zasa_app`, `DATABASE_URL` conecta como `zasa_app`, `/health` ok |
-| **Vistas `bi_*` + rol `mjesus_ro`** | ✅ | `sql/bi/postgres/001_vistas_bi.sql`, `002_rol_mjesus_ro.sql` (verificación de privilegios efectivos dentro de la transacción), `deploy/vps-4gb/mjesus-inicializar-bi.sh`, `tests/vistasBi.test.ts` (`dd6bd3e`). VPS: `--sondas` **21/21**; escritura denegada incluso quitando el read-only |
-| **Panel de M. Jesús en vip.** | ✅ | Solo rol admin; Sofía sigue para el resto de roles, en la landing (bundle idéntico byte a byte) y en `/sofia`. Sin motor: entrada desactivada y aviso visible (`MOTOR_CONECTADO = false`). `admin_solucionesconia` `c11cb02` |
-| **Desborde horizontal en móvil** | ✅ | `overflow-x: clip` en `.vip__cuerpo` (no `hidden`: rompería la cabecera sticky), guarda `min(Npx, 100%)` en 16 rejillas, botón a 16 px + safe-area. `2fbbe26`, servido en vip. (`index-RTzTzUDQ.css`) |
+| **Riesgos Alta (n.º 1-4)** | ✅ ninguno abierto | `cfut_` rotado (Jaime); `www-data` sin escritura en el portal de Jose; `sincronizar-secretos-borde.sh` coteja el snippet de vip. (`b6df917`); `config_secret.example.php` ya daba 403 desde el 09-09; H4 era un inventario simulado → Baja |
+| **Credencial del superusuario `postgres`** | ✅ | `PASSWORD NULL` + `.bak` borrado (Jaime). **Claude lo verificó en el cierre:** `rolpassword is null` = `t`, el `.bak` no existe |
+| **Túnel `cloudflared`** (n.º 5) | ✅ en el VPS · ⏳ en el panel | 0 peticiones en 22 h; parado, deshabilitado y archivado. Falta borrarlo en Zero Trust y hacer `shred` de las credenciales |
+| **`elrincon-backend` a Node 22** (n.º 6) | ✅ | `c646811`; PM2 `interpreter /opt/node22/bin/node`, `/api/health` 200, datos idénticos al respaldo. ⚠️ **El demonio de PM2 sigue en `/usr/bin/node` (18)** |
+| **Reenvíos SSH** (n.º 7) | ✅ | `DisableForwarding yes` en `00-hardening.conf` (aplicado por Claude); túnel `-L` rechazado |
+| **Historial de Sofía entre usuarios** (n.º 8) | ✅ desplegado · ⏳ prueba real | `b98f90e`: `purgarSesionLocal()` borra `sc.admin.sales-agent.*`. Widget servido = bundle del commit (sha256) y vip. lo contiene |
+| **Compuerta de CSP en CI** (n.º 9) | ✅ en `main` · ⏳ run de Actions | `c1cfe81`: Playwright sobre `dist/` con la CSP real de vip., 4/4 en local, detecta la regresión del 22-sep |
+| **Telemetría 2026-09-24-b** | ⏳ ver nota | `06a494d` empujado; comprobar `/health` = `06a494d` y `grep -c 2026-09-24-b` en `dist/data/telemetry.js` |
 
-**Repos al cierre:** `zasa-orchestrator` y `admin_solucionesconia` limpios y `= origin/main`. Raíz: este fichero y
-CLAUDE.md (commit de cierre). `examenfacil-cl`, `AuditorLegal` y `privado_agencia/Clientes/Jose` tienen cambios sin
-commitear **que no son de esta sesión**.
+**Repos al cierre:** `admin_solucionesconia` (`c1cfe81`), `zasa-orchestrator` (`06a494d`), `elrincon-backend`
+(`c646811`) y la raíz, todos `= origin/main`. `examenfacil-cl` (2) y `AuditorLegal` (3) tienen cambios sin
+commitear **que no son de esta sesión** y no se han inspeccionado.
 
 ---
 
 ## 1. Paso exacto para arrancar
 
-✅ **COMPLETADO 2026-09-25 (Fase 1) — rotación del `cfut_` filtrado el 22-sep.** Ejecutado por Jaime a mano en el
-VPS; evidencia reportada por Jaime (Claude no pudo verificarlo: el modo automático bloqueó la lectura del `.env` de
-producción y la edición de `/root/.bash_history`):
-- `CLOUDFLARE_API_TOKEN` de `/opt/solucionesconia/.env`: huella sha256 nueva `873c9da4` (la vieja era `8c488bd6`).
-- `grep -c cfut_ /root/.bash_history` = `0`.
-- Revocación del token viejo en el panel de Cloudflare: la hizo Jaime (el history purgado era la última copia del
-  valor viejo, así que ya no se puede comprobar con el propio token).
-
-✅ **COMPLETADO 2026-09-25 (Fase 2) — credencial del superusuario `postgres`.** Ejecutado por Jaime a mano en el VPS
-siguiendo el procedimiento B→C→D (el `.bak` se borra solo después de la prueba negativa). Evidencia reportada por Jaime:
-- B: `ALTER ROLE postgres PASSWORD NULL` → `rolpassword is null` = verdadero.
-- C1: la `DATABASE_URL` del `.bak` → `FATAL: password authentication failed for user "postgres"`.
-- C2: `runuser -u postgres -- psql` (peer, el de los respaldos de las 03:00) → `1`.
-- C3: `/health` de `127.0.0.1:3001` = ok, PM2 `online`.
-- D: `/opt/zasa-orchestrator/.env.bak_superuser` eliminado.
-- No se reportaron las salidas de las comprobaciones previas A1–A4 (conexiones vivas de `postgres`, otros ficheros con
-  URL de `postgres`, `PGPASSWORD`/`.pgpass`). C1–C3 en verde cubren el riesgo principal; si apareciera un fallo de
-  conexión de algún proceso, empezar por A2.
-- Pendiente de reflejar en ADR-003 §10.4 (`zasa-orchestrator`; push a `main` despliega el orquestador).
-
-➡️ **Paso siguiente:** cola §2 — lo de Claude es M. Jesús F1 (`catalogo.ts` + `derivar.ts`).
+➡️ **Riesgo n.º 10: comprobar los permisos de los logs de PM2 tras la rotación de las 00:00 del 26-sep.** Solo lectura,
+un minuto: `ls -la /root/.pm2/logs/`. Si los ficheros nuevos han vuelto a 644, fijarlo en la configuración de la
+rotación (`pm2-logrotate` o `logrotate`: `create 0600`), que es escritura en el VPS y probablemente la tenga que
+ejecutar Jaime.
 
 ---
 
 ## 2. Cola (por cercanía a producción)
 
-0. **Acciones de Jaime:**
-   - ✅ **CERRADO 2026-09-25 (ver §1).** ~~`/opt/zasa-orchestrator/.env.bak_superuser`~~ (600, root, 24-sep 06:19 UTC) guardaba la `DATABASE_URL`
-     del **superusuario `postgres` con su contraseña**. `postgres` tiene contraseña y `pg_hba` admite `scram` por
-     loopback → credencial casi seguro válida. Orden: confirmar que nada usa `postgres` por TCP (los respaldos van por
-     `runuser` + `peer`) → `ALTER ROLE postgres PASSWORD NULL` → borrar el `.bak`. Claude puede verificar después.
-   - **Panel de M. Jesús «aparece y desaparece» en su móvil:** falta un dato. Tras desaparecer, ¿la URL es `/login`?
-     Descartados CSS, lógica por ancho/UA y choque con Sofía; no se reproduce emulado (375/320 px). La única vía de
-     desmontaje es un 401 → `window.location.assign("/login")` (`admin_solucionesconia/src/api/httpClient.ts:90`).
-     Si es `/login`, mirar 401 con UA móvil en `access.log` de vip.
-   - Pendientes del 23-a sin tocar hoy: Papelera de Windows (ficheros sensibles), confirmar `SALES_WEBHOOK_URL`,
-     ver Auditoría con sesión admin, limpiar el E2E del 22-b.
-1. **M. Jesús — resto de F1** (ADR-003 §8): `catalogo.ts` con las 7 métricas sobre `bi_*` y `derivar.ts`, con tests,
-   **sin LLM todavía**. Todo el SQL cualificado `public.bi_*`.
-2. **M. Jesús — F2/F3:** enrutador (Haiku), analista (Sonnet + tool use), verificador de cifras, `/api/admin/mjesus/*`
-   con `protegerPlugin` + `requiereRolAdmin`, `MJESUS_HABILITADO=admin`, y conectar el panel (`MOTOR_CONECTADO`).
-3. **H7 / H8 / H4** del Portal VIP (ver handover 23-a): tenantId del widget, prueba CSP automatizada, inventario de claves simulado (H4 es Baja: mock, §2.1 n.º 15).
-4. ✅ **CERRADO 2026-09-25 — reinicios de PM2 de `zasa-orchestrator`.** Diagnóstico de Claude (solo lectura): 62
-   reinicios **históricos** (un `pm2 restart` por despliegue), no un bucle: `unstable restarts` = 0, 18 h de actividad
-   seguida desde el despliegue de las 08:06 UTC del 24-sep, heap de 73 MiB con un límite de 512 MiB. El log de errores
-   vacío **no prueba nada**: se rota a las 00:00 (0 bytes, `Sep 25 00:00`). Jaime ejecutó `pm2 reset` (contador = 0:
-   desde ahora, cualquier reinicio fuera de un despliegue es señal real) y puso a 600 `/root/.pm2/logs/*.log`
-   (antes 644). ⚠️ **Sin verificar:** si la rotación de medianoche crea los ficheros nuevos otra vez a 644, el
-   endurecimiento dura un día. Comprobar mañana con `ls -la /root/.pm2/logs/` y, si ha vuelto a 644, fijarlo en la
-   configuración de la rotación (`pm2-logrotate` o `logrotate`: `create 0600`).
-5. Heredados: `cloudflared` y `127.0.0.1` fuera de `set_real_ip_from`; `elrincon-backend` en Node 18 EOL y Postgres
-   como superusuario (mismo problema que se arregló hoy en `zasa_portal`); `.bak` en `sites-available`;
-   `sincronizar-secretos-borde.sh` sin `vip-portal.conf`; MVG 3 y 4; GambusasChile CI; `package.json` 2.4.0 vs tag v2.5.0;
-   telemetría 09-16-b y 09-22-a sin reconstruir.
+0. **Acciones de Jaime** (el modo automático las bloquea a Claude, o son de panel):
+   - **Cloudflare Zero Trust:** borrar los hostnames `admin.`/`vip.` y el túnel. Después, `shred -u` de
+     `/root/backups-rotacion/.cloudflared/cert.pem` y del `<uuid>.json` archivados.
+   - **Retirar `/root/sincronizar-secretos-borde.sh`** (copia obsoleta del 09-05; comando en §2.1 n.º 3).
+   - **Cloudflare, n.º 16:** la opción que quita el `ETag` del HTML de El Rincón.
+   - **Prueba real del n.º 8:** entrar en vip. como cliente, escribir a Sofía, cerrar sesión y volver a entrar en la
+     misma pestaña → el chat debe salir vacío.
+   - **Actions de `admin_solucionesconia`:** confirmar que el run de `c1cfe81` pasó la compuerta de CSP (Claude no ve
+     Actions). Si falló, el artefacto `csp-test-results` tiene las trazas.
+   - Heredados: panel de M. Jesús que «desaparece» en el móvil (¿queda en `/login`?), Papelera de Windows,
+     `SALES_WEBHOOK_URL`, limpiar el E2E del 22-b.
+1. **Riesgo n.º 10** (§1).
+2. **Demonio de PM2 a Node 22** (`cockpit-pm2-elrincon-node22`, 70 %): el propio PM2 corre con `/usr/bin/node` 18.
+   Pide `pm2 update` bajo el Node nuevo o reinstalar el servicio de arranque; hacerlo con ensayo y una sesión root abierta.
+3. **Riesgo n.º 11:** la receta manual de plantillas nginx que deja `.bak` en `sites-available`.
+4. **M. Jesús — resto de F1** (ADR-003 §8): `catalogo.ts` (7 métricas sobre `bi_*`) + `derivar.ts`, con tests, sin LLM.
+5. **M. Jesús — F2/F3** (enrutador, analista, verificador, `/api/admin/mjesus/*`, conectar el panel).
+6. Deudas de documentación en repos: ADR-003 §10.4 (credencial de `postgres` ya cerrada); cabecera de
+   `sincronizar-secretos-borde.sh` (líneas 7-8) y `cerrar-migracion.sh:235`, que aún apuntan a la copia de `/root`;
+   comentario de `scripts/audit-vip-infra.js:21` («CSP no desplegada», falso). Un push a `main` del orquestador despliega.
+7. Heredados: MVG 3 y 4; GambusasChile CI; `package.json` 2.4.0 vs tag v2.5.0; telemetría 09-16-b y 09-22-a sin
+   reconstruir; ¿hacen falta las llaves de administración en la cuenta `deploy`?
 
 ### 2.1 Matriz de riesgos abiertos de seguridad (priorizada 2026-09-25)
 
-Tras cerrar `cfut_`, la credencial de `postgres` y los reinicios de PM2 ya no queda **ninguna credencial expuesta
-conocida**. La matriz sale del handover y de las memorias; ningún punto se ha vuelto a comprobar en el VPS el 25-sep.
+Ya no queda **ninguna credencial expuesta conocida**. La matriz se armó el 25-sep a partir del handover y las memorias,
+y cada punto se fue comprobando al abordarlo: cada cierre dice qué verificó Claude y qué reportó Jaime. **Estado al
+cierre de la sesión:** Alta cerrada; Media cerrada salvo el n.º 10 y las comprobaciones que aún piden los n.º 5, 8 y 9;
+Baja sin tocar, más el n.º 16, nuevo.
 
 **🟠 Alta: exposición de credenciales o de integridad**
 1. ⬇️ **H4: reclasificado a Baja el 2026-09-25** (ver n.º 15).
@@ -199,10 +185,39 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
      **no** quitando este bloque.
    - Abierto, opcional: ¿hacen falta las llaves de administración en `deploy`? `root` ya sirve de acceso de
      emergencia.
-8. **H7: `tenantId` del widget** en el Portal VIP.
-9. **H8: sin prueba automatizada de la CSP.** El incidente del 22 al 24-sep pasó justo por eso.
-10. **Los logs de PM2 pueden volver a 644** tras la rotación de las 00:00. Comprobar el 26-sep con
-    `ls -la /root/.pm2/logs/` (ver §2, punto 4).
+8. ✅ **CERRADO en código y desplegado 2026-09-25 (⏳ falta la prueba con sesión real): H7 + fuga del historial de Sofía.**
+   - **H7 se cierra sin código.** Los tenants del widget (`liset`, `clinicas`, `demovip`, `default`) son bots de
+     vendedor; los clientes del Portal VIP viven en `clientes` de Postgres y no tienen tenant de widget. Para un
+     cliente de la agencia, la identidad genérica de Sofía es la correcta. Además, vip. solo está en la allowlist de
+     `default`: pasar otro `tenantId` daría 403. El backend no se fía del `tenantId` del cliente (token del widget,
+     slug desconocido → 404, Origin contra el tenant efectivo).
+   - **Hallazgo real al revisarlo:** el historial (`sc.admin.sales-agent.history.default`) y el id del hilo
+     (`….session.default`) **sobrevivían al cierre de sesión**, porque `purgarSesionLocal()` solo borraba el perfil y
+     las claves heredadas. En la misma pestaña, el siguiente usuario veía la conversación del anterior y el backend
+     seguía **su** hilo.
+   - Corrección: `admin_solucionesconia` `b98f90e`. `purgarSesionLocal()` recoge y borra las claves con prefijo
+     `sc.admin.sales-agent.` (nunca `clear()`). Cubre el cierre de sesión y el 401 (`sesionCaducada`). El bundle
+     público del widget también cambia, porque importa `sesion.ts` vía `httpClient.ts`.
+   - Verificado: prueba con `sessionStorage` simulado por los dos caminos (borra 4 claves del widget y el perfil y
+     conserva las ajenas); `tsc` y build en verde. En producción, el widget servido tiene el mismo sha256 que el del
+     commit y el bundle de vip. (`index-CXAkYcfD.js`) contiene el prefijo. ⏳ Falta entrar como cliente, escribir,
+     salir y volver a entrar en la misma pestaña.
+   - El push lo lanzó Jaime: el modo automático lo bloqueó a Claude («Production Deploy»).
+9. ✅ **CERRADO en `main` 2026-09-25 (⏳ falta ver el run de Actions): compuerta de CSP para la SPA de vip.**
+   - `admin_solucionesconia` `c1cfe81`. `e2e/servidor-csp.mjs` sirve `dist/` con la CSP real: de `CSP_VIP` o de
+     `seguridad-vip.conf` del repo hermano, y **aborta sin CSP** para no dar un verde vacío. `e2e/csp.spec.ts` tiene
+     4 pruebas: sonda que provoca una violación, `/login`, portal de cliente (Sofía con `adoptedStyleSheets` > 0 y
+     `.saw` en `position: fixed`) y portal de admin (M. Jesús en `/dashboard`, `/sofia` y `/portal`). La sesión se
+     simula con el perfil en `sessionStorage` + 200 en `/api/admin/health` + **503** en el resto (un 401 devolvería
+     a `/login`); lo externo se aborta.
+   - En `deploy-vip.yml`: después del build y **antes de tocar el VPS**. `playwright install --with-deps chromium`
+     y la CSP leída de vip. con `curl -sSI` (sin `-f`, porque la cabecera va con `always`); si falla, se sube
+     `test-results/` como artefacto.
+   - Verificado en local: 4/4; con la CSP leída de vip. (idéntica a `seguridad-vip.conf`), también 4/4; y
+     **reintroduciendo la regresión del 22-sep, la prueba falla**. ⏳ Claude no ve Actions: confirmar el run.
+   - Costes: +30-60 s por despliegue; la CSP sale de lo que sirve producción, así que un cambio de política y de SPA a
+     la vez exige desplegar primero la política.
+10. **Los logs de PM2 pueden volver a 644** tras la rotación de las 00:00. **Es el paso de arranque (§1).**
 
 **⚪ Baja: higiene**
 11. La receta manual de nginx sigue dejando `.bak` en `sites-available`.
@@ -258,10 +273,32 @@ cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
 8. **`gh` sigue sin estar** y la integración de GitHub no ve Actions: el despliegue se verifica por el recurso servido
    (hash del bundle en vip., `/health` del orquestador).
 
+**Del 2026-09-24-b:**
+
+9. **El modo automático bloquea por resultado, no por comando:** escrituras en el VPS (`chown`, `mv`, `systemctl`),
+   borrar líneas de `bash_history`, `pm2 reset`, leer `.env` de producción y los push que despliegan vip. Un bloqueo
+   vale para el resto de la sesión: no se reintenta de otra forma, se le da el comando a Jaime. Sí pasaron las
+   lecturas del VPS (`ls`, `pm2 info`, `sshd -T`, `curl` por loopback), el respaldo de los JSON de El Rincón, el
+   cambio de `sshd` y el push al orquestador.
+10. **`chmod 755` de GNU conserva el setgid de un directorio;** para quitarlo, `chmod 00755` (5 dígitos).
+11. **`pm2 restart` no cambia el intérprete** de un proceso ya registrado: `pm2 delete` + `pm2 start ecosystem` +
+    `pm2 save`, o `dump.pm2` lo devuelve al Node viejo tras reiniciar el servidor.
+12. **Un log vacío de PM2 no prueba estabilidad:** se rota a las 00:00. El indicador es `unstable restarts`.
+13. **Tras un push al orquestador, el despliegue tardó unos 3,5 min:** un `/health` a los 2 min da un falso «no
+    desplegó».
+14. **`grep -P` en Git Bash exige `LC_ALL=C.UTF-8`;** sin él falla en silencio (rc 2 con `2>/dev/null`).
+15. **Las memorias se desfasan:** hoy dos daban por abierto lo que llevaba semanas cerrado (`config_secret.example.php`)
+    o describían otro servidor (`vps-access-model`). Antes de afirmar, una sonda.
+
 ---
 
 ## 4. Secretos
 
 - Ningún valor pasó por el chat. La clave de `mjesus_ro` la genera el script en el VPS, viaja a psql por stdin con el
   registro apagado y a las sondas por un `PGPASSFILE` efímero.
-- `cfut_` comprometido: **rotado el 2026-09-25** (huella nueva `873c9da4`, §1). Credencial de superusuario `postgres`: **anulada y `.bak` borrado el 2026-09-25** (`postgres` solo entra por `peer`, §1).
+- `cfut_` comprometido: **rotado el 2026-09-25** (huella nueva `873c9da4`). Credencial de superusuario `postgres`:
+  **anulada y `.bak` borrado el 2026-09-25** (`postgres` solo entra por `peer`; verificado por Claude).
+- Credenciales del túnel `cloudflared` (`cert.pem`, que permite gestionar túneles de la zona, y el `<uuid>.json`)
+  archivadas en `/root/backups-rotacion/.cloudflared/`: siguen siendo válidas hasta que Jaime borre el túnel en Zero
+  Trust. Después, `shred -u`.
+- En esta sesión no pasó ningún valor por el chat: solo huellas sha256 de 8 caracteres.
