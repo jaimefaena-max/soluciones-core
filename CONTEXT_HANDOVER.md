@@ -125,8 +125,21 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
      (script de un solo uso, cierre de la migración del 09-07) y la cabecera del propio script (líneas 7-8) la documenta
      como ruta de uso. Cambiar ambas a `/opt/zasa-orchestrator/app/deploy/vps-4gb/` en el próximo cambio del
      orquestador (un push a `main` despliega).
-4. **`config_secret.example.php` de ExamenFácil se sirve con 200.** Es la plantilla de la configuración secreta.
-   Abierto según la memoria `examenfacil-health-endpoint`; sin comprobar.
+4. ✅ **CERRADO 2026-09-25: `config_secret.example.php` de ExamenFácil.** El riesgo estaba **desfasado**: el 200 era
+   anterior al 09-09, cuando la fase 0 de `scripts/nginx-hardening.sh` sincronizó el vhost, y la memoria
+   `examenfacil-health-endpoint` no se actualizó. Verificado por Claude (solo lectura):
+   - **Contenido:** plantilla. Las 13 constantes secretas están vacías (`''`) en `examenfacil-cl/config_secret.example.php`
+     y en sus 4 versiones del historial (`cc8bb55`, `13f5e0f`, `7da81e6`, `852133a`). Solo revela `DB_NAME` / `DB_USER`
+     (`examenfacil` / `ef_admin`), sin contraseña y con MySQL en `localhost`.
+   - **HTTP** (loopback + `Host: examenfacil.cl`): `/config_secret.example.php`, `/config_secret.php` y `/config.php`
+     → **403**. Vhost vivo: líneas 111 (regex `config|config_secret|…\.php`) y 122
+     (`location ~* config_secret\.example\.php$`). `nginx-hardening.sh:113` lo tiene entre sus **guardias**: si el
+     bloqueo desaparece, el deploy se pone en rojo.
+   - **Despliegue:** la compuerta anti-fugas de `deploy.yml` (líneas 86-103) deja pasar solo `*.example.php` (a
+     propósito); el `rsync` excluye `config_secret.php*`. En el VPS: 644 `deploy:www-data`. `config_secret.php` no
+     está en el web root.
+   - Residual (bajo, opcional): excluir `*.example.php` del `rsync` para que la plantilla ni siquiera llegue al
+     servidor. Hoy la única capa es nginx, vigilada por la guardia.
 
 **🟡 Media: superficie o fiabilidad de los controles**
 5. **`127.0.0.1` y el túnel `cloudflared` fuera de `set_real_ip_from`.** El tráfico del túnel se registra y se
@@ -158,7 +171,8 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
       secretos reales salen de `process.env` (`API_SECRET_TOKEN`, `EDGE_SECRET`, `ANTHROPIC_API_KEY`,
       `RESEND_API_KEY`, `GOOGLE_PRIVATE_KEY`).
 
-Con esto, en **Alta** solo queda abierto el n.º 4 (`config_secret.example.php`). El n.º 2 y el n.º 3 están cerrados.
+**Alta: sin riesgos abiertos desde el 2026-09-25.** El n.º 1 (H4) bajó a Baja como n.º 15, y los n.º 2, 3 y 4 están
+cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
 
 ---
 
