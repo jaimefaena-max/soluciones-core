@@ -83,6 +83,37 @@ siguiendo el procedimiento B→C→D (el `.bak` se borra solo después de la pru
    `sincronizar-secretos-borde.sh` sin `vip-portal.conf`; MVG 3 y 4; GambusasChile CI; `package.json` 2.4.0 vs tag v2.5.0;
    telemetría 09-16-b y 09-22-a sin reconstruir.
 
+### 2.1 Matriz de riesgos abiertos de seguridad (priorizada 2026-09-25)
+
+Tras cerrar `cfut_`, la credencial de `postgres` y los reinicios de PM2 ya no queda **ninguna credencial expuesta
+conocida**. La matriz sale del handover y de las memorias; ningún punto se ha vuelto a comprobar en el VPS el 25-sep.
+
+**🟠 Alta: exposición de credenciales o de integridad**
+1. **H4: claves `sk_live` estáticas** en el Portal VIP. Son credenciales de larga vida sin rotación.
+2. **`www-data` puede escribir en el portal de Jose.** Si se compromete nginx o PHP, se puede alterar el contenido
+   privado de un cliente.
+3. **`sincronizar-secretos-borde.sh` no conoce `vip-portal.conf`.** En la próxima rotación de secretos de borde, vip.
+   se queda con el valor viejo: o se rompe, o sigue aceptando el secreto anterior.
+4. **`config_secret.example.php` de ExamenFácil se sirve con 200.** Es la plantilla de la configuración secreta.
+   Abierto según la memoria `examenfacil-health-endpoint`; sin comprobar.
+
+**🟡 Media: superficie o fiabilidad de los controles**
+5. **`127.0.0.1` y el túnel `cloudflared` fuera de `set_real_ip_from`.** El tráfico del túnel se registra y se
+   limita como si viniera de una sola IP.
+6. **`elrincon-backend` en Node 18**, sin parches de seguridad. Es el servicio de pagos.
+7. **SSH con reenvío de puertos activo en las llaves de administración.** Una llave robada sirve para pivotar hacia
+   servicios internos (Postgres, `:3000`, `:3001`).
+8. **H7: `tenantId` del widget** en el Portal VIP.
+9. **H8: sin prueba automatizada de la CSP.** El incidente del 22 al 24-sep pasó justo por eso.
+10. **Los logs de PM2 pueden volver a 644** tras la rotación de las 00:00. Comprobar el 26-sep con
+    `ls -la /root/.pm2/logs/` (ver §2, punto 4).
+
+**⚪ Baja: higiene**
+11. La receta manual de nginx sigue dejando `.bak` en `sites-available`.
+12. Faltan los pilares 3 y 4 de MVG.
+13. **`SALES_WEBHOOK_URL` vacío;** el lead y el evento de Calendar de la prueba E2E del 22-b siguen sin borrar.
+14. **Fuera del VPS:** vaciar la Papelera de Windows, que tiene ficheros sensibles.
+
 ---
 
 ## 3. Trampas nuevas (no volver a tropezar)
