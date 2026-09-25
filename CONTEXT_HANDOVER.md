@@ -90,8 +90,20 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
 
 **🟠 Alta: exposición de credenciales o de integridad**
 1. **H4: claves `sk_live` estáticas** en el Portal VIP. Son credenciales de larga vida sin rotación.
-2. **`www-data` puede escribir en el portal de Jose.** Si se compromete nginx o PHP, se puede alterar el contenido
-   privado de un cliente.
+2. ✅ **CERRADO 2026-09-25: `www-data` ya no puede escribir en el portal de Jose.** Jaime ejecutó a mano en el VPS el
+   procedimiento de Claude: respaldo de permisos en `/root/backups-permisos/`, `chown -R deploy:www-data` sobre
+   `/var/www/elrincondedonselso`, directorios a `00755` (con 5 dígitos: `chmod 755` de GNU **conserva el setgid**) y
+   ficheros a 644. Claude lo verificó en el VPS (solo lectura): `public/jose` = `deploy:www-data` 755/644, symlink
+   `/var/www/elrincondedonselso.cl/jose` intacto, `https://127.0.0.1/jose/` con `Host` → **401** (Basic Auth),
+   ninguna línea en `error.log`. La lectura efectiva de `www-data` la confirmó Jaime.
+   - Hallazgos al investigarlo: `/var/www/elrincondedonselso` **no es un checkout de git**. El `deploy.yml` del repo de
+     Jose **nunca se ha ejecutado**: el clon no tiene `origin`, la rama es `master` y el trigger es `main`, y el
+     contenido del VPS (2-3 jul) es anterior al workflow (5 jul). Si se activa, hay que coordinar `VPS_USER=deploy`,
+     el `chmod` en la lista blanca de sudoers y el remoto con la rama alineada.
+   - ⚠️ El repo local de Jose tiene **sin rastrear** las fotos de la cédula, un informe legal en PDF,
+     `01_Inicio_Empresa/` y `02_Contabilidad/`. Meterlos en el `.gitignore` **antes** de configurar `origin`.
+   - Un `curl` a `127.0.0.1` **sin** `-H "Host: …"` cae en el vhost por defecto y da un 404 que no significa nada;
+     por `http://` sale un 301. La sonda válida es `https://` + `Host`.
 3. **`sincronizar-secretos-borde.sh` no conoce `vip-portal.conf`.** En la próxima rotación de secretos de borde, vip.
    se queda con el valor viejo: o se rompe, o sigue aceptando el secreto anterior.
 4. **`config_secret.example.php` de ExamenFácil se sirve con 200.** Es la plantilla de la configuración secreta.
