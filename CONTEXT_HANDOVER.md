@@ -70,7 +70,14 @@ siguiendo el procedimiento B→C→D (el `.bak` se borra solo después de la pru
 2. **M. Jesús — F2/F3:** enrutador (Haiku), analista (Sonnet + tool use), verificador de cifras, `/api/admin/mjesus/*`
    con `protegerPlugin` + `requiereRolAdmin`, `MJESUS_HABILITADO=admin`, y conectar el panel (`MOTOR_CONECTADO`).
 3. **H7 / H8 / H4** del Portal VIP (ver handover 23-a): tenantId del widget, prueba CSP automatizada, claves `sk_live` estáticas.
-4. PM2 marca **61 reinicios** acumulados de `zasa-orchestrator` (estable 51 min tras el cambio de rol). Mirar si son históricos o hay bucle.
+4. ✅ **CERRADO 2026-09-25 — reinicios de PM2 de `zasa-orchestrator`.** Diagnóstico de Claude (solo lectura): 62
+   reinicios **históricos** (un `pm2 restart` por despliegue), no un bucle: `unstable restarts` = 0, 18 h de actividad
+   seguida desde el despliegue de las 08:06 UTC del 24-sep, heap de 73 MiB con un límite de 512 MiB. El log de errores
+   vacío **no prueba nada**: se rota a las 00:00 (0 bytes, `Sep 25 00:00`). Jaime ejecutó `pm2 reset` (contador = 0:
+   desde ahora, cualquier reinicio fuera de un despliegue es señal real) y puso a 600 `/root/.pm2/logs/*.log`
+   (antes 644). ⚠️ **Sin verificar:** si la rotación de medianoche crea los ficheros nuevos otra vez a 644, el
+   endurecimiento dura un día. Comprobar mañana con `ls -la /root/.pm2/logs/` y, si ha vuelto a 644, fijarlo en la
+   configuración de la rotación (`pm2-logrotate` o `logrotate`: `create 0600`).
 5. Heredados: `cloudflared` y `127.0.0.1` fuera de `set_real_ip_from`; `elrincon-backend` en Node 18 EOL y Postgres
    como superusuario (mismo problema que se arregló hoy en `zasa_portal`); `.bak` en `sites-available`;
    `sincronizar-secretos-borde.sh` sin `vip-portal.conf`; MVG 3 y 4; GambusasChile CI; `package.json` 2.4.0 vs tag v2.5.0;
