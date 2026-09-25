@@ -28,17 +28,34 @@ commitear **que no son de esta sesión**.
 
 ## 1. Paso exacto para arrancar
 
-🔴 **Bloqueado por Jaime (panel de Cloudflare), heredado sin cambios:** rotar el token **`cfut_`** filtrado el
-22-sep. Sigue vivo: huella `8c488bd6` = `CLOUDFLARE_API_TOKEN` de `/opt/solucionesconia/.env` (lo usa `deploy.sh` de
-la landing). Token nuevo con los mismos permisos → escribirlo Jaime en ese `.env` → revocar el viejo → borrar las
-2 líneas con `cfut_` de `/root/.bash_history`. Después Claude verifica por huella.
+✅ **COMPLETADO 2026-09-25 (Fase 1) — rotación del `cfut_` filtrado el 22-sep.** Ejecutado por Jaime a mano en el
+VPS; evidencia reportada por Jaime (Claude no pudo verificarlo: el modo automático bloqueó la lectura del `.env` de
+producción y la edición de `/root/.bash_history`):
+- `CLOUDFLARE_API_TOKEN` de `/opt/solucionesconia/.env`: huella sha256 nueva `873c9da4` (la vieja era `8c488bd6`).
+- `grep -c cfut_ /root/.bash_history` = `0`.
+- Revocación del token viejo en el panel de Cloudflare: la hizo Jaime (el history purgado era la última copia del
+  valor viejo, así que ya no se puede comprobar con el propio token).
+
+✅ **COMPLETADO 2026-09-25 (Fase 2) — credencial del superusuario `postgres`.** Ejecutado por Jaime a mano en el VPS
+siguiendo el procedimiento B→C→D (el `.bak` se borra solo después de la prueba negativa). Evidencia reportada por Jaime:
+- B: `ALTER ROLE postgres PASSWORD NULL` → `rolpassword is null` = verdadero.
+- C1: la `DATABASE_URL` del `.bak` → `FATAL: password authentication failed for user "postgres"`.
+- C2: `runuser -u postgres -- psql` (peer, el de los respaldos de las 03:00) → `1`.
+- C3: `/health` de `127.0.0.1:3001` = ok, PM2 `online`.
+- D: `/opt/zasa-orchestrator/.env.bak_superuser` eliminado.
+- No se reportaron las salidas de las comprobaciones previas A1–A4 (conexiones vivas de `postgres`, otros ficheros con
+  URL de `postgres`, `PGPASSWORD`/`.pgpass`). C1–C3 en verde cubren el riesgo principal; si apareciera un fallo de
+  conexión de algún proceso, empezar por A2.
+- Pendiente de reflejar en ADR-003 §10.4 (`zasa-orchestrator`; push a `main` despliega el orquestador).
+
+➡️ **Paso siguiente:** cola §2 — lo de Claude es M. Jesús F1 (`catalogo.ts` + `derivar.ts`).
 
 ---
 
 ## 2. Cola (por cercanía a producción)
 
 0. **Acciones de Jaime:**
-   - 🔴 **`/opt/zasa-orchestrator/.env.bak_superuser`** (600, root, 24-sep 06:19 UTC) guarda la `DATABASE_URL`
+   - ✅ **CERRADO 2026-09-25 (ver §1).** ~~`/opt/zasa-orchestrator/.env.bak_superuser`~~ (600, root, 24-sep 06:19 UTC) guardaba la `DATABASE_URL`
      del **superusuario `postgres` con su contraseña**. `postgres` tiene contraseña y `pg_hba` admite `scram` por
      loopback → credencial casi seguro válida. Orden: confirmar que nada usa `postgres` por TCP (los respaldos van por
      `runuser` + `peer`) → `ALTER ROLE postgres PASSWORD NULL` → borrar el `.bak`. Claude puede verificar después.
@@ -89,4 +106,4 @@ la landing). Token nuevo con los mismos permisos → escribirlo Jaime en ese `.e
 
 - Ningún valor pasó por el chat. La clave de `mjesus_ro` la genera el script en el VPS, viaja a psql por stdin con el
   registro apagado y a las sondas por un `PGPASSFILE` efímero.
-- `cfut_` comprometido y **vivo** (§1). Credencial de superusuario `postgres` en `.env.bak_superuser` (§2.0).
+- `cfut_` comprometido: **rotado el 2026-09-25** (huella nueva `873c9da4`, §1). Credencial de superusuario `postgres`: **anulada y `.bak` borrado el 2026-09-25** (`postgres` solo entra por `peer`, §1).
