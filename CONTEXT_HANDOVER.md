@@ -104,8 +104,27 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
      `01_Inicio_Empresa/` y `02_Contabilidad/`. Meterlos en el `.gitignore` **antes** de configurar `origin`.
    - Un `curl` a `127.0.0.1` **sin** `-H "Host: …"` cae en el vhost por defecto y da un 404 que no significa nada;
      por `http://` sale un 301. La sonda válida es `https://` + `Host`.
-3. **`sincronizar-secretos-borde.sh` no conoce `vip-portal.conf`.** En la próxima rotación de secretos de borde, vip.
-   se queda con el valor viejo: o se rompe, o sigue aceptando el secreto anterior.
+3. ✅ **CERRADO 2026-09-25: `sincronizar-secretos-borde.sh` ya coteja `vip-portal.conf`.** Matiz de diagnóstico: el
+   script nunca propagaba secretos a nginx (copia nginx → `.env`); la rotación la hace `rotar-secretos-borde.sh`, que
+   ya incluía el snippet. El hueco era de **detección**: su `grep -R` solo recorría `sites-enabled` y no sigue los
+   `include`, así que un snippet desalineado no hacía saltar el control de «valor único».
+   - Corrección: `zasa-orchestrator` `b6df917`. `NGINX_SNIPPETS` (por defecto `/etc/nginx/snippets/vip-portal.conf`)
+     entra en el `grep` de `X-Edge-Proof`. El Bearer del snippet (`proxy_set_header Authorization`) se compara con el
+     maestro, pero esa forma **solo se busca en los snippets**: en `sites-enabled` hay Bearer de inquilino que
+     harían abortar sin motivo. Si el snippet no existe: aviso y sigue.
+   - Verificación: prueba local con ficheros de prueba (alineado → ok; edge o Bearer viejo en el snippet → aborta;
+     sin snippet → aviso; Bearer de inquilino → no aborta). Ojo: el `grep -P` de Git Bash exige
+     `LC_ALL=C.UTF-8`, o falla en silencio. Despliegue: `/health` = `b6df917`, PM2 con 1 reinicio y 0 inestables.
+     En el VPS, `--comprobar` → `snippet incluido en el cotejo`, un único `X-Edge-Proof` (`3f6c5150`) y un único
+     Bearer maestro (`43309db8`), `.env` alineado, matriz de borde en verde, `rc=0`.
+   - ⏳ **Pendiente de Jaime:** retirar la copia obsoleta `/root/sincronizar-secretos-borde.sh` (del 2026-09-05, sin
+     `NGINX_SNIPPETS`, sha256 `d8fb605f`; la del checkout es `4ba6d3de`). No está en cron ni en systemd. El modo
+     automático bloqueó a Claude la escritura en el VPS. Comando propuesto (archiva en lugar de borrar):
+     `install -d -m 700 /root/backups-rotacion && mv /root/sincronizar-secretos-borde.sh /root/backups-rotacion/sincronizar-secretos-borde.sh.obsoleto-20260925`
+   - ⏳ **Referencias a esa ruta en `zasa-orchestrator`:** `deploy/vps-4gb/cerrar-migracion.sh:235` la **llama**
+     (script de un solo uso, cierre de la migración del 09-07) y la cabecera del propio script (líneas 7-8) la documenta
+     como ruta de uso. Cambiar ambas a `/opt/zasa-orchestrator/app/deploy/vps-4gb/` en el próximo cambio del
+     orquestador (un push a `main` despliega).
 4. **`config_secret.example.php` de ExamenFácil se sirve con 200.** Es la plantilla de la configuración secreta.
    Abierto según la memoria `examenfacil-health-endpoint`; sin comprobar.
 
@@ -139,8 +158,7 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
       secretos reales salen de `process.env` (`API_SECRET_TOKEN`, `EDGE_SECRET`, `ANTHROPIC_API_KEY`,
       `RESEND_API_KEY`, `GOOGLE_PRIVATE_KEY`).
 
-Con esto, en **Alta** solo quedan abiertos los n.º 3 (`sincronizar-secretos-borde.sh` sin `vip-portal.conf`) y 4
-(`config_secret.example.php`).
+Con esto, en **Alta** solo queda abierto el n.º 4 (`config_secret.example.php`). El n.º 2 y el n.º 3 están cerrados.
 
 ---
 
