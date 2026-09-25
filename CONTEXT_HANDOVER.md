@@ -69,7 +69,7 @@ siguiendo el procedimiento B→C→D (el `.bak` se borra solo después de la pru
    **sin LLM todavía**. Todo el SQL cualificado `public.bi_*`.
 2. **M. Jesús — F2/F3:** enrutador (Haiku), analista (Sonnet + tool use), verificador de cifras, `/api/admin/mjesus/*`
    con `protegerPlugin` + `requiereRolAdmin`, `MJESUS_HABILITADO=admin`, y conectar el panel (`MOTOR_CONECTADO`).
-3. **H7 / H8 / H4** del Portal VIP (ver handover 23-a): tenantId del widget, prueba CSP automatizada, claves `sk_live` estáticas.
+3. **H7 / H8 / H4** del Portal VIP (ver handover 23-a): tenantId del widget, prueba CSP automatizada, inventario de claves simulado (H4 es Baja: mock, §2.1 n.º 15).
 4. ✅ **CERRADO 2026-09-25 — reinicios de PM2 de `zasa-orchestrator`.** Diagnóstico de Claude (solo lectura): 62
    reinicios **históricos** (un `pm2 restart` por despliegue), no un bucle: `unstable restarts` = 0, 18 h de actividad
    seguida desde el despliegue de las 08:06 UTC del 24-sep, heap de 73 MiB con un límite de 512 MiB. El log de errores
@@ -89,7 +89,7 @@ Tras cerrar `cfut_`, la credencial de `postgres` y los reinicios de PM2 ya no qu
 conocida**. La matriz sale del handover y de las memorias; ningún punto se ha vuelto a comprobar en el VPS el 25-sep.
 
 **🟠 Alta: exposición de credenciales o de integridad**
-1. **H4: claves `sk_live` estáticas** en el Portal VIP. Son credenciales de larga vida sin rotación.
+1. ⬇️ **H4: reclasificado a Baja el 2026-09-25** (ver n.º 15).
 2. ✅ **CERRADO 2026-09-25: `www-data` ya no puede escribir en el portal de Jose.** Jaime ejecutó a mano en el VPS el
    procedimiento de Claude: respaldo de permisos en `/root/backups-permisos/`, `chown -R deploy:www-data` sobre
    `/var/www/elrincondedonselso`, directorios a `00755` (con 5 dígitos: `chmod 755` de GNU **conserva el setgid**) y
@@ -125,6 +125,22 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
 12. Faltan los pilares 3 y 4 de MVG.
 13. **`SALES_WEBHOOK_URL` vacío;** el lead y el evento de Calendar de la prueba E2E del 22-b siguen sin borrar.
 14. **Fuera del VPS:** vaciar la Papelera de Windows, que tiene ficheros sensibles.
+15. **H4: inventario de credenciales simulado** (deuda funcional, no de seguridad; antes era el n.º 1, Alta).
+    `/api/integrations/keys` (`zasa-orchestrator/src/services/integrationsService.ts:60-108`, espejo en
+    `admin_solucionesconia/src/services/integrationService.ts`) devuelve un inventario **estático de demostración**:
+    `prefijo` = `sk_live_`/`sk_test_`/`sk_ci_` + 4 caracteres y `ultimos4` inventados, marcado `provisional: true`
+    (el frontend muestra la franja de «datos simulados»). No hay ninguna clave real: el tipo `ApiKeyPublica` no tiene
+    campo donde quepa el secreto. Falta el **almacén real de credenciales**; al construirlo: columnas explícitas
+    (nunca `SELECT *`) y la clave completa se muestra una sola vez, al emitirla (cabecera del fichero, líneas 4-16).
+    - Barrido de secretos del 25-sep en `admin_solucionesconia` y `zasa-orchestrator` (solo lectura, excluidos
+      `node_modules`, `.git`, `dist` y `coverage`): solo `.env.example` versionado; `GOOGLE_PRIVATE_KEY` de
+      `.env.example` es una plantilla; `TOKEN_MP` de `tests/pagosMercadoPago.test.ts:46` es sintético (dígitos
+      consecutivos, sin el tramo del id de usuario); los hex largos son sha256 públicos de bundles y árboles. Los
+      secretos reales salen de `process.env` (`API_SECRET_TOKEN`, `EDGE_SECRET`, `ANTHROPIC_API_KEY`,
+      `RESEND_API_KEY`, `GOOGLE_PRIVATE_KEY`).
+
+Con esto, en **Alta** solo quedan abiertos los n.º 3 (`sincronizar-secretos-borde.sh` sin `vip-portal.conf`) y 4
+(`config_secret.example.php`).
 
 ---
 
