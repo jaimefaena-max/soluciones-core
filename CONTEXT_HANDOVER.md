@@ -142,8 +142,25 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
      servidor. Hoy la única capa es nginx, vigilada por la guardia.
 
 **🟡 Media: superficie o fiabilidad de los controles**
-5. **`127.0.0.1` y el túnel `cloudflared` fuera de `set_real_ip_from`.** El tráfico del túnel se registra y se
-   limita como si viniera de una sola IP.
+5. ✅ **CERRADO 2026-09-25: túnel `cloudflared` retirado del VPS.** La descripción original («el tráfico del túnel
+   se registra como una sola IP») no se cumplía: el túnel estaba **conectado pero sin uso**. Tenía 4 conexiones HA y
+   `cloudflared_tunnel_total_requests 0` en más de 22 h. Las 12 peticiones desde loopback del `access.log` eran
+   `curl` nuestros. `admin.` y `vip.` llegan por el proxy de Cloudflare directo al origen, con la IP real recuperada.
+   El riesgo real era un **camino de entrada paralelo y sin vigilar**: ingress `admin.`/`vip.` → `https://localhost:443`
+   por fuera de `ufw`. Si se hubiera usado, todos los clientes habrían compartido un solo contador de rate limit
+   (`127.0.0.1`), con riesgo de bloquear el login de todos.
+   - Retirada, ejecutada por Jaime (el modo automático bloqueó a Claude `systemctl stop/disable` y el `mv`):
+     `systemctl stop` + `disable`; configuración y credenciales archivadas.
+   - Verificado por Claude (solo lectura): `inactive` / `disabled`; `/etc/cloudflared` y `/root/.cloudflared` ya no
+     existen. Archivo: `/root/backups-rotacion/cloudflared/` (los 3 `config.yml*` de `/etc`) y
+     `/root/backups-rotacion/.cloudflared/` (700, **oculto**: `cert.pem` 600 y la credencial `<uuid>.json` 400).
+     Desde fuera, después de parar el servicio: `admin.` → 401 y `vip./login` → 200, así que ninguno dependía del túnel.
+   - No se tocó `set_real_ip_from`: sin túnel, no hace falta confiar en `127.0.0.1` (lo que además permitiría a un
+     proceso local falsificar `CF-Connecting-IP`).
+   - ⏳ **Pendiente de Jaime (panel de Cloudflare, Zero Trust → Networks → Tunnels):** borrar los hostnames públicos
+     `admin.`/`vip.` y el túnel. Hasta entonces la credencial archivada sigue siendo válida en Cloudflare. Sin verificar.
+   - ⏳ **Después:** `shred -u` sobre `cert.pem` (permite crear y gestionar túneles de la zona) y el `.json` archivados;
+     opcionalmente, `apt purge cloudflared`.
 6. **`elrincon-backend` en Node 18**, sin parches de seguridad. Es el servicio de pagos.
 7. **SSH con reenvío de puertos activo en las llaves de administración.** Una llave robada sirve para pivotar hacia
    servicios internos (Postgres, `:3000`, `:3001`).
