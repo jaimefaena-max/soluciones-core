@@ -177,8 +177,28 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
      `/api/health` → 200 por loopback y desde fuera; los 6 ficheros de datos idénticos al respaldo; log de errores
      vacío. `Elrincon-qa`: **45/46**. El fallo (F4) no tiene que ver con la migración: ver el n.º 16.
    - Rollback: `git checkout be5bfba` + `pm2 delete` / `start ecosystem.config.js` / `save`.
-7. **SSH con reenvío de puertos activo en las llaves de administración.** Una llave robada sirve para pivotar hacia
-   servicios internos (Postgres, `:3000`, `:3001`).
+7. ✅ **CERRADO 2026-09-25: reenvíos SSH desactivados en todo el servidor.** El hallazgo era más amplio que «las
+   llaves de administración»: sshd permitía **cualquier reenvío** a cualquier llave (`allowtcpforwarding yes`,
+   `permitopen any`, `permitlisten any`, `allowagentforwarding yes`, `allowstreamlocalforwarding yes`,
+   `x11forwarding yes`), sin bloques `Match`. Las 2 llaves de administración (`mqRvR+Cn`, la de Claude, y `5xYVSNkN`,
+   la de Jaime) están en `root` **y** en `deploy` sin opciones; las 3 de CI ya tenían `restrict`. Lo grave era
+   `deploy`: con su sudo acotado podía abrir túneles a `:3000` (`elrincon-backend`, **sin compuerta**), a `:3001` y a
+   Postgres, saltándose nginx.
+   - Cambio aplicado por Claude: bloque añadido a `/etc/ssh/sshd_config.d/00-hardening.conf`, que se lee primero y
+     gana sobre el `X11Forwarding yes` de la línea 99 de `sshd_config`:
+     `DisableForwarding yes` + explícitos `AllowTcpForwarding no`, `AllowAgentForwarding no`,
+     `AllowStreamLocalForwarding no`, `X11Forwarding no`. Respaldo previo en
+     `/root/backups-ssh/20260925-041553/00-hardening.conf`. `sshd -t` rc=0 → `systemctl reload ssh` (no corta
+     sesiones). OpenSSH 9.6p1.
+   - Verificado con conexiones nuevas: se entra con llave como `root` y como `deploy`; `sshd -T` → `disableforwarding
+     yes` y los cuatro en `no`; **prueba negativa**: `ssh -L …:127.0.0.1:3000` como `deploy` → `administratively
+     prohibited`, y `curl` por el túnel → `000`. `permitopen any` sigue apareciendo en `sshd -T`, pero sin efecto.
+   - ⏳ Confirmar en el próximo despliegue de cualquier repo que el CI no se ha visto afectado (usa `scp`, `rsync`
+     y comandos por SSH, sin reenvío).
+   - Si algún día hace falta un túnel para depurar (p. ej. `ssh -L 5432`), abrirlo con un bloque `Match` temporal,
+     **no** quitando este bloque.
+   - Abierto, opcional: ¿hacen falta las llaves de administración en `deploy`? `root` ya sirve de acceso de
+     emergencia.
 8. **H7: `tenantId` del widget** en el Portal VIP.
 9. **H8: sin prueba automatizada de la CSP.** El incidente del 22 al 24-sep pasó justo por eso.
 10. **Los logs de PM2 pueden volver a 644** tras la rotación de las 00:00. Comprobar el 26-sep con
