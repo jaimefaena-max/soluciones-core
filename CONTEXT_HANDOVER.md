@@ -161,7 +161,22 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
      `admin.`/`vip.` y el túnel. Hasta entonces la credencial archivada sigue siendo válida en Cloudflare. Sin verificar.
    - ⏳ **Después:** `shred -u` sobre `cert.pem` (permite crear y gestionar túneles de la zona) y el `.json` archivados;
      opcionalmente, `apt purge cloudflared`.
-6. **`elrincon-backend` en Node 18**, sin parches de seguridad. Es el servicio de pagos.
+6. ✅ **CERRADO 2026-09-25: `elrincon-backend` migrado de Node 18.19.1 (`/usr/bin/node`, sin soporte desde
+   2025-04-30) a Node 22.23.2 (`/opt/node22/bin/node`).**
+   - Antes, Claude (solo lectura en el VPS): no hay módulos nativos en `node_modules`; los 24 `.js` pasan
+     `node --check` con Node 22; `dotenv` y `mercadopago` cargan con Node 22; ninguna API obsoleta. Respaldo de los
+     5 JSON + `.env` en `/root/backups-elrincon-backend/20260925-040204-pre-node22/` (sha256 comprobado, 600).
+   - Código: `elrincon-backend` `c646811`. `interpreter: '/opt/node22/bin/node'` en `ecosystem.config.js` y
+     `engines.node >=22` en `package.json` y en la raíz de `package-lock.json`. `npm test` en local: 119/120 pasan
+     y 1 se omite (con Node 24, el local).
+   - Despliegue, ejecutado por Jaime: `git pull` + `pm2 delete` + `pm2 start ecosystem.config.js` + `pm2 save`.
+     **Trampa:** `pm2 restart` NO cambia el intérprete de un proceso ya registrado, y sin `pm2 save` el `dump.pm2`
+     lo devolvería a Node 18 al reiniciar el servidor.
+   - Verificado por Claude después: checkout `c646811` limpio; PM2 `online` con `interpreter /opt/node22/bin/node`,
+     `node.js 22.23.2`, 0 inestables; `/proc/<pid>/exe` → `/opt/node22/bin/node`; `dump.pm2` con Node 22;
+     `/api/health` → 200 por loopback y desde fuera; los 6 ficheros de datos idénticos al respaldo; log de errores
+     vacío. `Elrincon-qa`: **45/46**. El fallo (F4) no tiene que ver con la migración: ver el n.º 16.
+   - Rollback: `git checkout be5bfba` + `pm2 delete` / `start ecosystem.config.js` / `save`.
 7. **SSH con reenvío de puertos activo en las llaves de administración.** Una llave robada sirve para pivotar hacia
    servicios internos (Postgres, `:3000`, `:3001`).
 8. **H7: `tenantId` del widget** en el Portal VIP.
@@ -187,6 +202,14 @@ conocida**. La matriz sale del handover y de las memorias; ningún punto se ha v
       consecutivos, sin el tramo del id de usuario); los hex largos son sha256 públicos de bundles y árboles. Los
       secretos reales salen de `process.env` (`API_SECRET_TOKEN`, `EDGE_SECRET`, `ANTHROPIC_API_KEY`,
       `RESEND_API_KEY`, `GOOGLE_PRIVATE_KEY`).
+
+16. **Cloudflare elimina el `ETag` del HTML de elrincondedonselso.cl** (hallado el 25-sep; rendimiento, no seguridad).
+    `Elrincon-qa` F4 (`tests/bastionado.spec.js:107`) falla: `/capitulo-1.html` llega sin `ETag`, así que
+    `no-cache, must-revalidate` descarga la página entera en cada visita en lugar de un 304. El origen **sí** lo
+    emite (`"6a9b398d-a44f"`, y `W/…` con gzip); lo quita Cloudflare en la respuesta `DYNAMIC`. No es la migración
+    a Node 22: es HTML estático de nginx y el vhost no ha cambiado desde el 04-sep. Revisar en el panel de Cloudflare
+    las opciones que reescriben el HTML (Email Obfuscation, Rocket Loader, Automatic HTTPS Rewrites) y «Respect
+    Strong ETags». Tarea de Jaime.
 
 **Alta: sin riesgos abiertos desde el 2026-09-25.** El n.º 1 (H4) bajó a Baja como n.º 15, y los n.º 2, 3 y 4 están
 cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
