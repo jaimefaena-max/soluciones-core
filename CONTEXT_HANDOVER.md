@@ -25,6 +25,7 @@
 | **Reenvíos SSH** (n.º 7) | ✅ | `DisableForwarding yes` en `00-hardening.conf` (aplicado por Claude); túnel `-L` rechazado |
 | **Historial de Sofía entre usuarios** (n.º 8) | ✅ desplegado · ⏳ prueba real | `b98f90e`: `purgarSesionLocal()` borra `sc.admin.sales-agent.*`. Widget servido = bundle del commit (sha256) y vip. lo contiene |
 | **Compuerta de CSP en CI** (n.º 9) | ✅ en `main` · ⏳ run de Actions | `c1cfe81`: Playwright sobre `dist/` con la CSP real de vip., 4/4 en local, detecta la regresión del 22-sep |
+| **Permisos de los logs de PM2** (n.º 10) | ✅ 2026-09-27 | Drop-in `/etc/systemd/system/pm2-root.service.d/umask.conf` con `UMask=0077`; demonio y los 2 procesos con umask 0077, logs nuevos en 600, ambos `/health` en 200 |
 | **Telemetría 2026-09-24-b** | ⏳ ver nota | `06a494d` empujado; comprobar `/health` = `06a494d` y `grep -c 2026-09-24-b` en `dist/data/telemetry.js` |
 
 **Repos al cierre:** `admin_solucionesconia` (`c1cfe81`), `zasa-orchestrator` (`06a494d`), `elrincon-backend`
@@ -35,10 +36,9 @@ commitear **que no son de esta sesión** y no se han inspeccionado.
 
 ## 1. Paso exacto para arrancar
 
-➡️ **Riesgo n.º 10: comprobar los permisos de los logs de PM2 tras la rotación de las 00:00 del 26-sep.** Solo lectura,
-un minuto: `ls -la /root/.pm2/logs/`. Si los ficheros nuevos han vuelto a 644, fijarlo en la configuración de la
-rotación (`pm2-logrotate` o `logrotate`: `create 0600`), que es escritura en el VPS y probablemente la tenga que
-ejecutar Jaime.
+➡️ **Comprobar el cierre del riesgo n.º 10 tras la rotación de las 00:00 del 28-sep.** Solo lectura, un minuto:
+`ls -la /root/.pm2/logs/`. Todos los ficheros deben seguir en 600. Si todo está bien, el siguiente punto de la cola es
+el **demonio de PM2 a Node 22**, siempre con `systemctl` (§3, regla 16).
 
 ---
 
@@ -55,9 +55,11 @@ ejecutar Jaime.
      Actions). Si falló, el artefacto `csp-test-results` tiene las trazas.
    - Heredados: panel de M. Jesús que «desaparece» en el móvil (¿queda en `/login`?), Papelera de Windows,
      `SALES_WEBHOOK_URL`, limpiar el E2E del 22-b.
-1. **Riesgo n.º 10** (§1).
+1. ~~**Riesgo n.º 10**~~ ✅ cerrado el 2026-09-27; queda la comprobación tras la rotación (§1).
 2. **Demonio de PM2 a Node 22** (`cockpit-pm2-elrincon-node22`, 70 %): el propio PM2 corre con `/usr/bin/node` 18.
-   Pide `pm2 update` bajo el Node nuevo o reinstalar el servicio de arranque; hacerlo con ensayo y una sesión root abierta.
+   Pide reinstalar el servicio de arranque o apuntar la unidad al Node nuevo; hacerlo con ensayo y una sesión root
+   abierta. **Todo reinicio del demonio, por `systemctl`** (§3, regla 16): un `pm2 update` desde la shell lo
+   relanzaría con umask 0022.
 3. **Riesgo n.º 11:** la receta manual de plantillas nginx que deja `.bak` en `sites-available`.
 4. **M. Jesús — resto de F1** (ADR-003 §8): `catalogo.ts` (7 métricas sobre `bi_*`) + `derivar.ts`, con tests, sin LLM.
 5. **M. Jesús — F2/F3** (enrutador, analista, verificador, `/api/admin/mjesus/*`, conectar el panel).
@@ -71,8 +73,8 @@ ejecutar Jaime.
 
 Ya no queda **ninguna credencial expuesta conocida**. La matriz se armó el 25-sep a partir del handover y las memorias,
 y cada punto se fue comprobando al abordarlo: cada cierre dice qué verificó Claude y qué reportó Jaime. **Estado al
-cierre de la sesión:** Alta cerrada; Media cerrada salvo el n.º 10 y las comprobaciones que aún piden los n.º 5, 8 y 9;
-Baja sin tocar, más el n.º 16, nuevo.
+cierre de la sesión:** Alta cerrada; Media cerrada salvo las comprobaciones que aún piden los n.º 5, 8 y 9 (el n.º 10
+se cerró el 2026-09-27); Baja sin tocar, más el n.º 16, nuevo.
 
 **🟠 Alta: exposición de credenciales o de integridad**
 1. ⬇️ **H4: reclasificado a Baja el 2026-09-25** (ver n.º 15).
@@ -217,7 +219,25 @@ Baja sin tocar, más el n.º 16, nuevo.
      **reintroduciendo la regresión del 22-sep, la prueba falla**. ⏳ Claude no ve Actions: confirmar el run.
    - Costes: +30-60 s por despliegue; la CSP sale de lo que sirve producción, así que un cambio de política y de SPA a
      la vez exige desplegar primero la política.
-10. **Los logs de PM2 pueden volver a 644** tras la rotación de las 00:00. **Es el paso de arranque (§1).**
+10. ✅ **CERRADO 2026-09-27: permisos de los logs de PM2.**
+    - **Diagnóstico** (solo lectura): los logs de `zasa-orchestrator` seguían en 600, pero los de `elrincon-backend`
+      estaban en 644, incluidos los de la rotación del 27-sep. El demonio corría con `Umask: 0022` porque
+      `pm2-root.service` no fija ninguno. El 600 anterior era un `chmod` puntual y no una configuración: al volver a
+      registrar un proceso (la migración a Node 22 del 25-sep), sus ficheros nuevos nacían en 644. La exposición
+      real quedaba contenida por `/root` = `700 root root`.
+    - **Antes de fijar el umask** se comprobó que ningún backend escribe en rutas que sirve nginx: los `root`/`alias`
+      de `sites-enabled` son `/var/www/*`, `/opt/agencia/public/{vip,widget}` y ficheros sueltos de
+      `/opt/agencia/private/clientes/`, que escriben CI, `deploy.sh` o `scp`. Los adjuntos, audios y libros JSON de
+      los backends ya se crean con `0o600`/`0o700` explícito. Lo único que cambia son los SQLite del orquestador (a 600).
+      Sin verificar: los valores reales de `ARCHIVOS_CLIENTES_DIR`, `*_DB_PATH` y `LIBRO_*_PATH` en los `.env`.
+    - **Solución:** `chmod 600 /root/.pm2/logs/*` y el drop-in
+      **`/etc/systemd/system/pm2-root.service.d/umask.conf`** (`[Service]` + `UMask=0077`) → `daemon-reload` →
+      `systemctl restart pm2-root`. Está fuera de `pm2-root.service`, así que sobrevive a un `pm2 startup`.
+    - **Verificado:** `pm2-root` activo; el demonio y los 2 procesos con `Umask: 0077`; ambos `online` con 0 reinicios
+      y 0 inestables, en `/opt/node22/bin/node`; `/api/health` (:3000) y `/health` (:3001) → 200; los logs creados al
+      arrancar (`elrincon-backend-*-1.log`) nacieron en 600. `elrincon-backend` pasó del id 2 al 1: los `*-0` y `*-2`
+      son restos.
+    - ⏳ Falta confirmar tras la rotación de las 00:00 del 28-sep que todo sigue en 600 (§1).
 
 **⚪ Baja: higiene**
 11. La receta manual de nginx sigue dejando `.bak` en `sites-available`.
@@ -289,6 +309,17 @@ cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
 14. **`grep -P` en Git Bash exige `LC_ALL=C.UTF-8`;** sin él falla en silencio (rc 2 con `2>/dev/null`).
 15. **Las memorias se desfasan:** hoy dos daban por abierto lo que llevaba semanas cerrado (`config_secret.example.php`)
     o describían otro servidor (`vps-access-model`). Antes de afirmar, una sonda.
+
+**Del 2026-09-27:**
+
+16. 🔴 **REGLA: todo reinicio, actualización o migración del demonio PM2 (p. ej. el paso a Node 22) DEBE ejecutarse
+    mediante `systemctl`. Está prohibido levantar el demonio directamente desde la shell,** para no perder el UMask.
+    `UMask=0077` solo se aplica cuando systemd arranca el demonio. Un `pm2 update`, `pm2 kill` + `pm2 resurrect`, o
+    cualquier comando `pm2` lanzado con el demonio parado, lo levanta con el umask de la shell (0022), y los logs y
+    ficheros nuevos vuelven a nacer en 644. Comprobación tras cualquier cambio:
+    `grep -i umask /proc/$(cat /root/.pm2/pm2.pid)/status` → `0077`.
+17. **`grep -r` no sigue los enlaces simbólicos** que encuentra dentro del directorio: sobre `sites-enabled/` no lee
+    ningún vhost y devuelve vacío. Usar `grep -R`.
 
 ---
 
