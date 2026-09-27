@@ -39,7 +39,7 @@ commitear **que no son de esta sesión** y no se han inspeccionado.
 
 ➡️ **Comprobar el cierre del riesgo n.º 10 tras la rotación de las 00:00 del 28-sep.** Solo lectura, un minuto:
 `ls -la /root/.pm2/logs/`. Todos los ficheros deben seguir en 600. Si todo está bien, el siguiente punto de la cola es
-el **riesgo n.º 11** (los `.bak` que deja la receta de nginx en `sites-available`).
+**M. Jesús — resto de F1** (§2, n.º 4); el riesgo n.º 11 se cerró el 2026-09-27.
 
 ---
 
@@ -71,12 +71,15 @@ el **riesgo n.º 11** (los `.bak` que deja la receta de nginx en `sites-availabl
    - **Queda:** el `pm2` lanzado a mano desde la shell sigue siendo cliente Node 18. No importa para consultar, pero
      un `pm2 update` relanzaría el demonio con Node 18 y umask 0022. Solo `systemctl` (§3, regla 16).
    - Vuelta atrás: `rm …/pm2-root.service.d/node22.conf && systemctl daemon-reload && systemctl restart pm2-root`.
-3. **Riesgo n.º 11:** la receta manual de plantillas nginx que deja `.bak` en `sites-available`.
+3. ~~**Riesgo n.º 11**~~ ✅ **CERRADO 2026-09-27:** las 5 recetas de nginx guardan el respaldo en `/root/backups-nginx/`
+   (700), fuera de `/etc/nginx` (detalle en §2.1 n.º 11).
 4. **M. Jesús — resto de F1** (ADR-003 §8): `catalogo.ts` (7 métricas sobre `bi_*`) + `derivar.ts`, con tests, sin LLM.
 5. **M. Jesús — F2/F3** (enrutador, analista, verificador, `/api/admin/mjesus/*`, conectar el panel).
-6. Deudas de documentación en repos: ADR-003 §10.4 (credencial de `postgres` ya cerrada); cabecera de
-   `sincronizar-secretos-borde.sh` (líneas 7-8) y `cerrar-migracion.sh:235`, que aún apuntan a la copia de `/root`;
-   comentario de `scripts/audit-vip-infra.js:21` («CSP no desplegada», falso). Un push a `main` del orquestador despliega.
+6. Deudas de documentación en repos: ADR-003 §10.4 (credencial de `postgres` ya cerrada); comentario de
+   `scripts/audit-vip-infra.js:21` («CSP no desplegada», falso). Un push a `main` del orquestador despliega.
+   ~~Cabecera de `sincronizar-secretos-borde.sh` (líneas 7-8) y `cerrar-migracion.sh:235`~~ ✅ `92cc09d`, desplegado.
+   Residuo en `cerrar-migracion.sh` (un solo uso, sin tocar): llama a `/root/rotar-edge-secret.sh` (l. 229), que en el
+   VPS está en `/root/backups-rotacion/`, y a `/root/verificar.sh` (l. 236), sin comprobar.
 7. Heredados: MVG 3 y 4; GambusasChile CI; `package.json` 2.4.0 vs tag v2.5.0; telemetría 09-16-b y 09-22-a sin
    reconstruir; ¿hacen falta las llaves de administración en la cuenta `deploy`?
 
@@ -120,10 +123,9 @@ se cerró el 2026-09-27); Baja sin tocar, más el n.º 16, nuevo.
      `NGINX_SNIPPETS`, sha256 `d8fb605f`; la del checkout es `4ba6d3de`). No está en cron ni en systemd. El modo
      automático bloqueó a Claude la escritura en el VPS. Comando propuesto (archiva en lugar de borrar):
      `install -d -m 700 /root/backups-rotacion && mv /root/sincronizar-secretos-borde.sh /root/backups-rotacion/sincronizar-secretos-borde.sh.obsoleto-20260925`
-   - ⏳ **Referencias a esa ruta en `zasa-orchestrator`:** `deploy/vps-4gb/cerrar-migracion.sh:235` la **llama**
-     (script de un solo uso, cierre de la migración del 09-07) y la cabecera del propio script (líneas 7-8) la documenta
-     como ruta de uso. Cambiar ambas a `/opt/zasa-orchestrator/app/deploy/vps-4gb/` en el próximo cambio del
-     orquestador (un push a `main` despliega).
+   - ✅ **Referencias a esa ruta en `zasa-orchestrator`:** `cerrar-migracion.sh:235` y la cabecera del propio script
+     (líneas 7-8) apuntan desde `92cc09d` (2026-09-27, desplegado: `/health` = `92cc09d`) a
+     `/opt/zasa-orchestrator/app/deploy/vps-4gb/`; el fichero existe ahí, `755`, actualizado por el despliegue.
 4. ✅ **CERRADO 2026-09-25: `config_secret.example.php` de ExamenFácil.** El riesgo estaba **desfasado**: el 200 era
    anterior al 09-09, cuando la fase 0 de `scripts/nginx-hardening.sh` sincronizó el vhost, y la memoria
    `examenfacil-health-endpoint` no se actualizó. Verificado por Claude (solo lectura):
@@ -261,7 +263,23 @@ se cerró el 2026-09-27); Baja sin tocar, más el n.º 16, nuevo.
     - ⏳ Falta confirmar tras la rotación de las 00:00 del 28-sep que todo sigue en 600 (§1).
 
 **⚪ Baja: higiene**
-11. La receta manual de nginx sigue dejando `.bak` en `sites-available`.
+11. ✅ **CERRADO 2026-09-27: las recetas de nginx ya no dejan respaldos dentro de `/etc/nginx`.**
+    - **Estado del VPS** (solo lectura): ningún residuo. `sites-enabled/` = 6 enlaces, uno por vhost, sin ficheros
+      sueltos; `sites-available/` = los 6 vhosts + `default` (no enlazado). `admin.` y `vip.` en 600, el resto 644.
+      Ojo: `find -name "*.bak"` no sirve de prueba, porque las recetas nombraban `<fichero>.bak.<fecha>`.
+    - **Recetas corregidas** (antes: `cp` a `<misma carpeta>/<fichero>.bak.<fecha>`; ahora:
+      `install -d -m 700 /root/backups-nginx` + `cp -p` a `/root/backups-nginx/<fichero>.<fecha>`):
+      - `Agencia_Solucionesconia/nginx/vip-portal.conf.plantilla` → `def70dc` (sin CI; llega al snippet en el próximo
+        `deploy.sh` manual).
+      - `zasa-orchestrator/deploy/vps-4gb/nginx-templates/` `admin.solucionesconia.cl.conf`,
+        `vip.solucionesconia.cl.conf` y `cloudflare-real-ip.conf` → `3b07d50`, desplegado con `92cc09d`.
+      - `privado_agencia/Clientes/forte-spa/config/nginx.forte-spa.conf` → editado en disco, **sin versionar** (fuera de
+        git por el `.gitignore` raíz).
+    - **Hallazgo extra:** la receta de `vip.` instalaba el vhost con `install -m 644`, aunque el renderizado lleva el
+      `EDGE_SECRET` (en el VPS está en 600). Corregido a 600 en `91c03e3`, desplegado con `92cc09d`. Ningún otro script
+      instala esos vhosts con modo explícito.
+    - Relacionado, sin tocar: `completar-env.sh` y `sincronizar-secretos-borde.sh` dejan copias del `.env` en
+      `/opt/zasa-orchestrator/` (`.env.bak-*`, 600). No es nginx, pero se acumulan; no se ha contado cuántas hay.
 12. Faltan los pilares 3 y 4 de MVG.
 13. **`SALES_WEBHOOK_URL` vacío;** el lead y el evento de Calendar de la prueba E2E del 22-b siguen sin borrar.
 14. **Fuera del VPS:** vaciar la Papelera de Windows, que tiene ficheros sensibles.
@@ -342,6 +360,9 @@ cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
     `readlink /proc/$(cat /root/.pm2/pm2.pid)/exe` → `/opt/node22/bin/node`.
 17. **`grep -r` no sigue los enlaces simbólicos** que encuentra dentro del directorio: sobre `sites-enabled/` no lee
     ningún vhost y devuelve vacío. Usar `grep -R`.
+18. **La herramienta Grep de Claude respeta el `.gitignore` raíz,** que excluye `Workspace_Agencia/*`: buscando desde
+    `Workspace_Agencia` devuelve vacío aunque haya coincidencias. Para esos repos, `grep` desde Bash o buscar dentro de
+    cada repo.
 
 ---
 
