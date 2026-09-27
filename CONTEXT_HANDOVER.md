@@ -21,7 +21,8 @@
 | **Riesgos Alta (n.º 1-4)** | ✅ ninguno abierto | `cfut_` rotado (Jaime); `www-data` sin escritura en el portal de Jose; `sincronizar-secretos-borde.sh` coteja el snippet de vip. (`b6df917`); `config_secret.example.php` ya daba 403 desde el 09-09; H4 era un inventario simulado → Baja |
 | **Credencial del superusuario `postgres`** | ✅ | `PASSWORD NULL` + `.bak` borrado (Jaime). **Claude lo verificó en el cierre:** `rolpassword is null` = `t`, el `.bak` no existe |
 | **Túnel `cloudflared`** (n.º 5) | ✅ en el VPS · ⏳ en el panel | 0 peticiones en 22 h; parado, deshabilitado y archivado. Falta borrarlo en Zero Trust y hacer `shred` de las credenciales |
-| **`elrincon-backend` a Node 22** (n.º 6) | ✅ | `c646811`; PM2 `interpreter /opt/node22/bin/node`, `/api/health` 200, datos idénticos al respaldo. ⚠️ **El demonio de PM2 sigue en `/usr/bin/node` (18)** |
+| **`elrincon-backend` a Node 22** (n.º 6) | ✅ | `c646811`; PM2 `interpreter /opt/node22/bin/node`, `/api/health` 200, datos idénticos al respaldo. El demonio de PM2 pasó a Node 22 el 2026-09-27 (fila siguiente) |
+| **Demonio de PM2 a Node 22** | ✅ 100 % · 2026-09-27 | Drop-in `/etc/systemd/system/pm2-root.service.d/node22.conf` que sobrescribe `ExecStart`/`ExecReload`/`ExecStop` para usar `/opt/node22/bin/node`; `/proc/<pid>/exe` → Node 22, umask 0077, ambos `/health` en 200 |
 | **Reenvíos SSH** (n.º 7) | ✅ | `DisableForwarding yes` en `00-hardening.conf` (aplicado por Claude); túnel `-L` rechazado |
 | **Historial de Sofía entre usuarios** (n.º 8) | ✅ desplegado · ⏳ prueba real | `b98f90e`: `purgarSesionLocal()` borra `sc.admin.sales-agent.*`. Widget servido = bundle del commit (sha256) y vip. lo contiene |
 | **Compuerta de CSP en CI** (n.º 9) | ✅ en `main` · ⏳ run de Actions | `c1cfe81`: Playwright sobre `dist/` con la CSP real de vip., 4/4 en local, detecta la regresión del 22-sep |
@@ -38,7 +39,7 @@ commitear **que no son de esta sesión** y no se han inspeccionado.
 
 ➡️ **Comprobar el cierre del riesgo n.º 10 tras la rotación de las 00:00 del 28-sep.** Solo lectura, un minuto:
 `ls -la /root/.pm2/logs/`. Todos los ficheros deben seguir en 600. Si todo está bien, el siguiente punto de la cola es
-el **demonio de PM2 a Node 22**, siempre con `systemctl` (§3, regla 16).
+el **riesgo n.º 11** (los `.bak` que deja la receta de nginx en `sites-available`).
 
 ---
 
@@ -56,10 +57,19 @@ el **demonio de PM2 a Node 22**, siempre con `systemctl` (§3, regla 16).
    - Heredados: panel de M. Jesús que «desaparece» en el móvil (¿queda en `/login`?), Papelera de Windows,
      `SALES_WEBHOOK_URL`, limpiar el E2E del 22-b.
 1. ~~**Riesgo n.º 10**~~ ✅ cerrado el 2026-09-27; queda la comprobación tras la rotación (§1).
-2. **Demonio de PM2 a Node 22** (`cockpit-pm2-elrincon-node22`, 70 %): el propio PM2 corre con `/usr/bin/node` 18.
-   Pide reinstalar el servicio de arranque o apuntar la unidad al Node nuevo; hacerlo con ensayo y una sesión root
-   abierta. **Todo reinicio del demonio, por `systemctl`** (§3, regla 16): un `pm2 update` desde la shell lo
-   relanzaría con umask 0022.
+2. ~~**Demonio de PM2 a Node 22**~~ ✅ **CERRADO 2026-09-27 (100 %)** (`cockpit-pm2-elrincon-node22`).
+   - **Causa:** `ExecStart` lanzaba el PM2 global (7.0.3, `engines` `>=18.0.0`) por su shebang `#!/usr/bin/env node`, y
+     el `PATH` de la unidad no incluye `/opt/node22/bin`, así que resolvía a `/usr/bin/node` 18.
+   - **Solución:** drop-in `/etc/systemd/system/pm2-root.service.d/node22.conf`. Sobrescribe `ExecStart`,
+     `ExecReload` y `ExecStop` (con la línea vacía previa que anula el valor original) para lanzar
+     `/opt/node22/bin/node /usr/local/lib/node_modules/pm2/bin/pm2 …`. Sin reinstalar PM2, y sobrevive a `pm2 startup`.
+     Aplicado con `daemon-reload` → `systemd-analyze verify` (rc 0) → `systemctl restart pm2-root`.
+   - **Verificado:** `pm2-root` activo, con `node22.conf` y `umask.conf` cargados; `/proc/<pid>/exe` →
+     `/opt/node22/bin/node`; `Umask: 0077`; los 2 procesos `online` con 0 reinicios y 0 inestables; `/api/health`
+     (:3000) y `/health` (:3001) → 200.
+   - **Queda:** el `pm2` lanzado a mano desde la shell sigue siendo cliente Node 18. No importa para consultar, pero
+     un `pm2 update` relanzaría el demonio con Node 18 y umask 0022. Solo `systemctl` (§3, regla 16).
+   - Vuelta atrás: `rm …/pm2-root.service.d/node22.conf && systemctl daemon-reload && systemctl restart pm2-root`.
 3. **Riesgo n.º 11:** la receta manual de plantillas nginx que deja `.bak` en `sites-available`.
 4. **M. Jesús — resto de F1** (ADR-003 §8): `catalogo.ts` (7 métricas sobre `bi_*`) + `derivar.ts`, con tests, sin LLM.
 5. **M. Jesús — F2/F3** (enrutador, analista, verificador, `/api/admin/mjesus/*`, conectar el panel).
@@ -316,8 +326,9 @@ cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
     mediante `systemctl`. Está prohibido levantar el demonio directamente desde la shell,** para no perder el UMask.
     `UMask=0077` solo se aplica cuando systemd arranca el demonio. Un `pm2 update`, `pm2 kill` + `pm2 resurrect`, o
     cualquier comando `pm2` lanzado con el demonio parado, lo levanta con el umask de la shell (0022), y los logs y
-    ficheros nuevos vuelven a nacer en 644. Comprobación tras cualquier cambio:
-    `grep -i umask /proc/$(cat /root/.pm2/pm2.pid)/status` → `0077`.
+    ficheros nuevos vuelven a nacer en 644, y además con Node 18 en lugar de Node 22 (`node22.conf`). Comprobación
+    tras cualquier cambio: `grep -i umask /proc/$(cat /root/.pm2/pm2.pid)/status` → `0077` y
+    `readlink /proc/$(cat /root/.pm2/pm2.pid)/exe` → `/opt/node22/bin/node`.
 17. **`grep -r` no sigue los enlaces simbólicos** que encuentra dentro del directorio: sobre `sites-enabled/` no lee
     ningún vhost y devuelve vacío. Usar `grep -R`.
 
