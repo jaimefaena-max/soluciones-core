@@ -49,7 +49,7 @@ commitear **que no son de esta sesión** y no se han inspeccionado.
    - **Cloudflare Zero Trust:** borrar los hostnames `admin.`/`vip.` y el túnel `c72b9785-cc27-485d-adee-6d8a171ae930`,
      y comprobar que no queda ningún CNAME a `…cfargotunnel.com`. (Las credenciales del VPS ya se destruyeron el
      2026-09-27: el panel es lo único que falta.)
-   - **Retirar `/root/sincronizar-secretos-borde.sh`** (copia obsoleta del 09-05; comando en §2.1 n.º 3).
+   - ~~**Retirar `/root/sincronizar-secretos-borde.sh`**~~ ✅ eliminada por Jaime el 2026-09-27 (§2.1 n.º 3).
    - **Cloudflare, n.º 16:** la opción que quita el `ETag` del HTML de El Rincón.
    - **Prueba real del n.º 8:** entrar en vip. como cliente, escribir a Sofía, cerrar sesión y volver a entrar en la
      misma pestaña → el chat debe salir vacío.
@@ -119,10 +119,10 @@ se cerró el 2026-09-27); Baja sin tocar, más el n.º 16, nuevo.
      `LC_ALL=C.UTF-8`, o falla en silencio. Despliegue: `/health` = `b6df917`, PM2 con 1 reinicio y 0 inestables.
      En el VPS, `--comprobar` → `snippet incluido en el cotejo`, un único `X-Edge-Proof` (`3f6c5150`) y un único
      Bearer maestro (`43309db8`), `.env` alineado, matriz de borde en verde, `rc=0`.
-   - ⏳ **Pendiente de Jaime:** retirar la copia obsoleta `/root/sincronizar-secretos-borde.sh` (del 2026-09-05, sin
-     `NGINX_SNIPPETS`, sha256 `d8fb605f`; la del checkout es `4ba6d3de`). No está en cron ni en systemd. El modo
-     automático bloqueó a Claude la escritura en el VPS. Comando propuesto (archiva en lugar de borrar):
-     `install -d -m 700 /root/backups-rotacion && mv /root/sincronizar-secretos-borde.sh /root/backups-rotacion/sincronizar-secretos-borde.sh.obsoleto-20260925`
+   - ✅ **CERRADO 2026-09-27: copia obsoleta `/root/sincronizar-secretos-borde.sh` eliminada** por Jaime a mano
+     (`rm -f`, sin archivar). Era la del 2026-09-05, sin `NGINX_SNIPPETS` (sha256 `d8fb605f`); la vigente es la del
+     checkout (`/opt/zasa-orchestrator/app/deploy/vps-4gb/`). Reportado por Jaime, **sin verificación de Claude**
+     (`ls /root/sincronizar-secretos-borde.sh` → «No such file» lo confirmaría).
    - ✅ **Referencias a esa ruta en `zasa-orchestrator`:** `cerrar-migracion.sh:235` y la cabecera del propio script
      (líneas 7-8) apuntan desde `92cc09d` (2026-09-27, desplegado: `/health` = `92cc09d`) a
      `/opt/zasa-orchestrator/app/deploy/vps-4gb/`; el fichero existe ahí, `755`, actualizado por el despliegue.
