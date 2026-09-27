@@ -39,8 +39,8 @@ commitear **que no son de esta sesión** y no se han inspeccionado.
 
 ➡️ **Comprobar el cierre del riesgo n.º 10 tras la rotación de las 00:00 del 28-sep.** Solo lectura, un minuto:
 `ls -la /root/.pm2/logs/`. Todos los ficheros deben seguir en 600. Si todo está bien, el siguiente punto de la cola es
-la **comprobación de la intercalación de `zasa_app`** (§2, n.º 4; solo lectura) y, con ella resuelta, **M. Jesús F2**
-(§2, n.º 5). M. Jesús F1 y el riesgo n.º 11 se cerraron el 2026-09-27.
+**M. Jesús F2** (§2, n.º 5). M. Jesús F1 (con la intercalación de `zasa_portal` verificada) y el riesgo n.º 11 se
+cerraron el 2026-09-27. Pendiente de planificar: el reinicio que pide el VPS (§2, n.º 4).
 
 ---
 
@@ -81,12 +81,13 @@ la **comprobación de la intercalación de `zasa_app`** (§2, n.º 4; solo lectu
    métrica ejecutada en SQLite y en Postgres (PGlite) con test de paridad; suite completa 1513/1513. Commits
    `2b865e8` → `6bf34ff`, **sin empujar**: el push a `main` despliega (reinicio del orquestador), aunque ninguna
    ruta usa aún el módulo.
-   - ⏳ **Pendiente de verificación — intercalación de Postgres.** PGlite usa `C`, como el orden binario de SQLite,
-     así que el test de paridad no detecta una diferencia de orden. Si `zasa_app` usa otra (p. ej. `en_US.UTF-8`,
-     que ignora la puntuación), dos grupos empatados se ordenan distinto en producción y, al llegar al tope de
-     filas, cambian las que se cortan. Sonda de solo lectura en el VPS:
-     `runuser -u postgres -- psql -tAc "SELECT datcollate FROM pg_database WHERE datname = 'zasa_app'"`.
-     Si no es `C`: `COLLATE "C"` en el `ORDER BY` de Postgres de las 7 métricas.
+   - ✅ **Intercalación de Postgres verificada 2026-09-27 (Jaime, solo lectura), sin cambios de código.** La base de
+     la aplicación es **`zasa_portal`** (`zasa_app` es el rol, no una base: la sonda por ese nombre da 0 filas) y usa
+     `C.UTF-8`: orden por punto de código, igual que el orden por bytes de SQLite y el `C` de PGlite, así que la
+     paridad de los tests vale también para producción. No hace falta `COLLATE "C"`.
+   - ⚠️ **El VPS pide reinicio** (`*** System restart required ***` al entrar, visto el 2026-09-27): actualizaciones de
+     kernel o librerías pendientes. Planificarlo; después comprobar `/health` de los backends, `readlink` y umask
+     del demonio de PM2 (§3, regla 16), nginx y Postgres.
 5. **M. Jesús — F2/F3** (enrutador, analista, verificador, `/api/admin/mjesus/*`, conectar el panel).
 6. Deudas de documentación en repos: ~~ADR-003 §10.4~~ (cerrado en el ADR el 2026-09-27); comentario de
    `scripts/audit-vip-infra.js:21` («CSP no desplegada», falso). Un push a `main` del orquestador despliega.
