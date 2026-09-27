@@ -20,7 +20,7 @@
 |---|---|---|
 | **Riesgos Alta (n.º 1-4)** | ✅ ninguno abierto | `cfut_` rotado (Jaime); `www-data` sin escritura en el portal de Jose; `sincronizar-secretos-borde.sh` coteja el snippet de vip. (`b6df917`); `config_secret.example.php` ya daba 403 desde el 09-09; H4 era un inventario simulado → Baja |
 | **Credencial del superusuario `postgres`** | ✅ | `PASSWORD NULL` + `.bak` borrado (Jaime). **Claude lo verificó en el cierre:** `rolpassword is null` = `t`, el `.bak` no existe |
-| **Túnel `cloudflared`** (n.º 5) | ✅ en el VPS · ⏳ en el panel | 0 peticiones en 22 h; parado, deshabilitado y archivado. Falta borrarlo en Zero Trust y hacer `shred` de las credenciales |
+| **Túnel `cloudflared`** (n.º 5) | ✅ en el VPS · ✅ credenciales destruidas (2026-09-27) · ⏳ en el panel | 0 peticiones en 22 h; parado y deshabilitado. `cert.pem`, `c72b9785-….json` y los 4 `config.yml*` eliminados del VPS. Falta confirmar el borrado del túnel `c72b9785-cc27-485d-adee-6d8a171ae930` en Zero Trust |
 | **`elrincon-backend` a Node 22** (n.º 6) | ✅ | `c646811`; PM2 `interpreter /opt/node22/bin/node`, `/api/health` 200, datos idénticos al respaldo. El demonio de PM2 pasó a Node 22 el 2026-09-27 (fila siguiente) |
 | **Demonio de PM2 a Node 22** | ✅ 100 % · 2026-09-27 | Drop-in `/etc/systemd/system/pm2-root.service.d/node22.conf` que sobrescribe `ExecStart`/`ExecReload`/`ExecStop` para usar `/opt/node22/bin/node`; `/proc/<pid>/exe` → Node 22, umask 0077, ambos `/health` en 200 |
 | **Reenvíos SSH** (n.º 7) | ✅ | `DisableForwarding yes` en `00-hardening.conf` (aplicado por Claude); túnel `-L` rechazado |
@@ -46,8 +46,9 @@ el **riesgo n.º 11** (los `.bak` que deja la receta de nginx en `sites-availabl
 ## 2. Cola (por cercanía a producción)
 
 0. **Acciones de Jaime** (el modo automático las bloquea a Claude, o son de panel):
-   - **Cloudflare Zero Trust:** borrar los hostnames `admin.`/`vip.` y el túnel. Después, `shred -u` de
-     `/root/backups-rotacion/.cloudflared/cert.pem` y del `<uuid>.json` archivados.
+   - **Cloudflare Zero Trust:** borrar los hostnames `admin.`/`vip.` y el túnel `c72b9785-cc27-485d-adee-6d8a171ae930`,
+     y comprobar que no queda ningún CNAME a `…cfargotunnel.com`. (Las credenciales del VPS ya se destruyeron el
+     2026-09-27: el panel es lo único que falta.)
    - **Retirar `/root/sincronizar-secretos-borde.sh`** (copia obsoleta del 09-05; comando en §2.1 n.º 3).
    - **Cloudflare, n.º 16:** la opción que quita el `ETag` del HTML de El Rincón.
    - **Prueba real del n.º 8:** entrar en vip. como cliente, escribir a Sofía, cerrar sesión y volver a entrar en la
@@ -155,10 +156,20 @@ se cerró el 2026-09-27); Baja sin tocar, más el n.º 16, nuevo.
      Desde fuera, después de parar el servicio: `admin.` → 401 y `vip./login` → 200, así que ninguno dependía del túnel.
    - No se tocó `set_real_ip_from`: sin túnel, no hace falta confiar en `127.0.0.1` (lo que además permitiría a un
      proceso local falsificar `CF-Connecting-IP`).
-   - ⏳ **Pendiente de Jaime (panel de Cloudflare, Zero Trust → Networks → Tunnels):** borrar los hostnames públicos
+   - ✅ **2026-09-27: respaldos y credenciales destruidos en el VPS.** Inventario previo (solo lectura):
+     `/root/backups-rotacion/.cloudflared/` tenía **3** ficheros, no 2 como decía este punto: `c72b9785-….json` (400),
+     `cert.pem` (600) y además un **`config.yml`** (644, 987 B, igual en tamaño y fecha al de `cloudflared/`).
+     `/root/backups-rotacion/cloudflared/` tenía `config.yml` y dos `.bak` (`pre-strict-tls`, `pre-vip`). ID del túnel
+     (de `config.yml`, `tunnel:`): **`c72b9785-cc27-485d-adee-6d8a171ae930`**.
+     Ejecutado: `shred -u -z` sobre el `.json` y `cert.pem`, y `rm -rf` de las dos carpetas (los `config.yml*`, sin
+     secretos en principio, borrados sin sobrescribir). Verificado: `ls -la /root/backups-rotacion/` ya no las
+     muestra; quedan solo `rotar-edge-secret.sh` y los dos `secretos-borde-20260923-*`. Límite: los errores de
+     `shred` iban a `/dev/null`, así que se confirma el borrado, no la sobrescritura; y `shred` no es garantía total en
+     ext4 con diario ni en disco virtual. Con el túnel borrado en el panel, eso deja de importar.
+   - ⏳ **Pendiente de Jaime, SIN CONFIRMAR (panel de Cloudflare, Zero Trust → Networks → Tunnels):** borrar los hostnames públicos
      `admin.`/`vip.` y el túnel. Hasta entonces la credencial archivada sigue siendo válida en Cloudflare. Sin verificar.
-   - ⏳ **Después:** `shred -u` sobre `cert.pem` (permite crear y gestionar túneles de la zona) y el `.json` archivados;
-     opcionalmente, `apt purge cloudflared`.
+   - ~~`shred -u` de `cert.pem` y el `.json`~~ hecho el 2026-09-27 (arriba). Opcional: `apt purge cloudflared`
+     (el binario sigue instalado: `cloudflared tunnel list` aún se ejecuta y falla por no encontrar `cert.pem`).
 6. ✅ **CERRADO 2026-09-25: `elrincon-backend` migrado de Node 18.19.1 (`/usr/bin/node`, sin soporte desde
    2025-04-30) a Node 22.23.2 (`/opt/node22/bin/node`).**
    - Antes, Claude (solo lectura en el VPS): no hay módulos nativos en `node_modules`; los 24 `.js` pasan
@@ -340,7 +351,8 @@ cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
   registro apagado y a las sondas por un `PGPASSFILE` efímero.
 - `cfut_` comprometido: **rotado el 2026-09-25** (huella nueva `873c9da4`). Credencial de superusuario `postgres`:
   **anulada y `.bak` borrado el 2026-09-25** (`postgres` solo entra por `peer`; verificado por Claude).
-- Credenciales del túnel `cloudflared` (`cert.pem`, que permite gestionar túneles de la zona, y el `<uuid>.json`)
-  archivadas en `/root/backups-rotacion/.cloudflared/`: siguen siendo válidas hasta que Jaime borre el túnel en Zero
-  Trust. Después, `shred -u`.
+- Credenciales del túnel `cloudflared` (`cert.pem`, que permite gestionar túneles de la zona, y el `<uuid>.json`):
+  **destruidas en el VPS el 2026-09-27** (`shred -u -z` + `rm -rf` de las dos carpetas de archivo). El túnel
+  `c72b9785-…` sigue existiendo en Cloudflare hasta que Jaime lo borre en Zero Trust, pero ya no queda en el servidor
+  ninguna credencial que permita usarlo.
 - En esta sesión no pasó ningún valor por el chat: solo huellas sha256 de 8 caracteres.
