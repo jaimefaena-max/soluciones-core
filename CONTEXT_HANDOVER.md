@@ -39,8 +39,9 @@ commitear **que no son de esta sesión** y no se han inspeccionado.
 
 ➡️ **Comprobar el cierre del riesgo n.º 10 tras la rotación de las 00:00 del 28-sep.** Solo lectura, un minuto:
 `ls -la /root/.pm2/logs/`. Todos los ficheros deben seguir en 600. Si todo está bien, el siguiente punto de la cola es
-**M. Jesús F2** (§2, n.º 5). M. Jesús F1 (con la intercalación de `zasa_portal` verificada) y el riesgo n.º 11 se
-cerraron el 2026-09-27. Pendiente de planificar: el reinicio que pide el VPS (§2, n.º 4).
+**M. Jesús F3** (§2, n.º 5): la ruta `/api/admin/mjesus/*` y el panel. F1 y F2 de M. Jesús y el riesgo n.º 11 están
+cerrados (F2 el 2026-09-28). ⚠️ `zasa-orchestrator` tiene **10 commits de F2 sin empujar**: el push a `main` despliega.
+Pendiente de planificar: el reinicio que pide el VPS (§2, n.º 4).
 
 ---
 
@@ -88,7 +89,20 @@ cerraron el 2026-09-27. Pendiente de planificar: el reinicio que pide el VPS (§
    - ⚠️ **El VPS pide reinicio** (`*** System restart required ***` al entrar, visto el 2026-09-27): actualizaciones de
      kernel o librerías pendientes. Planificarlo; después comprobar `/health` de los backends, `readlink` y umask
      del demonio de PM2 (§3, regla 16), nginx y Postgres.
-5. **M. Jesús — F2/F3** (enrutador, analista, verificador, `/api/admin/mjesus/*`, conectar el panel).
+5. **M. Jesús — F2** ✅ **CERRADA EN CÓDIGO 2026-09-28** (ADR-003 §8.2), en `zasa-orchestrator/src/modulos/mjesus/semantica/`:
+   enrutador determinista, verificador de cifras (fail-closed), analista con tool use y un único reintento, adaptadores
+   de producción (Anthropic con timeout; `MJESUS_DATABASE_URL` con `mjesus_ro`, sin caída a `DATABASE_URL`), `config.ts`
+   (`MJESUS_HABILITADO`, `MJESUS_TOPE_USD_DIA`), telemetría sin texto libre (`mjesus_consultas` + `ejecuciones_*`) y
+   tope diario antes de llamar al modelo. 16 suites, 472 tests; suite completa 1715/1715. Commits `472e262` →
+   `73ee95a`, **sin empujar**.
+   - Por verificar: la tarifa de `mjesus_analista` (3/15 USD por millón, la de lista de Sonnet, ajustable con
+     `MJESUS_TARIFA_ANALISTA_USD_1M`) y que `MJESUS_DATABASE_URL` exista en el `.env` del VPS.
+   - Trampa: la configuración de ESLint ignora `tests/`; un «lint rc 0» sobre un test no revisa nada.
+   - Trampa: una prueba que arranca PGlite dentro del propio `it` necesita más de 5 s con la suite completa en
+     paralelo (`TIMEOUT_PGLITE_MS`); pasar solo con las suites de M. Jesús no basta.
+   **M. Jesús — F3** (siguiente): ruta `/api/admin/mjesus/*` con `MJESUS_HABILITADO=admin` (adaptadores, telemetría,
+   avisos de configuración en el log), límite de 20 preguntas por operador y minuto, métricas por nombre al alcanzar
+   el tope, `env:check` con las variables nuevas y conectar el panel (`MOTOR_CONECTADO`).
 6. Deudas de documentación en repos: ~~ADR-003 §10.4~~ (cerrado en el ADR el 2026-09-27); comentario de
    `scripts/audit-vip-infra.js:21` («CSP no desplegada», falso). Un push a `main` del orquestador despliega.
    ~~Cabecera de `sincronizar-secretos-borde.sh` (líneas 7-8) y `cerrar-migracion.sh:235`~~ ✅ `92cc09d`, desplegado.
