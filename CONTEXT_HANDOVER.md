@@ -1,16 +1,16 @@
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-24-b (remediación de la matriz de 16 riesgos: VPS + Portal VIP)
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-26-a (M. Jesús de F1 a producción + rotación completa de secretos)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memorias de arranque: `arranque-2026-09-26` (este estado), `hardening-vps-2026-09-23` (riesgos del VPS, al día) y
-> `vps-access-model` (reescrita hoy con el servidor real).
-> Hand-off anterior (2026-09-24-a, copiloto de BI «M. Jesús»): en el historial de este fichero (`8a02116`).
-> Sesión del 2026-09-25 01:29 UTC al 05:14 UTC (22:29–02:14 hora de Chile; cuenta como 2026-09-24 por su inicio):
-> **224,4 min activos**, **$130.900 CLP**. Telemetría `2026-09-24-b` en `zasa-orchestrator` `06a494d` (ver §0 para
-> su estado de publicación).
+> Memorias de arranque: `arranque-2026-09-29` (este estado), `mjesus-copiloto-bi` (el copiloto, al día) e
+> `incidente-secretos-borde-en-chat-2026-09-12` (la 3.ª exposición y cómo se rotó).
+> Hand-off anterior (2026-09-24-b, matriz de 16 riesgos): en el historial de este fichero (`9dcdf34`).
+> Sesión del 2026-09-26 23:00 UTC al 2026-09-29 05:19 UTC, con pausas (cuenta como 2026-09-26 por su inicio):
+> **663,6 min activos** de 3258,4 totales, **$387.100 CLP**. Telemetría `2026-09-26-a` en `zasa-orchestrator`
+> `a16b9f0` (estado de publicación en §0).
 >
-> **Forma de trabajo de esta sesión:** Jaime dictó cada paso y el modo automático bloqueó a Claude casi todas las
-> escrituras en el VPS y los push que despliegan vip. Lo bloqueado lo ejecutó Jaime a mano; lo que Claude pudo, lo
-> verificó en solo lectura. Cada cierre de §2.1 dice qué vio Claude y qué reportó Jaime.
+> **Forma de trabajo:** Jaime dictó cada paso («Ejecuta… Imprime… Operación local/remota»). Esta vez el modo
+> automático NO bloqueó las escrituras en el VPS ni los push que despliegan. Lo único que Claude no hace por norma es
+> borrar datos de forma permanente (`shred`/`rm` de respaldos): eso se le da a Jaime como comando.
 
 ---
 
@@ -18,105 +18,84 @@
 
 | Frente | Estado | Evidencia |
 |---|---|---|
-| **Riesgos Alta (n.º 1-4)** | ✅ ninguno abierto | `cfut_` rotado (Jaime); `www-data` sin escritura en el portal de Jose; `sincronizar-secretos-borde.sh` coteja el snippet de vip. (`b6df917`); `config_secret.example.php` ya daba 403 desde el 09-09; H4 era un inventario simulado → Baja |
-| **Credencial del superusuario `postgres`** | ✅ | `PASSWORD NULL` + `.bak` borrado (Jaime). **Claude lo verificó en el cierre:** `rolpassword is null` = `t`, el `.bak` no existe |
-| **Túnel `cloudflared`** (n.º 5) | ✅ en el VPS · ✅ credenciales destruidas (2026-09-27) · ⏳ en el panel | 0 peticiones en 22 h; parado y deshabilitado. `cert.pem`, `c72b9785-….json` y los 4 `config.yml*` eliminados del VPS. Falta confirmar el borrado del túnel `c72b9785-cc27-485d-adee-6d8a171ae930` en Zero Trust |
-| **`elrincon-backend` a Node 22** (n.º 6) | ✅ | `c646811`; PM2 `interpreter /opt/node22/bin/node`, `/api/health` 200, datos idénticos al respaldo. El demonio de PM2 pasó a Node 22 el 2026-09-27 (fila siguiente) |
-| **Demonio de PM2 a Node 22** | ✅ 100 % · 2026-09-27 | Drop-in `/etc/systemd/system/pm2-root.service.d/node22.conf` que sobrescribe `ExecStart`/`ExecReload`/`ExecStop` para usar `/opt/node22/bin/node`; `/proc/<pid>/exe` → Node 22, umask 0077, ambos `/health` en 200 |
-| **Reenvíos SSH** (n.º 7) | ✅ | `DisableForwarding yes` en `00-hardening.conf` (aplicado por Claude); túnel `-L` rechazado |
-| **Historial de Sofía entre usuarios** (n.º 8) | ✅ desplegado · ⏳ prueba real | `b98f90e`: `purgarSesionLocal()` borra `sc.admin.sales-agent.*`. Widget servido = bundle del commit (sha256) y vip. lo contiene |
-| **Compuerta de CSP en CI** (n.º 9) | ✅ en `main` · ⏳ run de Actions | `c1cfe81`: Playwright sobre `dist/` con la CSP real de vip., 4/4 en local, detecta la regresión del 22-sep |
-| **Permisos de los logs de PM2** (n.º 10) | ✅ 2026-09-27 | Drop-in `/etc/systemd/system/pm2-root.service.d/umask.conf` con `UMask=0077`; demonio y los 2 procesos con umask 0077, logs nuevos en 600, ambos `/health` en 200 |
-| **Telemetría 2026-09-24-b** | ⏳ ver nota | `06a494d` empujado; comprobar `/health` = `06a494d` y `grep -c 2026-09-24-b` en `dist/data/telemetry.js` |
+| **M. Jesús F1** (catálogo de 7 métricas, `derivar`, esquemas) | ✅ en producción | `2b865e8`→`6bf34ff`; la primera pregunta real invocó `rendimiento_agentes` |
+| **M. Jesús F2** (enrutador, verificador, analista, adaptadores, telemetría, tope) | ✅ en producción | `472e262`→`73ee95a` |
+| **M. Jesús F3** (rutas `/api/admin/mjesus/*`, cuota, métricas por nombre, panel) | ✅ encendido | `f21dea8`, `59e4c03`; SPA `4ecba4d` + `490d57d` (`MOTOR_CONECTADO=true`); `MJESUS_HABILITADO=admin` en `/opt/zasa-orchestrator/.env` (respaldo previo en `/root/backups-env-zasa/`) |
+| **Compuerta `test:mjesus`** en `deploy-vip.yml` | ✅ | `6dd5428`; 8 estados de interfaz bajo la CSP real de vip., antes del SSH |
+| **Preguntas asíncronas** (202 `{id}` + sondeo `GET /preguntar/:id`) | ✅ | backend `854546a`, SPA `79c247b`; primera pregunta real por esta vía 2026-09-29 04:58:49 UTC (17,3 s) |
+| **`clases_rechazo`** (verificador etiqueta por qué rechaza, sin texto) | ✅ | `e359cef`; columna migrada en producción con el código desplegado |
+| **Reglas 6 y 7 del prompt** (unidades `_ms`, solo fechas conocidas) | ⏳ desplegadas, sin medir | `1a13e37`; ver §1 |
+| **`proxy_read_timeout 100s`** (corte de Cloudflare) en admin. `/` y vip. `/api/` | ✅ | vivo + plantillas `fcb9906`, `13ad962`; `instalar-plantillas.sh --comprobar` en verde |
+| **3.ª exposición de secretos en el chat** (API, EDGE, 2 tenants) | ✅ rotados | ver §4; `rotar-secretos-borde.sh` arreglado en `c2faf54` |
+| **Riesgo 10** (logs PM2 en 600, `UMask=0077`), **demonio PM2 en Node 22**, **riesgo 11**, credenciales de `cloudflared` | ✅ 27-sep | §2.1 n.º 5, 10 y 11; regla §3 n.º 16 |
+| **Telemetría 2026-09-26-a** | ✅ publicada y verificada | `a16b9f0`, desplegada junto a `0ed5dad` (CHANGELOG): `/health` = `0ed5dad` por loopback y desde fuera (05:24:54 UTC); `grep -c 2026-09-26-a dist/data/telemetry.js` = 1 |
 
-**Repos al cierre:** `admin_solucionesconia` (`c1cfe81`), `zasa-orchestrator` (`06a494d`), `elrincon-backend`
-(`c646811`) y la raíz, todos `= origin/main`. `examenfacil-cl` (2) y `AuditorLegal` (3) tienen cambios sin
-commitear **que no son de esta sesión** y no se han inspeccionado.
+**Repos al cierre:** `zasa-orchestrator` (`0ed5dad`), `admin_solucionesconia` (`79c247b`) y la raíz, todos
+`= origin/main`. `examenfacil-cl` (2) y `AuditorLegal` (3) tienen cambios sin commitear **que no son de esta
+sesión**. El repo de Jose sigue con la cédula y el PDF legal sin rastrear (§2.1 n.º 2).
 
 ---
 
 ## 1. Paso exacto para arrancar
 
-➡️ **Comprobar el cierre del riesgo n.º 10 tras la rotación de las 00:00 del 28-sep.** Solo lectura, un minuto:
-`ls -la /root/.pm2/logs/`. Todos los ficheros deben seguir en 600. Si todo está bien, el siguiente punto de la cola es
-**M. Jesús F3** (§2, n.º 5): la ruta `/api/admin/mjesus/*` y el panel. F1 y F2 de M. Jesús y el riesgo n.º 11 están
-cerrados (F2 el 2026-09-28). ⚠️ `zasa-orchestrator` tiene **10 commits de F2 sin empujar**: el push a `main` despliega.
-Pendiente de planificar: el reinicio que pide el VPS (§2, n.º 4).
+➡️ **Primero una acción de Jaime:** hacer 3-5 preguntas de datos en el panel de M. Jesús (vip., rol admin), mejor si
+piden latencias o periodos. Después, Claude mide si las reglas 6 y 7 (`1a13e37`) quitaron el reintento:
+
+```sql
+SELECT creada_en_iso, vueltas, veredicto, clases_rechazo, latencia_ms, round(costo_estimado_usd::numeric,4)
+  FROM mjesus_consultas WHERE creada_en_iso > '2026-09-29T05:14:21Z' ORDER BY creada_en_iso;
+```
+
+La referencia es la de 04:58:49Z: `aprobada_en_reintento`, 3 vueltas, `["fecha","fecha","unidad","unidad"]`, $0,0637.
+Si las nuevas salen `aprobada` con `[]`, la tarea `cockpit-mjesus-reglas-precision-prompt` pasa a 100 %. La tabla
+vive en `DATABASE_URL` (base `zasa_portal`), no en la conexión de `mjesus_ro`; ejecutar la consulta con un script por
+stdin (§3 n.º 20).
 
 ---
 
 ## 2. Cola (por cercanía a producción)
 
-0. **Acciones de Jaime** (el modo automático las bloquea a Claude, o son de panel):
-   - **Cloudflare Zero Trust:** borrar los hostnames `admin.`/`vip.` y el túnel `c72b9785-cc27-485d-adee-6d8a171ae930`,
-     y comprobar que no queda ningún CNAME a `…cfargotunnel.com`. (Las credenciales del VPS ya se destruyeron el
-     2026-09-27: el panel es lo único que falta.)
-   - ~~**Retirar `/root/sincronizar-secretos-borde.sh`**~~ ✅ eliminada por Jaime el 2026-09-27 (§2.1 n.º 3).
+0. **Acciones de Jaime:**
+   - **Borrar los respaldos con valores viejos de las rotaciones** (Claude no hace borrados permanentes):
+     ```bash
+     ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'cd /root/backups-rotacion && for d in secretos-borde-20260929-023305 inquilinos-20260929-023812 secretos-borde-20260929-022046; do find "$d" -type f -exec shred -u -z -n 3 {} + && rmdir "$d" && echo "eliminado: $d"; done; ls -la /root/backups-rotacion'
+     ```
+     🔴 `inquilinos-20260929-023812/admin` lleva el API y el EDGE **vigentes** (se copió después de rotarlos).
+   - **Decidir la poda de `/root/backups-nginx/`:** 21 `instalar-plantillas-*` (23-sep → 29-sep) y 3 copias sueltas de
+     hoy. Los de `…023800` y `…023813` llevan los valores vigentes; el resto, revocados. Propuesta: conservar solo
+     `instalar-plantillas-20260929-023813` como vuelta atrás de nginx.
+   - **Cloudflare Zero Trust:** borrar los hostnames `admin.`/`vip.` y el túnel `c72b9785-cc27-485d-adee-6d8a171ae930`.
    - **Cloudflare, n.º 16:** la opción que quita el `ETag` del HTML de El Rincón.
-   - **Prueba real del n.º 8:** entrar en vip. como cliente, escribir a Sofía, cerrar sesión y volver a entrar en la
-     misma pestaña → el chat debe salir vacío.
-   - **Actions de `admin_solucionesconia`:** confirmar que el run de `c1cfe81` pasó la compuerta de CSP (Claude no ve
-     Actions). Si falló, el artefacto `csp-test-results` tiene las trazas.
-   - Heredados: panel de M. Jesús que «desaparece» en el móvil (¿queda en `/login`?), Papelera de Windows,
-     `SALES_WEBHOOK_URL`, limpiar el E2E del 22-b.
-1. ~~**Riesgo n.º 10**~~ ✅ cerrado el 2026-09-27; queda la comprobación tras la rotación (§1).
-2. ~~**Demonio de PM2 a Node 22**~~ ✅ **CERRADO 2026-09-27 (100 %)** (`cockpit-pm2-elrincon-node22`).
-   - **Causa:** `ExecStart` lanzaba el PM2 global (7.0.3, `engines` `>=18.0.0`) por su shebang `#!/usr/bin/env node`, y
-     el `PATH` de la unidad no incluye `/opt/node22/bin`, así que resolvía a `/usr/bin/node` 18.
-   - **Solución:** drop-in `/etc/systemd/system/pm2-root.service.d/node22.conf`. Sobrescribe `ExecStart`,
-     `ExecReload` y `ExecStop` (con la línea vacía previa que anula el valor original) para lanzar
-     `/opt/node22/bin/node /usr/local/lib/node_modules/pm2/bin/pm2 …`. Sin reinstalar PM2, y sobrevive a `pm2 startup`.
-     Aplicado con `daemon-reload` → `systemd-analyze verify` (rc 0) → `systemctl restart pm2-root`.
-   - **Verificado:** `pm2-root` activo, con `node22.conf` y `umask.conf` cargados; `/proc/<pid>/exe` →
-     `/opt/node22/bin/node`; `Umask: 0077`; los 2 procesos `online` con 0 reinicios y 0 inestables; `/api/health`
-     (:3000) y `/health` (:3001) → 200.
-   - **Queda:** el `pm2` lanzado a mano desde la shell sigue siendo cliente Node 18. No importa para consultar, pero
-     un `pm2 update` relanzaría el demonio con Node 18 y umask 0022. Solo `systemctl` (§3, regla 16).
-   - Vuelta atrás: `rm …/pm2-root.service.d/node22.conf && systemctl daemon-reload && systemctl restart pm2-root`.
-3. ~~**Riesgo n.º 11**~~ ✅ **CERRADO 2026-09-27:** las 5 recetas de nginx guardan el respaldo en `/root/backups-nginx/`
-   (700), fuera de `/etc/nginx` (detalle en §2.1 n.º 11).
-4. ~~**M. Jesús — resto de F1**~~ ✅ **CERRADO 2026-09-27 (100 %)** (ADR-003 §8.1). Catálogo v1 con las 7 métricas
-   (`consumo_ia`, `rendimiento_agentes`, `usuarios_operadores`, `clientes`, `facturacion`, `embudo`, `portales`),
-   `validarParametros`, `derivar` y los esquemas de herramienta de todo ello, en
-   `zasa-orchestrator/src/modulos/mjesus/semantica/`. 10 suites `tests/mjesus*.test.ts`, **270 en verde**, cada
-   métrica ejecutada en SQLite y en Postgres (PGlite) con test de paridad; suite completa 1513/1513. Commits
-   `2b865e8` → `6bf34ff`, **sin empujar**: el push a `main` despliega (reinicio del orquestador), aunque ninguna
-   ruta usa aún el módulo.
-   - ✅ **Intercalación de Postgres verificada 2026-09-27 (Jaime, solo lectura), sin cambios de código.** La base de
-     la aplicación es **`zasa_portal`** (`zasa_app` es el rol, no una base: la sonda por ese nombre da 0 filas) y usa
-     `C.UTF-8`: orden por punto de código, igual que el orden por bytes de SQLite y el `C` de PGlite, así que la
-     paridad de los tests vale también para producción. No hace falta `COLLATE "C"`.
-   - ⚠️ **El VPS pide reinicio** (`*** System restart required ***` al entrar, visto el 2026-09-27): actualizaciones de
-     kernel o librerías pendientes. Planificarlo; después comprobar `/health` de los backends, `readlink` y umask
-     del demonio de PM2 (§3, regla 16), nginx y Postgres.
-5. **M. Jesús — F2** ✅ **CERRADA EN CÓDIGO 2026-09-28** (ADR-003 §8.2), en `zasa-orchestrator/src/modulos/mjesus/semantica/`:
-   enrutador determinista, verificador de cifras (fail-closed), analista con tool use y un único reintento, adaptadores
-   de producción (Anthropic con timeout; `MJESUS_DATABASE_URL` con `mjesus_ro`, sin caída a `DATABASE_URL`), `config.ts`
-   (`MJESUS_HABILITADO`, `MJESUS_TOPE_USD_DIA`), telemetría sin texto libre (`mjesus_consultas` + `ejecuciones_*`) y
-   tope diario antes de llamar al modelo. 16 suites, 472 tests; suite completa 1715/1715. Commits `472e262` →
-   `73ee95a`, **sin empujar**.
-   - Por verificar: la tarifa de `mjesus_analista` (3/15 USD por millón, la de lista de Sonnet, ajustable con
-     `MJESUS_TARIFA_ANALISTA_USD_1M`) y que `MJESUS_DATABASE_URL` exista en el `.env` del VPS.
-   - Trampa: la configuración de ESLint ignora `tests/`; un «lint rc 0» sobre un test no revisa nada.
-   - Trampa: una prueba que arranca PGlite dentro del propio `it` necesita más de 5 s con la suite completa en
-     paralelo (`TIMEOUT_PGLITE_MS`); pasar solo con las suites de M. Jesús no basta.
-   **M. Jesús — F3** (siguiente): ruta `/api/admin/mjesus/*` con `MJESUS_HABILITADO=admin` (adaptadores, telemetría,
-   avisos de configuración en el log), límite de 20 preguntas por operador y minuto, métricas por nombre al alcanzar
-   el tope, `env:check` con las variables nuevas y conectar el panel (`MOTOR_CONECTADO`).
-6. Deudas de documentación en repos: ~~ADR-003 §10.4~~ (cerrado en el ADR el 2026-09-27); comentario de
-   `scripts/audit-vip-infra.js:21` («CSP no desplegada», falso). Un push a `main` del orquestador despliega.
-   ~~Cabecera de `sincronizar-secretos-borde.sh` (líneas 7-8) y `cerrar-migracion.sh:235`~~ ✅ `92cc09d`, desplegado.
-   Residuo en `cerrar-migracion.sh` (un solo uso, sin tocar): llama a `/root/rotar-edge-secret.sh` (l. 229), que en el
-   VPS está en `/root/backups-rotacion/`, y a `/root/verificar.sh` (l. 236), sin comprobar.
+   - **Prueba real del n.º 8** (historial de Sofía al cerrar sesión) y **run de Actions** de la compuerta de CSP.
+   - Heredados: Papelera de Windows, `SALES_WEBHOOK_URL`, limpiar el E2E del 22-b.
+1. **Medir las reglas 6 y 7** (§1).
+2. **Versionar la rotación de tokens de tenant** (`cockpit-rotar-inquilinos-versionar`). Hoy se hizo con un script
+   ad hoc del scratchpad de la sesión (puede no existir ya): ensayo con valores desechables → respaldo (incluidos
+   los `token_hash` viejos) → `UPDATE clientes SET token_hash=sha256(nuevo)` de las dos filas en UNA transacción con
+   comprobación de 2 filas → `mv` de `inquilinos.env` (600) → `instalar-plantillas.sh --aplicar --aceptar-cambios`
+   con `SEC=` → esperar 6 s (caché del resolver, 5 s) → testigo `/clientes/<slug>` directo a :3001 (nuevo 200, viejo
+   401). Ventana medida: 2,9 s. Llevarlo a `deploy/vps-4gb/` junto a `rotar-secretos-borde.sh`.
+3. **El VPS pide reinicio** (`*** System restart required ***`, visto el 27-sep). Planificarlo; después, `/health` de
+   los dos backends, `readlink` y umask del demonio de PM2 (§3 n.º 16), nginx y Postgres. Tras reiniciar se pierden
+   los trabajos en curso de M. Jesús (almacén en memoria): el panel lo muestra como «La consulta se perdió».
+4. **Informe de diagnóstico de Liset ausente** (`cockpit-liset-informe-diagnostico-ausente`): el registro lo declara
+   pero no existe en `private/` (ERROR en el log; `/clientes/liset/diagnostico` da 404). Aprovisionarlo o retirarlo.
+5. **M. Jesús, pendientes menores:** actualizar ADR-003 con F3 y el flujo asíncrono (202, `trabajos.ts`, cuota solo
+   para POST, `clases_rechazo`); verificar la tarifa de `mjesus_analista` (`MJESUS_TARIFA_ANALISTA_USD_1M`, hoy la de
+   lista de Sonnet); test inestable `verificarBorde.test.ts` (chip propuesto).
+6. Deudas de documentación: comentario de `scripts/audit-vip-infra.js:21` («CSP no desplegada», falso); residuo de
+   `cerrar-migracion.sh` (l. 229 y 236).
 7. Heredados: MVG 3 y 4; GambusasChile CI; `package.json` 2.4.0 vs tag v2.5.0; telemetría 09-16-b y 09-22-a sin
    reconstruir; ¿hacen falta las llaves de administración en la cuenta `deploy`?
 
 ### 2.1 Matriz de riesgos abiertos de seguridad (priorizada 2026-09-25)
 
-Ya no queda **ninguna credencial expuesta conocida**. La matriz se armó el 25-sep a partir del handover y las memorias,
-y cada punto se fue comprobando al abordarlo: cada cierre dice qué verificó Claude y qué reportó Jaime. **Estado al
-cierre de la sesión:** Alta cerrada; Media cerrada salvo las comprobaciones que aún piden los n.º 5, 8 y 9 (el n.º 10
-se cerró el 2026-09-27); Baja sin tocar, más el n.º 16, nuevo.
+**Credenciales expuestas conocidas: ninguna vigente** (al cierre del 2026-09-29). El 29-sep hubo una 3.ª exposición en
+el chat (API, EDGE y los dos tokens de tenant) y los cuatro se rotaron esa misma madrugada (§4); quedan sus respaldos
+con valores viejos pendientes de `shred` (§2 n.º 0). La matriz se armó el 25-sep a partir del handover y las
+memorias, y cada punto se fue comprobando al abordarlo: cada cierre dice qué verificó Claude y qué reportó Jaime.
+**Estado:** Alta cerrada; Media cerrada salvo las comprobaciones que aún piden los n.º 5 (panel de Zero Trust), 8 y 9;
+Baja: n.º 11 cerrado, el resto sin tocar, más el n.º 16.
 
 **🟠 Alta: exposición de credenciales o de integridad**
 1. ⬇️ **H4: reclasificado a Baja el 2026-09-25** (ver n.º 15).
@@ -288,7 +267,7 @@ se cerró el 2026-09-27); Baja sin tocar, más el n.º 16, nuevo.
       y 0 inestables, en `/opt/node22/bin/node`; `/api/health` (:3000) y `/health` (:3001) → 200; los logs creados al
       arrancar (`elrincon-backend-*-1.log`) nacieron en 600. `elrincon-backend` pasó del id 2 al 1: los `*-0` y `*-2`
       son restos.
-    - ⏳ Falta confirmar tras la rotación de las 00:00 del 28-sep que todo sigue en 600 (§1).
+    - ✅ Confirmado tras la rotación de las 00:00 del 28-sep: ningún log de `/root/.pm2/logs/` en 644.
 
 **⚪ Baja: higiene**
 11. ✅ **CERRADO 2026-09-27: las recetas de nginx ya no dejan respaldos dentro de `/etc/nginx`.**
@@ -392,16 +371,60 @@ cerrados. Lo siguiente en prioridad es la categoría **Media** (n.º 5-10).
     `Workspace_Agencia` devuelve vacío aunque haya coincidencias. Para esos repos, `grep` desde Bash o buscar dentro de
     cada repo.
 
+**Del 2026-09-28/29:**
+
+19. 🔴 **Filtro de secretos: `[0-9a-fA-F]{40,}` SIN comillas ni anclas, aplicado DENTRO del VPS.** Con
+    `"[0-9a-fA-F]{40,}"` (entre comillas) se colaron los `Bearer <hex>` y las líneas `gsub(/<hex>/…)` que el render deja
+    en los COMENTARIOS del vhost: así se expusieron los 4 secretos del 29-sep. Para comparar plantilla y vivo, el
+    `diff` se hace en el VPS y solo salen `cmp`, recuentos o líneas ya filtradas.
+20. **Escapado por SSH:** `sed` con `\n`, `$var` y comillas dentro de `ssh '…'` fallan en silencio (una directiva
+    acabó dentro de un comentario; un `tr -d "\"\x27"` borró los caracteres `\ x 2 7` de los valores y dio una falsa
+    alarma de `.env` corrupto). Lo robusto: un script en el scratchpad y `ssh … 'bash -s' < script`.
+21. **`nginx -t` no detecta una directiva comentada por accidente.** Comprobar la configuración cargada:
+    `nginx -T | grep -E '^\s*proxy_read_timeout'`.
+22. **`snippets/vip-portal.conf` NO es huérfano:** `solucionesconia.cl` lo incluye con el comodín `vip-portal*.conf`
+    (línea 98), y un comodín sin coincidencias pasa `nginx -t`. Da a la landing `/api/auth/`, `/api/vip/`, `/api/`,
+    `/vip/` y `/clientes/assets/`.
+23. **`rotar-secretos-borde.sh` hasta `c2faf54` no podía terminar:** `viejos="$(grep … | wc -l)"` con `pipefail` + `set
+    -E` disparaba el rollback justo en el caso bueno (0 coincidencias). La rotación de las 02:20 del 29-sep se deshizo
+    sola por eso.
+24. **Los tokens de tenant viven en TRES sitios:** `inquilinos.env`, vhost admin. (render con `SEC=`) **y
+    `clientes.token_hash` = sha256(token)**. Liset y demovip resuelven por la base (`TENANT_TOKENS` está vacío):
+    cambiar solo nginx deja el portal en 401. El resolver cachea 5 s.
+25. **El panel de M. Jesús llama a `/api/admin/mjesus` por ruta relativa** (`VITE_API_URL` vacío): pasa por el
+    `location /api/` de **vip.**, no por admin. Cloudflare corta a los 100 s (524): de ahí el `100s` y el flujo
+    asíncrono.
+26. **M. Jesús asíncrono:** `POST /preguntar` → 202 `{id}`; `GET /preguntar/:id` sin cuota (la cuota de 20/min es
+    solo para los POST); un trabajo activo por operador (409 con el id del activo); trabajos en memoria (TTL 10 min),
+    se pierden al reiniciar PM2. El panel acepta aún el 200 síncrono.
+27. **El token maestro resuelve a `viewer`:** `/api/admin/mjesus/*` le da 403; solo entra una sesión de admin o un token
+    de `RBAC_ADMIN_TOKENS`. Sirve para probar que una ruta existe sin gastar: 403 (existe) frente a 404 (no existe).
+28. **`mjesus_consultas` vive en `DATABASE_URL`** (`zasa_portal`). Sus columnas son `creada_en_iso`, `latencia_ms` y
+    `costo_estimado_usd` (no `creado_en`, `duracion_ms`, `coste_usd`).
+29. **No hay unidad systemd `zasa-orchestrator`:** la app se recarga como `desplegar.sh`,
+    `NODE_BIN=/opt/node22/bin/node pm2 startOrReload ecosystem.config.js --update-env` desde `/opt/zasa-orchestrator/app`.
+30. **`admin_solucionesconia`: `npm run lint` es un marcador que siempre sale 1** (no hay configuración de ESLint); la
+    revisión de tipos va dentro de `npm test`. Un `servidor-csp.mjs` huérfano en 4180/4181 hace fallar la compuerta
+    E2E siguiente (rc 127/1): cerrarlo antes de repetir.
+
 ---
 
 ## 4. Secretos
 
-- Ningún valor pasó por el chat. La clave de `mjesus_ro` la genera el script en el VPS, viaja a psql por stdin con el
-  registro apagado y a las sondas por un `PGPASSFILE` efímero.
+- 🔴 **2026-09-29 ~01:30 UTC: 3.ª exposición en el chat.** Al comparar la plantilla de admin. con el vhost vivo, un
+  filtro de hex entre comillas (§3 n.º 19) dejó salir `API_SECRET_TOKEN`, `EDGE_SECRET`, `TENANT_TOKEN_LISET` y
+  `TENANT_TOKEN_DEMOVIP`. **Los cuatro rotados esa misma madrugada**, con viejo → 403/401 y nuevo → 200 verificados:
+  - API `43309db8`→`2e2f571f` y EDGE `3f6c5150`→`f74fa9ba` (02:33 UTC) con `rotar-secretos-borde.sh` desde `c2faf54`,
+    en sus 4 sitios (`.env`, vhosts admin. y vip., `snippets/vip-portal.conf`, que pasó a 600). Ventana 7,0 s.
+  - LISET `137f9ca4`→`ee89f370` y DEMOVIP `2395ee7c`→`185a325b` (02:38 UTC) en `inquilinos.env`, vhost admin. y
+    `clientes.token_hash`. Ventana 2,9 s.
+  - ⏳ Respaldos con valores viejos en `/root/backups-rotacion/` (3 directorios de hoy) y en
+    `/root/backups-nginx/instalar-plantillas-*`: `shred` pendiente de Jaime (§2 n.º 0). Ojo:
+    `inquilinos-20260929-023812/admin` e `instalar-plantillas-20260929-0238*` llevan el API y el EDGE **vigentes**.
+  - Los 4 `.bak` viejos de `snippets/backups/` salieron de `/etc/nginx` a `/root/backups-nginx/huerfanos-20260929/`
+    (700/600).
 - `cfut_` comprometido: **rotado el 2026-09-25** (huella nueva `873c9da4`). Credencial de superusuario `postgres`:
   **anulada y `.bak` borrado el 2026-09-25** (`postgres` solo entra por `peer`; verificado por Claude).
-- Credenciales del túnel `cloudflared` (`cert.pem`, que permite gestionar túneles de la zona, y el `<uuid>.json`):
-  **destruidas en el VPS el 2026-09-27** (`shred -u -z` + `rm -rf` de las dos carpetas de archivo). El túnel
-  `c72b9785-…` sigue existiendo en Cloudflare hasta que Jaime lo borre en Zero Trust, pero ya no queda en el servidor
-  ninguna credencial que permita usarlo.
-- En esta sesión no pasó ningún valor por el chat: solo huellas sha256 de 8 caracteres.
+- Credenciales del túnel `cloudflared`: **destruidas en el VPS el 2026-09-27** (`shred -u -z` + `rm -rf`). El túnel
+  `c72b9785-…` sigue existiendo en Cloudflare hasta que Jaime lo borre en Zero Trust.
+- La clave de `mjesus_ro` nunca pasó por el chat (la genera el script en el VPS; stdin y `PGPASSFILE` efímero).
