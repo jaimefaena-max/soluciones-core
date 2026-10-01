@@ -22,6 +22,9 @@
 - **Clave rotada:** Jaime pegó una clave en el chat → tratada como expuesta, **no se
   instaló**. La nueva (`…cGA5`) entró a la Bóveda a las 20:56:58 UTC por script con
   `read -s` + stdin de SSH. Bóveda `640 www-data:www-data`.
+  **Clave oficial y activa: `re_TAFW14L6…cGA5`**, de solo envío. Se verificó el 2026-10-01 a las
+  01:05 UTC: es la única clave en la Bóveda y la API responde `restricted_api_key`. La antigua
+  `re_Jhj…` quedó **revocada y cerrada** (confirmado por Jaime el 2026-09-30).
 - **Email Routing:** MX raíz `route{1,2,3}.mx.cloudflare.net` + SPF raíz verificados en DNS;
   reglas `hola@` y `ventas@` → correo personal (configuradas por Jaime, no visibles por DNS).
 - **Notificación dual endurecida** (`0743749`, desplegada y con hashes del VPS = commit):
@@ -40,7 +43,7 @@
 | # | Qué | Quién |
 |---|---|---|
 | 1 | **Confirmar que llegó a la bandeja** el aviso de prueba `[VENTA GAMBUSAS] John Doe (TEST E2E) - $24.990 CLP aprobado` enviado a `ventas@` ~22:00 UTC. Si no está (ni en spam), revisar la regla de `ventas@` en Cloudflare Email Routing | **Jaime** |
-| 2 | **Revocar en Resend la clave expuesta en el chat** (la que empieza por `re_Jhj`) si no se hizo | **Jaime** |
+| 2 | ~~Revocar en Resend la clave expuesta en el chat (`re_Jhj…`)~~ ✅ **Cerrado:** revocada (confirmado por Jaime el 2026-09-30). La oficial es `re_TAFW14L6…cGA5` | — |
 | 3 | **Compra real** del pack de $14.990 → certifica pago → webhook → dos correos. Monitor en §3 | **Jaime** |
 | 4 | Commitear lo pendiente en `zasa-orchestrator` (sigue sin tocar desde el 29-sep: `npm audit fix`, `ds.js` + `informe.ejs` + test, `audit-fase{1,2,3}.md`) en commits separados | Claude |
 | 5 | Timeout explícito en `tests/verificarBorde.test.ts` (rojo falso que bloquea deploys) | Claude |
