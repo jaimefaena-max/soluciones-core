@@ -1,117 +1,81 @@
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-30-a (GambusasChile: correo operativo, soft 404 y notificación dual Zero Trust)
+# 🔴 PRIMERO AL DECIR «HOLA»: arreglar los problemas encontrados en GambusasChile (§1) antes de cualquier otra cosa
+
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-30-b (GambusasChile: automatización de marketing en Node + webhook de WhatsApp Zero Trust)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Memorias de arranque: `backlog-arranque-proxima-sesion` y `transcript-dir-gambusas-drift`, en
 > `~/.claude/projects/C--Proyectos-Workspace-Clientes-GambusasChile/memory/`.
-> Hand-off anterior (2026-09-29-a, pagos MP y rescate del CI): en el historial de este fichero.
-> Sesión del 2026-09-30 18:33 al 22:20 UTC: **101,8 min activos** de 227,3 totales,
-> **$59.383 CLP**. Telemetría `2026-09-30-a` en `zasa-orchestrator` `d098ee7`,
-> **publicada y verificada** (`/health` = `d098ee7`, `grep` en `dist/` = 1; tardó ~6 min).
+> Hand-off anterior (2026-09-30-a: correo operativo, soft 404, notificación dual): en el historial
+> de git de este fichero. Sus pendientes (bandeja de `ventas@`, compra real, commits sueltos de
+> `zasa-orchestrator`, DMARC) **siguen abiertos** y van después de §1.
+> Sesión del 2026-10-01 01:23 al 08:29 UTC: **111,1 min activos** de 425,4 totales, **$64.808 CLP**.
+> Telemetría `2026-09-30-b` en `zasa-orchestrator` `aa26f06`.
 >
-> **Forma de trabajo:** igual que la sesión anterior — Jaime dicta cada paso con rol y
-> matriz de restricciones. Varias premisas venían equivocadas y se corrigieron antes de
-> ejecutar: un `.env` en el web root que PHP no lee, una ruta `/var/www/gambusaschile/html`
-> que no existe, argumentos de `enviarEmailConfirmacion()` en otro orden (habría dado
-> TypeError), y un script de prueba escrito dentro del web root.
+> **Contexto pegado al final de la sesión, DESCARTADO:** un «contexto de cierre» pedía revisar
+> `api/logs/webhook_debug.log` y corregir `webhook_wa.php` (User-Agent, `text/plain`, búfer). Es
+> erróneo: ese log está vacío y bloqueado; el webhook ya responde correcto. **Ver §2.**
 
 ---
 
-## 0 · 🟢 Correo transaccional OPERATIVO de extremo a extremo (salvo un pago real)
+## 1 · 🔴 Problemas encontrados — ARREGLAR PRIMERO (en este orden)
 
-- **Resend verificado:** DKIM `resend._domainkey`, SPF + MX en `send.`, DMARC `p=none`.
-- **Clave rotada:** Jaime pegó una clave en el chat → tratada como expuesta, **no se
-  instaló**. La nueva (`…cGA5`) entró a la Bóveda a las 20:56:58 UTC por script con
-  `read -s` + stdin de SSH. Bóveda `640 www-data:www-data`.
-  **Clave oficial y activa: `re_TAFW14L6…cGA5`**, de solo envío. Se verificó el 2026-10-01 a las
-  01:05 UTC: es la única clave en la Bóveda y la API responde `restricted_api_key`. La antigua
-  `re_Jhj…` quedó **revocada y cerrada** (confirmado por Jaime el 2026-09-30).
-- **Email Routing:** MX raíz `route{1,2,3}.mx.cloudflare.net` + SPF raíz verificados en DNS;
-  reglas `hola@` y `ventas@` → correo personal (configuradas por Jaime, no visibles por DNS).
-- **Notificación dual endurecida** (`0743749`, desplegada y con hashes del VPS = commit):
-  escape HTML, saneo de cabeceras, envío cliente y `ventas@` independientes, timeouts,
-  log del rechazo de Resend, `aviso_ventas` en el marcador.
-- **Prueba E2E en producción** de la función real: `cliente => true`, `ventas => true`.
-- **Auditoría de logs post-deploy:** 0 Warning / TypeError / Fatal.
-- **Soft 404 cerrado** (`try_files … =404`, backup `/root/backups-nginx/gambusaschile.cl.20260930-184309`).
-- **`PLAYBOOK_RECUPERACION.md`** en el repo: bóveda, rotación con el script completo,
-  rollback nginx, flujo dual con dependencias, rollback de código.
+| # | Problema | Arreglo | Quién |
+|---|---|---|---|
+| 1 | **`/var/www/gambusaschile.cl/api/` quedó `www-data:www-data`** y los PHP en **755**: alguien lo cambió a mano después del deploy de las 06:42 UTC. Según `DEPLOY.md` (incidente 2026-08-07), con el árbol de `www-data` el `tar` de `scp-action` no puede hacer `utime` → **el próximo push a `main` abortará el deploy** | `chown -R deploy:www-data …/api`, dirs 755, ficheros 644. Después, un push de prueba para comprobar que el pipeline queda en verde | Claude (pedir OK) |
+| 2 | **`api/test.php`** (`<?php echo 'OK'; ?>`) público: 200 vía Cloudflare. Fuera de git | Borrar | Claude |
+| 3 | **`api/logs/`** recreada a las 07:06 con `webhook_debug.log` vacío. nginx la bloquea (404), pero sobra y nada escribe ahí | Borrar | Claude |
+| 4 | **Meta no llega al origen.** Desde las 05:36 UTC hay **0** peticiones de Meta en `access.log`; todos los «Verificar y guardar» se bloquean en **Cloudflare** | Cloudflare → Security → Events (filtrar por ruta `/api/webhook_wa.php` o UA `facebookplatform`); regla WAF **Skip** para esa ruta, o desactivar **Bot Fight Mode** (en el plan gratuito no se salta por ruta). Mientras Jaime pulsa «Verificar y guardar», Claude vigila los logs | **Jaime** + Claude |
+| 5 | **7 pruebas con `curl` de 07:36 a 08:18 UTC dieron `verify_token no coincide`**: se probó con un token distinto al de la Bóveda | Usar el token que mostró `setup_wa_secrets.sh` (06:44 UTC). Si se perdió: `… setup_wa_secrets.sh --rotar-token` y pegar el nuevo en Meta. URL de callback **exacta**: `https://gambusaschile.cl/api/webhook_wa.php` | **Jaime** |
 
----
-
-## 1 · Pendientes (en orden)
-
-| # | Qué | Quién |
-|---|---|---|
-| 1 | **Confirmar que llegó a la bandeja** el aviso de prueba `[VENTA GAMBUSAS] John Doe (TEST E2E) - $24.990 CLP aprobado` enviado a `ventas@` ~22:00 UTC. Si no está (ni en spam), revisar la regla de `ventas@` en Cloudflare Email Routing | **Jaime** |
-| 2 | ~~Revocar en Resend la clave expuesta en el chat (`re_Jhj…`)~~ ✅ **Cerrado:** revocada (confirmado por Jaime el 2026-09-30). La oficial es `re_TAFW14L6…cGA5` | — |
-| 3 | **Compra real** del pack de $14.990 → certifica pago → webhook → dos correos. Monitor en §3 | **Jaime** |
-| 4 | Commitear lo pendiente en `zasa-orchestrator` (sigue sin tocar desde el 29-sep: `npm audit fix`, `ds.js` + `informe.ejs` + test, `audit-fase{1,2,3}.md`) en commits separados | Claude |
-| 5 | Timeout explícito en `tests/verificarBorde.test.ts` (rojo falso que bloquea deploys) | Claude |
-| 6 | DMARC `p=none` → `p=quarantine` cuando los reportes estén limpios | Jaime + Claude |
-
-**Sobre el webhook en el panel de MP:** el log de la app tiene `pago 123456: firma valida`
-a las 06:22 y 15:56 (hora Chile). `123456` es el id que usa el **simulador de
-notificaciones del panel de MP**, así que la URL está registrada y la firma de la Bóveda
-coincide con la del panel. El 404 posterior es lo esperado (ese pago no existe). Falta
-ver una notificación de un pago real.
-
----
-
-## 2 · Estado de los repos al cierre
-
-- **`GambusasChile`** — limpio y sincronizado con `origin/main` en `cae9fa1`.
-- **`zasa-orchestrator`** — `d098ee7` (telemetría) publicado; el árbol sigue con los 11
-  ficheros del 29-sep sin commitear (ver pendiente 4). No se tocaron.
-- Fuera de alcance: cambios sueltos en `ExamenFacil`, `AuditorLegal` y el portal de Jose.
-
----
-
-## 3 · Monitoreo del primer pago real (comando probado)
-
+Comprobación previa de 1–3, solo lectura:
 ```bash
-ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 '
-L=/var/lib/gambusaschile/logs
-echo "=== Monitor GambusasChile · $(date -u +%H:%M:%S) UTC · Ctrl-C para salir ==="
-{
-  tail -F -q -n 0 "$L/webhook-mp-2026-09.log" "$L/webhook-mp-2026-10.log" 2>/dev/null \
-    | sed -u "s/^/[WEBHOOK] /" &
-  tail -F -q -n 0 /var/log/nginx/error.log 2>/dev/null \
-    | grep --line-buffered "GAMBUSAS" \
-    | sed -u "s/.*\(\[GAMBUSAS\][^\"]*\).*/[COBRO]   \1/" &
-  wait
-}'
+ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'stat -c "%a %U:%G %n" /var/www/gambusaschile.cl/api /var/www/gambusaschile.cl/api/*; ls -la /var/www/gambusaschile.cl/api/logs 2>/dev/null'
 ```
 
-**Línea que certifica el circuito:** `[WEBHOOK] pago <id> APROBADO · ref iniciacion-<hex> · $14.990 · correo=ok`,
-**sin** línea `ATENCION, aviso de venta a ventas@ NO enviado`. Después, el marcador
-`/var/lib/gambusaschile/pagos-procesados/<id>.json` debe tener `email_enviado: true` y
-`aviso_ventas: true`. Si Resend rechaza, el motivo sale como `[COBRO] [GAMBUSAS][EMAIL] Resend rechazo el envio: HTTP …`.
+---
+
+## 2 · Webhook de WhatsApp — estado real (verificado)
+
+- **Código:** `api/webhook_wa.php` versionado (`9147911`), idéntico en el VPS (sha256 `1f4d482d…`).
+  - `GET`: `hub.mode=subscribe` + `hash_equals` contra `WA_VERIFY_TOKEN` + challenge `^[0-9]{1,64}$`. La query se parsea a mano y rechaza alias `hub_*` y duplicados. Responde 200 `text/plain` con el challenge exacto.
+  - `POST`: `X-Hub-Signature-256` obligatoria, HMAC-SHA256 con `META_APP_SECRET` → 401. Máximo 1 MB (413); otros métodos → 405.
+- **Secretos:** cargados en la Bóveda a las 06:44 UTC con `core/automation/deploy/setup_wa_secrets.sh` (`9b75c37`), con respaldo en `/root/backups-gambusaschile/config_secret.php.20261001-064446`. El propio script verificó por loopback el GET con el token nuevo (200) y un POST firmado (200).
+- **Log real:** `/var/lib/gambusaschile/logs/webhook-wa-2026-10.log`, fuera del web root y sin secretos. **No** `api/logs/webhook_debug.log`.
+- **nginx:** `/api/logs/` y `*.log` → 404, y la query de `webhook_wa.php` se tacha en `access.log`. Respaldo en `/root/backups-nginx/gambusaschile.cl.20261001-062643`.
+- **Cloudflare no altera la query.** Se comprobó con una sonda con testigo. El problema es que bloquea a Meta (§1.4).
+- El fichero manual antiguo (con el token viejo `gambusas_secure_verify_2026`, ya inválido) está respaldado en `/root/backups-gambusas-webhook/20261001-062657/`.
+
+## 3 · Automatización de marketing (`core/automation/`) — en producción
+
+- **Planificador Node + `logger.js` (enmascaramiento obligatorio) + PM2.** Excepción a la regla PHP registrada en el `CLAUDE.md` del proyecto. Excluido del deploy del web root.
+- **VPS:** checkout parcial en `/opt/gambusas-automation` (`9b75c37`), deploy key de solo lectura `gambusas_automation_deploy` y PM2 `gambusas-automation` **online**. Secretos en `/etc/gambusaschile/automation.env` (640 root).
+- Cargar más secretos: `ssh -t … 'bash /opt/gambusas-automation/core/automation/deploy/desplegar-vps.sh secretos CLAVE…'`.
+- **`meta-sync` deshabilitada:** falta `INSTAGRAM_BUSINESS_ACCOUNT_ID`.
+- **WhatsApp (phone_number_id del 56946834559):** el token del usuario del sistema es válido y tiene permisos de WhatsApp, pero **no tiene ninguna WABA asignada**. Jaime: Business Manager → Usuarios del sistema → `gambusas-automation` → Asignar activos → cuenta de WhatsApp (control total). Probablemente haya que regenerar el token (y añadir `business_management`). Después, Claude repite el descubrimiento y escribe los IDs.
+
+## 4 · Pendientes de fondo
+
+- **Node 18 (EOL) en el VPS** → 22 LTS, coordinado con `elrincon-backend` y `zasa-orchestrator`. Después, devolver `engines` a `>=20`.
+- **`pm2-logrotate`** no está instalado (afecta a las 3 apps; decidirlo aparte).
+- **`zasa-orchestrator` con 19 reinicios en PM2** (previo a esta sesión): revisar.
+- Pendientes heredados de 2026-09-30-a: bandeja de `ventas@`, compra real del pack de $14.990, commits sueltos de `zasa-orchestrator` + timeout de `verificarBorde.test.ts`, DMARC `p=quarantine`.
+
+## 5 · Estado de los repos al cierre
+
+- **`GambusasChile`:** limpio y sincronizado con `origin/main` en `9b75c37`. 🔴 No hacer push hasta arreglar §1.1, porque el deploy fallaría.
+- **`zasa-orchestrator`:** `aa26f06` (telemetría). Siguen sin commitear los 10 ficheros ajenos del 29-sep; no se tocaron.
+
+## 6 · Trampas operativas nuevas
+
+- `bash -s < script` con `core.autocrlf=true`: los `.sh` llevan `eol=lf` en `.gitattributes`. Mantenerlo.
+- PM2 con espera exponencial: al superar el tope de reinicios, `pm2 ls` muestra `waiting restart` en vez de `errored`, y el tope solo rige los primeros `min_uptime × max_restarts`.
+- `setup_wa_secrets.sh` exige TTY: lo lanza Jaime con `ssh -t`, nunca Claude (el token se mostraría en el transcript).
+- `/etc/gambusaschile/` contiene la Bóveda PHP (www-data) y el `automation.env` (root): **no cambiar los permisos del directorio**.
 
 ---
 
-## 4 · Trampas operativas (vigentes)
+## 7 · El paso exacto siguiente
 
-- **Scripts que llevan un secreto por stdin a `bash -s`:** el secreto no puede ser la
-  primera línea — `bash -s` lee su programa de ese stdin y lo **ejecuta como comando**
-  (imprimiéndolo en el error). Patrón correcto: `printf 'IFS= read -r KEY\n%s\n' "$KEY"`
-  y el script detrás. Está en el playbook.
-- **Escrituras remotas al VPS desde Claude:** el clasificador de permisos bloqueó un
-  cambio de nginx por SSH. Vía que funcionó: Claude prepara el script en local y Jaime
-  lo lanza con `! ssh … 'tr -d "\r" | bash -s' < script`. Los secretos, en cambio,
-  **nunca** por `!`: en una terminal propia, porque `!` vuelca la salida al transcript.
-- **Pruebas de PHP en el VPS sin fichero temporal:** `ssh … 'php' <<'PHP' … PHP`. Nada en
-  disco, nada en el web root, nada que borrar.
-- **El deploy de `zasa-orchestrator` tardó ~6 min** esta vez (no ~2): esperar antes de
-  dar la telemetría por no publicada.
-- **`end_session.js` necesita `--transcript` explícito** (deriva del CWD). Usado así hoy:
-  midió 101,8 min, coherente con `session-audit.ps1`.
-- **`error_log` de PHP-FPM acaba en `/var/log/nginx/error.log`**, no en `php8.3-fpm.log`.
-- **`verificarBorde.test.ts` sigue frágil** (pendiente 5).
-
----
-
-## 5 · El paso exacto siguiente
-
-**Jaime: mirar si llegó a la bandeja el correo de prueba `[VENTA GAMBUSAS] John Doe (TEST E2E)`**
-(buzón personal, vía `ventas@`). Es lo único que falta para dar por verificada la
-recepción por Email Routing, y cuesta diez segundos. Después, la compra real de §3.
+**Claude, al primer «hola»:** ejecutar la comprobación de §1 y, con el OK de Jaime, devolver
+`api/` a `deploy:www-data` (dirs 755, ficheros 644) y borrar `api/test.php` y `api/logs/`.
+Después, Jaime abre Cloudflare Security Events para §1.4.
