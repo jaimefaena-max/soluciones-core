@@ -1,19 +1,42 @@
-# 🔴 PRIMERO AL DECIR «HOLA»: arreglar los problemas encontrados en GambusasChile (§1) antes de cualquier otra cosa
+# 🔴 PRIMERO AL DECIR «HOLA»: los problemas de GambusasChile (§1) siguen abiertos y van antes que nada
 
-# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-09-30-b (GambusasChile: automatización de marketing en Node + webhook de WhatsApp Zero Trust)
+# CONTEXT HANDOVER — Workspace ZASA · sesión 2026-10-01-a (Portal VIP: sesión del cliente, logout 415, refactor de identidad)
 
-> Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memorias de arranque: `backlog-arranque-proxima-sesion` y `transcript-dir-gambusas-drift`, en
-> `~/.claude/projects/C--Proyectos-Workspace-Clientes-GambusasChile/memory/`.
-> Hand-off anterior (2026-09-30-a: correo operativo, soft 404, notificación dual): en el historial
-> de git de este fichero. Sus pendientes (bandeja de `ventas@`, compra real, commits sueltos de
-> `zasa-orchestrator`, DMARC) **siguen abiertos** y van después de §1.
-> Sesión del 2026-10-01 01:23 al 08:29 UTC: **111,1 min activos** de 425,4 totales, **$64.808 CLP**.
-> Telemetría `2026-09-30-b` en `zasa-orchestrator` `aa26f06`.
->
-> **Contexto pegado al final de la sesión, DESCARTADO:** un «contexto de cierre» pedía revisar
-> `api/logs/webhook_debug.log` y corregir `webhook_wa.php` (User-Agent, `text/plain`, búfer). Es
-> erróneo: ese log está vacío y bloqueado; el webhook ya responde correcto. **Ver §2.**
+> Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:Proyectos`.
+> Memoria de arranque: `arranque-2026-10-04` (+ `trampas-zasa-commits-parciales-y-credenciales`) en
+> `~/.claude/projects/C--Proyectos/memory/`.
+> Sesión del 2026-10-01 21:27 al 2026-10-03 04:37 UTC: **212,6 min activos** de 1.869,8 totales, **$124.017 CLP**.
+> Telemetría `2026-10-01-a` en `zasa-orchestrator` `15ee8a7`.
+> Esta sesión **no tocó GambusasChile**: los §1-§4 de abajo son los del hand-off 2026-09-30-b, intactos y vigentes.
+
+---
+
+## 0 · Lo que deja la sesión 2026-10-01-a (Portal VIP de clientes)
+
+**En producción y verificado** (`/health` → `9df2dde`; PM2 online, `unstable_restarts=0`):
+
+| Commit | Qué | Verificación |
+|---|---|---|
+| `e5f2cc0` `e8dae35` | Logo por cliente (`logoUrl`) + SVG de yami-spa por `/clientes/assets/` | desplegado; **falta verlo con sesión real de yami-spa** |
+| `9aee1ff` `20aa3af` | Refactor Zero Trust v2 fase 1 → `src/modulos/portal-vip/` | byte a byte contra HEAD, sin ciclos, 1.822 tests |
+| `0fb7acf` | Brecha 1: `POST /api/vip/:t/sesion/renovar` + `portal-sesion.js` | E2E en producción con tenant de prueba (ya purgado) |
+| `6f09b93` | Logout 415 (form urlencoded vacío) | curl real: 302 `/acceso` + cookie borrada |
+| `9df2dde` | Brecha 6: 401 → `/acceso` en cobros y sesión | scripts nuevos servidos; **falta ver la redirección en vivo** |
+
+**Cola, por cercanía a producción:**
+1. **yami-spa**: invitación sin canjear (`password_temporal=1`). Jaime la lee en terminal APARTE:
+   `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 "cat /root/invitacion-yami-spa.txt"` y se la entrega.
+   🔴 No usar esa cuenta para pruebas: canjearla fija una contraseña que el cliente no conoce.
+2. **Refactor identidad**: siguiente pieza `tokenFirmado.ts` (matriz acordada: tokenFirmado → cookieCliente →
+   sesiones → revocacion → guard → index + shims). Tras desplegar `revocacion.ts`, buscar `vip-clave-rotada` en
+   `pm2 logs`: si aparece, se cerraron todas las sesiones de clientes.
+3. **Brechas pendientes**: 2 (portal antiguo `/clientes/:slug` con SCJWT en sessionStorage), 3-5 (interceptor de la
+   SPA `admin_solucionesconia`), 7-8 (`/acceso`: destino fijo `/vip/forte-spa/` y CSP sin verificar).
+4. Higiene: `verificarBorde.test.ts` inestable por tiempo; `nuevo-cliente.js` no ve claves con comillas.
+
+**Trampas de esta sesión** (detalle en la memoria `trampas-zasa-commits-parciales-y-credenciales`): el árbol de
+`zasa-orchestrator` arrastra cambios ajenos (`ds.js`, vistas, `package-lock.json`) → stage siempre por ruta;
+`git mv` deja el contenido viejo en el stage; `gh` no está instalado → verificar despliegue por `/health` (5-6 min).
 
 ---
 
