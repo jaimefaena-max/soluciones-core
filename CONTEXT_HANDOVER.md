@@ -42,7 +42,7 @@
 
 ## 3 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `3f6e4c4` (guard.ts + index.ts, verificada en `/health`).
+- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `702a4e1` (hardening de tokenFirmado, verificada en `/health`).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`:** cambios sin commitear ajenos a esta sesión (`api_handler.php`, `js/main.js`, `.gitignore` nuevo). No se tocaron.
 - **Portal de Jose:** ficheros sin rastrear (documentos de cliente). No se tocaron.
@@ -70,4 +70,4 @@
 
 ✅ `guard.ts` (`7cbcd67`, sha256 idéntico) e `index.ts` (`3f6e4c4`, API pública explícita de 29 símbolos = la de la fachada, sin `huella`/`formato`/`almacenSesiones`) desplegados juntos (run 37482887821 success; `/health` 200 = `3f6e4c4`; smoke del guard antes/después idéntico: 401 en /verificar y /perfil sin token, cookie basura, cookie con firma forjada y tenant inválido, también por vip.; 83 líneas de log nivel 30, 0 errores). `clienteAuth.ts` es ya una fachada de reexportación (0 imports). **Refactor de identidad fase 2 cerrado.**
 
-Siguiente (opcional, sin urgencia): `clienteAuth.ts` → `export * from` el índice para definir la API en un solo sitio, y migrar consumidores al índice poco a poco. Luego las 2 mejoras de la auditoría de `tokenFirmado` (HMAC antes de parsear, tope `exp − iat`) en commit aparte con tests; y las brechas del Portal VIP (§1.5)
+Siguiente (opcional, sin urgencia): `clienteAuth.ts` → `export * from` el índice para definir la API en un solo sitio, y migrar consumidores al índice poco a poco. ✅ Las 2 mejoras de la auditoría de `tokenFirmado` están en producción (`702a4e1`, 2026-10-06: HMAC antes de `JSON.parse` y `exp − iat ≤ TTL`; 6 tests nuevos, 4 de ellos fallan contra el código viejo; run 37486049658 success; smoke 401 en todo lo no autenticado, 0 errores). 🔴 **Sin verificar en producción el camino POSITIVO** (un cliente real con sesión sigue entrando): no hubo tráfico real a /api/vip/*/verificar|perfil tras el deploy. Comprobarlo con el próximo login real (Jaime, nunca yami-spa) o mirando 200 en access.log. Efecto asumido: bajar `CLIENTE_TOKEN_TTL_MS` invalida tokens vivos emitidos con el TTL anterior. Siguiente: las brechas del Portal VIP (§1.5)
