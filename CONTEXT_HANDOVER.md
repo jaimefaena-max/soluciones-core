@@ -17,9 +17,11 @@
 | Borrados `deploy-1gb.yml` y `audit-env.yml`: apuntaban con root y `accept-new` a `161.35.157.69`, el droplet destruido el 2026-09-07 (IP reasignable por DO) | Ya no existen en `main` |
 | Secret `VPS4GB_KNOWN_HOSTS` = `161.35.85.101 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMdKCRyCKgsL4sTsRsALc7WaJ8TB/D8WNewf7termwq0` (clave pública) | Huella `SHA256:UZ6s2MPNaLLeV96PNne1RqW+bLbtjKyncbs6IJL4zSw` coincide por 3 vías: keyscan, `/etc/ssh/ssh_host_ed25519_key.pub` leído por sesión autenticada y el `known_hosts` local |
 
-**Cómo fue:** el primer run tras el push **no llegó al VPS**: `auth.log` no tiene ningún login de runner entre el push (~19:19 UTC) y la recarga del secret. Causa probable: el secret sin cargar (el guard nuevo aborta antes de SSH). **No se vio el log del run** (no hay `gh`); queda como inferencia. Tras cargar Jaime la línea y relanzar, conectó.
+**Cómo fue (corregido el 2026-10-06 con `gh`):** el primer run tras el push (37362478851) **no llegó al VPS, pero NO por el secret**. Las pruebas pasaron (19:56→20:01 UTC, tras 27 min en cola) y el job de despliegue quedó 15 min sin runner y se canceló: anotación `The job was not acquired by Runner of type hosted even after multiple attempts`. Escasez de runners hospedados de GitHub esa tarde (el «Monitor de disponibilidad» de las 20:46 falló igual: `sonda` cancelada sin runner). El cierre del 05-oct atribuyó el fallo al secret por inferencia: **era falso**. El re-run manual de las 21:24 (37367284778) salió en verde.
 
-**Sin verificar:** el estado final en GitHub del run de `deploy-vps-4gb` (su último paso, chequeos del perímetro por el borde público, no deja rastro en el VPS). Jaime lo ve en la pestaña Actions.
+**Verificado después con `gh`:** el run de `deploy-vps-4gb` (37380564688, 22:08 UTC) terminó **success**, perímetro incluido.
+
+**Aviso de GitHub:** `ubuntu-latest` migra a Ubuntu 26 desde el **2026-10-19**. Vigilar el primer deploy posterior.
 
 ---
 
@@ -38,7 +40,8 @@
 
 ## 2 · Nuevo de esta sesión
 
-- **Instalar `gh`** (`winget install GitHub.cli` + `gh auth login`). Sin él, Claude no puede lanzar `workflow_dispatch` ni leer el log de un run fallido; esta sesión diagnosticó por `auth.log` del VPS. Tarea `cockpit-gh-cli-local` (pendiente).
+- ✅ **`gh` instalado y autenticado el 2026-10-06** (2.102.0, `jaimefaena-max`, scopes `gist read:org repo workflow`, token en el keyring). `gh auth setup-git` hecho: **Git usa ahora `gh` como credential helper para github.com** (antes, el PAT de Credential Manager). Probado: `gh run list` y `git ls-remote` contra el repo privado. Ruta: `C:\Program Files\GitHub CLI\gh.exe` (shells abiertos antes de instalar no lo ven en el PATH). Tarea `cockpit-gh-cli-local` cumplida (la telemetría aún la marca pendiente).
+- La telemetría `2026-10-05-a` dice «causa probable el secret sin cargar»: **es falso** (ver §0). Corregir en la próxima entrada reutilizando el id `cockpit-ci-hostkey-pinning-zero-trust`.
 - `CLAUDE.md` raíz y la skill `cierre-sesion` aún mencionan `deploy-1gb.yml`; ya no existe. Higiene de docs, sin urgencia.
 
 ## 3 · Estado de los repos al cierre
@@ -50,7 +53,7 @@
 
 ## 4 · Trampas operativas
 
-- **Diagnosticar un deploy sin `gh`:** `grep "sshd.*Accepted" /var/log/auth.log` en la ventana del push. Cero logins de runner (IPs Azure 20.x/132.x/172.x, usuario `root` para zasa, `deploy` para otros repos) = el job murió antes de SSH. Un `Connection closed … [preauth]` sin usuario desde IP Azure = rechazo de host key. Ojo: hay escáneres desde IPs Azure (p. ej. `13.90.206.6`, puerto fijo, usuarios inventados): no son runners.
+- **Diagnosticar un deploy:** primero `gh run view <id> --json jobs` y las anotaciones del job (`gh api repos/<o>/<r>/check-runs/<job_id>/annotations`); un job con `runner_name` vacío y 0 pasos = GitHub no asignó runner, no es un fallo nuestro. **Sin `gh`:** `grep "sshd.*Accepted" /var/log/auth.log` en la ventana del push. Cero logins de runner (IPs Azure 20.x/132.x/172.x, usuario `root` para zasa, `deploy` para otros repos) = el job murió antes de SSH. Un `Connection closed … [preauth]` sin usuario desde IP Azure = rechazo de host key. Ojo: hay escáneres desde IPs Azure (p. ej. `13.90.206.6`, puerto fijo, usuarios inventados): no son runners.
 - **Reflog del checkout** (`git -C /opt/zasa-orchestrator/app reflog -1 --date=iso`) da la hora exacta del pull del deploy.
 - `/health` sigue en el commit viejo ~3 min tras el pull (`npm ci` + build); un `commit=` vacío durante segundos = reinicio de PM2, no caída.
 - Re-desplegar el mismo commit (`deploy-vps-4gb` manual) no cambia `/health`: la señal es el login del runner + `pm_uptime` de PM2.
