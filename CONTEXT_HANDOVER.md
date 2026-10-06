@@ -42,7 +42,7 @@
 
 ## 3 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `5eb48f6` (extracción de cookieCliente.ts, verificada en `/health`).
+- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `1a14dcf` (extracción de sesiones.ts, verificada en `/health`).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`:** cambios sin commitear ajenos a esta sesión (`api_handler.php`, `js/main.js`, `.gitignore` nuevo). No se tocaron.
 - **Portal de Jose:** ficheros sin rastrear (documentos de cliente). No se tocaron.
@@ -64,4 +64,6 @@
 
 ✅ `cookieCliente.ts` extraído (2026-10-06, `5eb48f6`, sha256 idéntico a HEAD, 1.847 tests, run 37462661434 success, `/health` = `5eb48f6`; smoke: sin token y cookie forjada → 401). Se reexportan sus 4 símbolos (todos eran públicos).
 
-Siguiente: Portal VIP, refactor de identidad → extraer `sesiones` (bloque «Almacén de sesiones» de clienteAuth.ts; luego revocacion → guard → index + shims), mismo método: anclas + sha256 + suite completa, commit solo por ruta. Mejoras de la auditoría de `tokenFirmado` en commit APARTE con tests: verificar HMAC antes de `JSON.parse` y acotar `exp − iat` al TTL. Sin bloqueo de Jaime. 🔴 No usar yami-spa para pruebas; push a `main` despliega.
+✅ `sesiones.ts` extraído (2026-10-06, `1a14dcf`; a `sesiones.ts` y NO a `almacenSesiones.ts`, que es la capa SQL y obligaría a reescribir las llamadas; única diferencia con HEAD: `export function huella`, que la revocación aún necesita y clienteAuth no reexporta; 1.847 tests; run 37465750882 success; `/health` 200 = `1a14dcf`; smoke 401/401/200, 0 logs de error).
+
+Siguiente: Portal VIP, refactor de identidad → extraer `revocacion` (revocarSesionesPorSeguridad + rotación de clave: huellaClaveFirma, sincronizarClaveFirma; luego guard → index + shims), mismo método: anclas + sha256 + suite completa, commit solo por ruta. Mejoras de la auditoría de `tokenFirmado` en commit APARTE con tests: verificar HMAC antes de `JSON.parse` y acotar `exp − iat` al TTL. Sin bloqueo de Jaime. 🔴 No usar yami-spa para pruebas; push a `main` despliega.
