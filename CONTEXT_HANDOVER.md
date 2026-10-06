@@ -42,7 +42,7 @@
 
 ## 3 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `389e8bf` (extracción de revocacion.ts, verificada en `/health`).
+- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `3f6e4c4` (guard.ts + index.ts, verificada en `/health`).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`:** cambios sin commitear ajenos a esta sesión (`api_handler.php`, `js/main.js`, `.gitignore` nuevo). No se tocaron.
 - **Portal de Jose:** ficheros sin rastrear (documentos de cliente). No se tocaron.
@@ -68,4 +68,6 @@
 
 ✅ `revocacion.ts` extraído (2026-10-06, `389e8bf`, sha256 idéntico a HEAD sin ningún cambio; 1.847 tests; run 37471285974 success; `/health` 200 = `389e8bf`; tras el arranque de las 13:37:17 UTC: 0 `vip-clave-rotada`, 0 errores, smoke 401/401). Sin revocación espuria.
 
-Siguiente: Portal VIP, refactor de identidad → extraer el guard (clienteDePeticion, tenantIdDePeticionCliente, tenantIdDeRuta, crearGuardCliente…) y después `index` + shims; clienteAuth.ts quedaría como fachada de reexportación, mismo método: anclas + sha256 + suite completa, commit solo por ruta. Mejoras de la auditoría de `tokenFirmado` en commit APARTE con tests: verificar HMAC antes de `JSON.parse` y acotar `exp − iat` al TTL. Sin bloqueo de Jaime. 🔴 No usar yami-spa para pruebas; push a `main` despliega.
+✅ `guard.ts` (`7cbcd67`, sha256 idéntico) e `index.ts` (`3f6e4c4`, API pública explícita de 29 símbolos = la de la fachada, sin `huella`/`formato`/`almacenSesiones`) desplegados juntos (run 37482887821 success; `/health` 200 = `3f6e4c4`; smoke del guard antes/después idéntico: 401 en /verificar y /perfil sin token, cookie basura, cookie con firma forjada y tenant inválido, también por vip.; 83 líneas de log nivel 30, 0 errores). `clienteAuth.ts` es ya una fachada de reexportación (0 imports). **Refactor de identidad fase 2 cerrado.**
+
+Siguiente (opcional, sin urgencia): `clienteAuth.ts` → `export * from` el índice para definir la API en un solo sitio, y migrar consumidores al índice poco a poco. Luego las 2 mejoras de la auditoría de `tokenFirmado` (HMAC antes de parsear, tope `exp − iat`) en commit aparte con tests; y las brechas del Portal VIP (§1.5)
