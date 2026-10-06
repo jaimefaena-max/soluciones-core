@@ -42,7 +42,7 @@
 
 ## 3 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `1a14dcf` (extracción de sesiones.ts, verificada en `/health`).
+- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `389e8bf` (extracción de revocacion.ts, verificada en `/health`).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`:** cambios sin commitear ajenos a esta sesión (`api_handler.php`, `js/main.js`, `.gitignore` nuevo). No se tocaron.
 - **Portal de Jose:** ficheros sin rastrear (documentos de cliente). No se tocaron.
@@ -66,4 +66,6 @@
 
 ✅ `sesiones.ts` extraído (2026-10-06, `1a14dcf`; a `sesiones.ts` y NO a `almacenSesiones.ts`, que es la capa SQL y obligaría a reescribir las llamadas; única diferencia con HEAD: `export function huella`, que la revocación aún necesita y clienteAuth no reexporta; 1.847 tests; run 37465750882 success; `/health` 200 = `1a14dcf`; smoke 401/401/200, 0 logs de error).
 
-Siguiente: Portal VIP, refactor de identidad → extraer `revocacion` (revocarSesionesPorSeguridad + rotación de clave: huellaClaveFirma, sincronizarClaveFirma; luego guard → index + shims), mismo método: anclas + sha256 + suite completa, commit solo por ruta. Mejoras de la auditoría de `tokenFirmado` en commit APARTE con tests: verificar HMAC antes de `JSON.parse` y acotar `exp − iat` al TTL. Sin bloqueo de Jaime. 🔴 No usar yami-spa para pruebas; push a `main` despliega.
+✅ `revocacion.ts` extraído (2026-10-06, `389e8bf`, sha256 idéntico a HEAD sin ningún cambio; 1.847 tests; run 37471285974 success; `/health` 200 = `389e8bf`; tras el arranque de las 13:37:17 UTC: 0 `vip-clave-rotada`, 0 errores, smoke 401/401). Sin revocación espuria.
+
+Siguiente: Portal VIP, refactor de identidad → extraer el guard (clienteDePeticion, tenantIdDePeticionCliente, tenantIdDeRuta, crearGuardCliente…) y después `index` + shims; clienteAuth.ts quedaría como fachada de reexportación, mismo método: anclas + sha256 + suite completa, commit solo por ruta. Mejoras de la auditoría de `tokenFirmado` en commit APARTE con tests: verificar HMAC antes de `JSON.parse` y acotar `exp − iat` al TTL. Sin bloqueo de Jaime. 🔴 No usar yami-spa para pruebas; push a `main` despliega.
