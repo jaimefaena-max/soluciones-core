@@ -28,7 +28,7 @@
 ## 1 · Abierto (heredado de 2026-10-04-a, sin cambios en esta sesión)
 
 1. ✅ **Cerrado 2026-10-06:** el respaldo `/root/backups-gambusaschile/predeploy-20261004-040711/` (config.php editado a mano el 03-oct) ya no existe; Jaime lo dio por auditado. Claude comprobó solo su ausencia, no cómo se borró ni el contenido.
-2. Confirmar que Meta llega al origen (UA `facebookexternalua`/`facebookplatform` en `access.log` + webhook verificado en el panel). Hay un `ACEPTADO mensajes=1` del 04-oct 03:41 UTC que no fue de pruebas.
+2. ✅ **Cerrado 2026-10-06 — Meta llega al origen.** En los logs rotados de nginx: handshake `GET` desde `2a03:2880:2aff:74::` (Meta, AS32934) el 01-oct 05:36:47 UTC → **200**, y `POST` firmado desde `69.63.184.3` (Meta, 69.63.176.0/20) el 04-oct 03:41:46 UTC → **200**. `webhook-wa-2026-10.log` lo confirma (`ACEPTADO` a la misma hora). Las 5 peticiones del 04-oct 02:36 UTC desde `201.223.157.197` (403/301/401) eran pruebas con UA imitado, no Meta. Sin tráfico de Meta desde el 04-oct: normal sin eventos (el token no tiene WABA asignada). Sin verificar: el estado «verificado» en el panel de Meta (solo Jaime). 🔴 La query del handshake lleva `hub.verify_token`: ocultarla (`sed`) al volcar `access.log`.
 3. Rotar la credencial de julio de ExamenFácil si no se rotó (`shred` sobre ext4 + discard no garantiza borrado físico).
 4. GambusasChile: cabeceras duplicadas nginx/webhook; opcional `limit_req` en `/api/webhook_wa.php`. `meta-sync` deshabilitada (falta `INSTAGRAM_BUSINESS_ACCOUNT_ID`); el token de WhatsApp sin WABA asignada (Jaime, Business Manager).
 5. Portal VIP: yami-spa sin canjear (🔴 no usarla para pruebas); refactor identidad → `tokenFirmado.ts`; brechas 2, 3-5, 7-8; `verificarBorde.test.ts` inestable.
@@ -42,7 +42,7 @@
 
 ## 3 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio, `main` = `origin/main` en `344e69c` (telemetría); producción en `344e69c` si el deploy de la telemetría terminó (ver memoria de arranque).
+- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `f5d63f6` (telemetría corregida, verificada en `/health`).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`:** cambios sin commitear ajenos a esta sesión (`api_handler.php`, `js/main.js`, `.gitignore` nuevo). No se tocaron.
 - **Portal de Jose:** ficheros sin rastrear (documentos de cliente). No se tocaron.
@@ -60,4 +60,4 @@
 
 ## 5 · El paso exacto siguiente
 
-Claude confirma que Meta llega al origen (§1.2): buscar UA `facebookexternalua`/`facebookplatform` en `/var/log/nginx/access.log` contra `/api/webhook_wa.php`. Sin bloqueo de Jaime.
+Portal VIP, refactor de identidad (§1.5): revisar `tokenFirmado.ts` en `zasa-orchestrator`, primera pieza de la cadena tokenFirmado → cookieCliente → sesiones → revocacion → guard → index + shims. Sin bloqueo de Jaime. 🔴 No usar la cuenta yami-spa para pruebas; push a `main` despliega.
