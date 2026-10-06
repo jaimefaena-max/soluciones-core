@@ -31,7 +31,7 @@
 2. ✅ **Cerrado 2026-10-06 — Meta llega al origen.** En los logs rotados de nginx: handshake `GET` desde `2a03:2880:2aff:74::` (Meta, AS32934) el 01-oct 05:36:47 UTC → **200**, y `POST` firmado desde `69.63.184.3` (Meta, 69.63.176.0/20) el 04-oct 03:41:46 UTC → **200**. `webhook-wa-2026-10.log` lo confirma (`ACEPTADO` a la misma hora). Las 5 peticiones del 04-oct 02:36 UTC desde `201.223.157.197` (403/301/401) eran pruebas con UA imitado, no Meta. Sin tráfico de Meta desde el 04-oct: normal sin eventos (el token no tiene WABA asignada). Sin verificar: el estado «verificado» en el panel de Meta (solo Jaime). 🔴 La query del handshake lleva `hub.verify_token`: ocultarla (`sed`) al volcar `access.log`.
 3. Rotar la credencial de julio de ExamenFácil si no se rotó (`shred` sobre ext4 + discard no garantiza borrado físico).
 4. GambusasChile: cabeceras duplicadas nginx/webhook; opcional `limit_req` en `/api/webhook_wa.php`. `meta-sync` deshabilitada (falta `INSTAGRAM_BUSINESS_ACCOUNT_ID`); el token de WhatsApp sin WABA asignada (Jaime, Business Manager).
-5. Portal VIP: yami-spa sin canjear (🔴 no usarla para pruebas); refactor identidad → `tokenFirmado.ts`; brechas 2, 3-5, 7-8; `verificarBorde.test.ts` inestable.
+5. Portal VIP: yami-spa YA CANJEADA (comprobado 2026-10-06: `password_temporal` = 0, estado activo; 🔴 cliente real, no usarla para pruebas; `/root/invitacion-yami-spa.txt` queda obsoleto → `shred -u`); refactor identidad → `tokenFirmado.ts`; brechas 2, 3-5, 7-8; `verificarBorde.test.ts` inestable.
 6. Fondo: `pm2-logrotate`; bandeja de `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`; acme-challenge ajenos en examenfacil.cl (observar).
 
 ## 2 · Nuevo de esta sesión
