@@ -40,8 +40,8 @@
 
 ## 2 · Nuevo de esta sesión
 
-- ✅ **`gh` instalado y autenticado el 2026-10-06** (2.102.0, `jaimefaena-max`, scopes `gist read:org repo workflow`, token en el keyring). `gh auth setup-git` hecho: **Git usa ahora `gh` como credential helper para github.com** (antes, el PAT de Credential Manager). Probado: `gh run list` y `git ls-remote` contra el repo privado. Ruta: `C:\Program Files\GitHub CLI\gh.exe` (shells abiertos antes de instalar no lo ven en el PATH). Tarea `cockpit-gh-cli-local` cumplida (la telemetría aún la marca pendiente).
-- La telemetría `2026-10-05-a` dice «causa probable el secret sin cargar»: **es falso** (ver §0). Corregir en la próxima entrada reutilizando el id `cockpit-ci-hostkey-pinning-zero-trust`.
+- ✅ **`gh` instalado y autenticado el 2026-10-06** (2.102.0, `jaimefaena-max`, scopes `gist read:org repo workflow`, token en el keyring). `gh auth setup-git` hecho: **Git usa ahora `gh` como credential helper para github.com** (antes, el PAT de Credential Manager). Probado: `gh run list` y `git ls-remote` contra el repo privado. Ruta: `C:\Program Files\GitHub CLI\gh.exe` (shells abiertos antes de instalar no lo ven en el PATH). Tarea `cockpit-gh-cli-local` finalizada en la telemetría `2026-10-05-b` (`f5d63f6`).
+- ✅ Telemetría corregida en `2026-10-05-b` (`f5d63f6`, 70,1 min activos tras el corte del 05-oct, $40.892 CLP): reutiliza los ids y supersede la causa falsa de `2026-10-05-a`. Desplegada: run 37450346544 success, `/health` = `f5d63f6`.
 - `CLAUDE.md` raíz y la skill `cierre-sesion` aún mencionan `deploy-1gb.yml`; ya no existe. Higiene de docs, sin urgencia.
 
 ## 3 · Estado de los repos al cierre
