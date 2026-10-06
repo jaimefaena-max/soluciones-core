@@ -27,11 +27,7 @@
 
 ## 1 · Abierto (heredado de 2026-10-04-a, sin cambios en esta sesión)
 
-1. **🔴 Jaime:** revisar el `config.php` de GambusasChile editado a mano el 03-oct 21:30 UTC que el deploy pisó. Respaldo en `/root/backups-gambusaschile/predeploy-20261004-040711/` (root 600). Comparar en terminal aparte:
-   ```
-   ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 "cat /root/backups-gambusaschile/predeploy-20261004-040711/config.php" | git -C C:/Proyectos/Workspace_Clientes/GambusasChile diff --no-index - config.php
-   ```
-   Si era funcional, va al repo (o a la Bóveda si es secreto). Si no, `shred` del respaldo.
+1. ✅ **Cerrado 2026-10-06:** el respaldo `/root/backups-gambusaschile/predeploy-20261004-040711/` (config.php editado a mano el 03-oct) ya no existe; Jaime lo dio por auditado. Claude comprobó solo su ausencia, no cómo se borró ni el contenido.
 2. Confirmar que Meta llega al origen (UA `facebookexternalua`/`facebookplatform` en `access.log` + webhook verificado en el panel). Hay un `ACEPTADO mensajes=1` del 04-oct 03:41 UTC que no fue de pruebas.
 3. Rotar la credencial de julio de ExamenFácil si no se rotó (`shred` sobre ext4 + discard no garantiza borrado físico).
 4. GambusasChile: cabeceras duplicadas nginx/webhook; opcional `limit_req` en `/api/webhook_wa.php`. `meta-sync` deshabilitada (falta `INSTAGRAM_BUSINESS_ACCOUNT_ID`); el token de WhatsApp sin WABA asignada (Jaime, Business Manager).
@@ -64,4 +60,4 @@
 
 ## 5 · El paso exacto siguiente
 
-**🔴 Requiere a Jaime:** revisar el diff del `config.php` de GambusasChile (comando en §1.1). Después, Claude confirma que Meta llega al origen (§1.2).
+Claude confirma que Meta llega al origen (§1.2): buscar UA `facebookexternalua`/`facebookplatform` en `/var/log/nginx/access.log` contra `/api/webhook_wa.php`. Sin bloqueo de Jaime.
