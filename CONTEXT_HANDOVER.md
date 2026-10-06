@@ -42,7 +42,7 @@
 
 ## 3 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `f5d63f6` (telemetría corregida, verificada en `/health`).
+- **`zasa-orchestrator`:** limpio, `main` = `origin/main` = producción en `f407467` (extracción de tokenFirmado.ts, verificada en `/health`).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`:** cambios sin commitear ajenos a esta sesión (`api_handler.php`, `js/main.js`, `.gitignore` nuevo). No se tocaron.
 - **Portal de Jose:** ficheros sin rastrear (documentos de cliente). No se tocaron.
@@ -60,4 +60,6 @@
 
 ## 5 · El paso exacto siguiente
 
-Portal VIP, refactor de identidad (§1.5): revisar `tokenFirmado.ts` en `zasa-orchestrator`, primera pieza de la cadena tokenFirmado → cookieCliente → sesiones → revocacion → guard → index + shims. Sin bloqueo de Jaime. 🔴 No usar la cuenta yami-spa para pruebas; push a `main` despliega.
+✅ `tokenFirmado.ts` extraído (2026-10-06, `zasa-orchestrator` `f407467`, movimiento puro: 3 bloques idénticos por sha256 a HEAD; 1.847 tests ✓; run 37458486842 success; `/health` = `f407467`; smoke en loopback: sin token 401, token forjado 403). Solo se reexportan las 2 funciones que ya eran públicas.
+
+Siguiente: Portal VIP, refactor de identidad → extraer `cookieCliente.ts` (luego sesiones → revocacion → guard → index + shims), mismo método: anclas + sha256 + suite completa, commit solo por ruta. Mejoras de la auditoría de `tokenFirmado` en commit APARTE con tests: verificar HMAC antes de `JSON.parse` y acotar `exp − iat` al TTL. Sin bloqueo de Jaime. 🔴 No usar yami-spa para pruebas; push a `main` despliega.
