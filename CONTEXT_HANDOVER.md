@@ -24,6 +24,15 @@
 | yami-spa **canjeada** (`password_temporal = 0`, activa); `/root/invitacion-yami-spa.txt` destruido con `shred` | VPS | Lectura con `fichaDe`, sin tocar la cuenta |
 | `gh` CLI instalado y autenticado (`jaimefaena-max`, scope `workflow`); `gh auth setup-git`: Git usa `gh` como helper para github.com | portátil | `C:\Program Files\GitHub CLI\gh.exe` |
 
+### 0.b · Añadido el 2026-10-07 (yami-spa + nginx de vip.)
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **Ficha de yami-spa ACTIVA**: 8 hitos (3 completados), 38 % de avance, paso actual «Firma notarial de escritura y comodato (programada: viernes)». Escrita por `validarCambios` → `guardarPortal` dentro del orquestador compilado (no por HTTP: el `PUT /api/admin/portals/:slug` exige credencial de admin) | tabla `client_portals`; origen `privado_agencia/Clientes/yami-spa/state/ficha_portal.put.json`; actor `claude:sync-ficha-2026-10-07` | 201 (no había ficha; respaldo vacío en `/root/backups-portales/yami-spa-2026-10-07T14-09-08-662Z.json`); relectura con `obtenerPortal`: 8/3/38 |
+| **Logo oficial PNG** en el catálogo del portal (`logoUrl` → `/clientes/assets/clientes/yami-spa/logo.png`; el `logo.svg` provisional queda sin uso) | `zasa-orchestrator` `e061779` | Actions success + `/health` = `e061779` |
+| **Logo optimizado**: 1254 px / 1,7 MB → 400 px / **220 KB** (RGBA; la versión en paleta de 72 KB perdía la transparencia y se descartó) | `c932f5b` | Actions success + `/health` = `c932f5b`; vía Cloudflare 200 `image/png` 225 192 B |
+| **`/clientes/assets/` en vip. reparado**: devolvía el `index.html` de la SPA (logo, `portal.css` y `ds-v2/*` como HTML de 548 B). Bloque `location ^~ /clientes/assets/` copiado A MANO del snippet `vip-portal.conf` al vhost (líneas 176–193, upstream `$orq`), sin tocar `/api/` | `/etc/nginx/sites-available/vip.solucionesconia.cl` (respaldo `/root/backups-nginx/vip.solucionesconia.cl.20261007T153851Z`) | `nginx -t` ok + reload (ejecutado por Jaime); loopback y Cloudflare: logo `image/png`, CSS `text/css`; `/` y `/api/` sin cambios; sondas de traversal → 401 |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -37,12 +46,14 @@
 4. **A1** (Baja): schemas Fastify (1 de 35 rutas los declara; el resto valida a mano).
 5. Opcional: `clienteAuth.ts` → `export *` del índice de `identidad/`.
 6. Rareza: el render de `vip-portal.conf.plantilla` escribe los dos secretos en un comentario (línea 3) del snippet vivo.
+   - 🔴 **Desviación de nginx en vip. (2026-10-07)**: el vhost `sites-available/vip.solucionesconia.cl` lleva un bloque `location ^~ /clientes/assets/` escrito a mano, con **otra copia de `API_SECRET_TOKEN` y `EDGE_SECRET`** (Bearer + `X-Edge-Proof`). (a) **Rotación de secretos**: añadirlo a la lista de sitios que se actualizan, o vip. vuelve a servir los assets del portal con 401. (b) **`deploy.sh`**: si regenera ese vhost, el bloque desaparece y el logo/CSS del portal vuelven a ser HTML. Arreglo de fondo: llevar el bloque a la plantilla del vhost en `solucionesconia` (o que el vhost haga `include` del snippet sin duplicar `/api/`, que hoy chocaría con `location /api/`).
+   - **Sin confirmar**: un `grep` del 07-oct no encontró ningún `include` literal de `snippets/vip-portal.conf` en `sites-available/`, `sites-enabled/`, `nginx.conf` ni `conf.d/`. Antes de dar por activos sus bloques (incl. `/acceso/` de la brecha 8 y `/vip/`, que en vip. cae en la SPA), comprobar si se carga por otra vía.
 7. Heredado: rotar la credencial de julio de ExamenFácil si no se rotó; Gambusas: cabeceras duplicadas y `limit_req` del webhook WA, `meta-sync` sin `INSTAGRAM_BUSINESS_ACCOUNT_ID`, token de WhatsApp sin WABA (Jaime); `pm2-logrotate`; bandeja `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`.
 8. Higiene: `CLAUDE.md` raíz y la skill `cierre-sesion` aún nombran `deploy-1gb.yml` (ya no existe). `ubuntu-latest` migra a Ubuntu 26 el **2026-10-19**: vigilar el primer deploy posterior.
 
 ## 2 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio; `main` = `origin/main`; producción en `66aa65d` (telemetría) si el deploy terminó.
+- **`zasa-orchestrator`:** limpio; `main` = `origin/main`; producción en `c932f5b` (logo de yami-spa optimizado, verificado por `/health` el 2026-10-07).
 - **`admin_solucionesconia`:** limpio; `main` = `origin/main` = vip. en `67edb57`; widget publicado = repo (sha `20e3275b…`).
 - **`solucionesconia`:** limpio en `3602280`; el web root de `/acceso` = repo por sha256.
 - **`GambusasChile`:** sin cambios, `d366eb1`.
