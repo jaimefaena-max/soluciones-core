@@ -33,6 +33,21 @@
 | **Logo optimizado**: 1254 px / 1,7 MB → 400 px / **220 KB** (RGBA; la versión en paleta de 72 KB perdía la transparencia y se descartó) | `c932f5b` | Actions success + `/health` = `c932f5b`; vía Cloudflare 200 `image/png` 225 192 B |
 | **`/clientes/assets/` en vip. reparado**: devolvía el `index.html` de la SPA (logo, `portal.css` y `ds-v2/*` como HTML de 548 B). Bloque `location ^~ /clientes/assets/` copiado A MANO del snippet `vip-portal.conf` al vhost (líneas 176–193, upstream `$orq`), sin tocar `/api/` | `/etc/nginx/sites-available/vip.solucionesconia.cl` (respaldo `/root/backups-nginx/vip.solucionesconia.cl.20261007T153851Z`) | `nginx -t` ok + reload (ejecutado por Jaime); loopback y Cloudflare: logo `image/png`, CSS `text/css`; `/` y `/api/` sin cambios; sondas de traversal → 401 |
 
+### 0.c · 2026-10-08 — Brecha 2 CERRADA (portal antiguo de Liset retirado de extremo a extremo)
+
+Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos reales** a `/clientes/liset`: 72 × 401 del monitor de uptime (`curl`), 4 × 401 de un Chrome Android el 25-sep sin pasar el Basic Auth, 2 × 200 desde el propio VPS (pruebas del 06-oct).
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **Portada `/clientes/:slug` y `/portal/:slug` retiradas**: `cliente-portal.ejs`, `portal-vip.js` (SCJWT en `sessionStorage`) y `portalClienteController` borrados. Docs, informes y `/clientes/assets/` intactos | `zasa-orchestrator` `ae67d08` | 1.848 tests ✓ (−5 = los `it.each` de `vistasSinEstiloEnLinea` por la vista borrada); Actions success; `/health` = `ae67d08` |
+| **nginx de admin.: 6 bloques de Liset fuera** (`location /clientes/liset` + 5 `location =` de docs/informes) en plantilla, sonda de `instalar-plantillas.sh` y `uptime-monitor.yml` | `e6f22e9` | `verificarBorde.test.ts` adaptado a `demovip` (15 ✓) |
+| **Deriva de vip. CERRADA**: el bloque `^~ /clientes/assets/` del 07-oct ya está en `nginx-templates/vip.solucionesconia.cl.conf`. Excepción acotada `AUTHZ_VIP` en `verificar-borde.sh` (spec exacta; test nuevo: no se extiende a otro location) | `31ca36b` | 16 ✓; `--comprobar`: vip. «idéntica a la viva» |
+| **Plantillas aplicadas en el VPS** con `instalar-plantillas.sh --aplicar --aceptar-cambios` (diff efectivo: exactamente las 54 líneas de Liset, comprobado por tramo con secretos enmascarados) | respaldo `/root/backups-nginx/instalar-plantillas-20261008-171410` | `nginx -t` ok, reload, 5/5 sondas; `/clientes/liset` → 401 realm «ZASA Cockpit»; PDF → 401; `/clientes/assets/` 200 en admin. y vip.; logo yami-spa `image/png` |
+| **Comentarios y docs** sin el portal antiguo (`csp.ts`, `ds.js`, `acceso.css`, `MEMORIA_TECNICA.md`, `ONBOARDING_B2B.md` marcado OBSOLETO para clientes nuevos) | `fb81202` | `tsc` + 70 tests de DS/CSP ✓ |
+| **Artefactos privados archivados y borrados**: `/opt/agencia/private/clientes/liset/` (2 PDF, `.md`, 2 HTML) + `/etc/nginx/.htpasswd_liset` | `/root/backups-brecha2/liset_legacy_archive.tgz` (358.773 B, 600, sha256 `1b73db58fdf3ea86…`) | `gzip -t` + `tar --diff` idéntico antes de borrar; `nginx -t` ok tras borrar. 🔴 Contiene datos tributarios de la clienta: `shred` cuando Jaime decida no conservarlo |
+| **`TENANT_TOKEN_LISET` retirado**: el instalador ya no lo lee ni lo exige; línea borrada de `/etc/nginx/secretos/inquilinos.env` (queda solo `TENANT_TOKEN_DEMOVIP`) | `2621c00` + respaldo `/root/backups-brecha2/inquilinos.env.bak` (600) | `--comprobar` con `2621c00`: render sin marcadores pendientes, los 4 ficheros «idénticos a la viva» |
+| **Inquilino `liset` SUSPENDIDO** en Postgres (la tabla usa `estado`, no `activo`) vía `cambiarEstadoCliente()` del orquestador compilado: UPDATE + revocación de sesiones + `audit_log` en una transacción | tabla `clientes`; actor `claude:brecha2-2026-10-08` | `demovip`, `forte-spa`, `yami-spa` siguen `activo`; `resolverClientePortal("liset")` → sin acceso; `audit_log`: `tenant=liset estado=suspendido` 19:06:46 UTC |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -41,19 +56,22 @@
    - Una descarga real con sesión de operador en vip. (Novedades o Portales) → cierra la brecha 5 al 100 %.
    - Un cliente real entrando al portal tras el hardening (200 en `/api/vip/*/verificar|perfil` en `access.log` después de las 15:23 UTC del 06-oct).
    - `ag-webhooks` en verde con la próxima reserva real de Sofía; además limpiar el lead y el evento de Calendar de la prueba E2E del 22-sep.
-2. **Brecha 2** (Media): retirar el portal antiguo `/clientes/liset` (SCJWT en `sessionStorage`, 0 usos reales en 14 días) + A2 (`portal-vip.js` cargado en balde por `portal-vip.ejs` e `informe.ejs`). **Confirmar antes con Jaime que Liset ya no lo usa.**
+2. 🔴 **`rotar-secretos-borde.sh` abortará en la próxima rotación** (nuevo, 2026-10-08): su precondición (línea 101) exige que el vhost de vip. NO lleve el Bearer maestro, y desde el 07-oct lo lleva en `^~ /clientes/assets/` —hoy versionado y aprobado como `AUTHZ_VIP`—. Además la compuerta del paso 3 (línea 134) calcula el diff esperado de vip. contando solo `EDGE_SECRET`. Arreglo: alinear ambas líneas con la excepción `AUTHZ_VIP` (contar `API_SECRET_TOKEN` en vip. solo dentro de ese location) y un test. Hacerlo ANTES de cualquier rotación.
+   - ✅ **Brecha 2 CERRADA el 2026-10-08** (ver §0.c). Nota: el «A2» que listaba el handover anterior no existía: `portal-vip.ejs` e `informe.ejs` solo nombraban `portal-vip.js` en comentarios.
 3. **Brecha 7** (Baja): destino de reserva fijo `/vip/forte-spa/` en `acceso.js`.
 4. **A1** (Baja): schemas Fastify (1 de 35 rutas los declara; el resto valida a mano).
 5. Opcional: `clienteAuth.ts` → `export *` del índice de `identidad/`.
 6. Rareza: el render de `vip-portal.conf.plantilla` escribe los dos secretos en un comentario (línea 3) del snippet vivo.
-   - 🔴 **Desviación de nginx en vip. (2026-10-07)**: el vhost `sites-available/vip.solucionesconia.cl` lleva un bloque `location ^~ /clientes/assets/` escrito a mano, con **otra copia de `API_SECRET_TOKEN` y `EDGE_SECRET`** (Bearer + `X-Edge-Proof`). (a) **Rotación de secretos**: añadirlo a la lista de sitios que se actualizan, o vip. vuelve a servir los assets del portal con 401. (b) **`deploy.sh`**: si regenera ese vhost, el bloque desaparece y el logo/CSS del portal vuelven a ser HTML. Arreglo de fondo: llevar el bloque a la plantilla del vhost en `solucionesconia` (o que el vhost haga `include` del snippet sin duplicar `/api/`, que hoy chocaría con `location /api/`).
+   - ✅ **Desviación de nginx en vip. CERRADA (2026-10-08, `31ca36b`)**: el bloque `location ^~ /clientes/assets/` vive en la plantilla versionada y `instalar-plantillas.sh` lo renderiza con los secretos vigentes; reinstalar ya no lo borra. Queda la consecuencia sobre `rotar-secretos-borde.sh` (punto 2).
    - **Sin confirmar**: un `grep` del 07-oct no encontró ningún `include` literal de `snippets/vip-portal.conf` en `sites-available/`, `sites-enabled/`, `nginx.conf` ni `conf.d/`. Antes de dar por activos sus bloques (incl. `/acceso/` de la brecha 8 y `/vip/`, que en vip. cae en la SPA), comprobar si se carga por otra vía.
 7. Heredado: rotar la credencial de julio de ExamenFácil si no se rotó; Gambusas: cabeceras duplicadas y `limit_req` del webhook WA, `meta-sync` sin `INSTAGRAM_BUSINESS_ACCOUNT_ID`, token de WhatsApp sin WABA (Jaime); `pm2-logrotate`; bandeja `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`.
 8. Higiene: `CLAUDE.md` raíz y la skill `cierre-sesion` aún nombran `deploy-1gb.yml` (ya no existe). `ubuntu-latest` migra a Ubuntu 26 el **2026-10-19**: vigilar el primer deploy posterior.
 
 ## 2 · Estado de los repos al cierre
 
-- **`zasa-orchestrator`:** limpio; `main` = `origin/main`; producción en `c932f5b` (logo de yami-spa optimizado, verificado por `/health` el 2026-10-07).
+- **`zasa-orchestrator`:** limpio; `main` = `origin/main`; producción en `2621c00` (verificado por `/health` el 2026-10-08). Cadena de la Brecha 2: `ae67d08` → `e6f22e9` → `31ca36b` → `fb81202` → `2621c00`, todos con Actions success.
+- **nginx del VPS:** = plantillas de `2621c00` (`--comprobar`: admin., vip., realip y seg «idénticas a la viva»). Respaldos de la Brecha 2 en `/root/backups-nginx/instalar-plantillas-20261008-*` y `/root/backups-brecha2/`.
+- **Postgres:** inquilinos `demovip`, `forte-spa`, `yami-spa` activos; `liset` suspendido.
 - **`admin_solucionesconia`:** limpio; `main` = `origin/main` = vip. en `67edb57`; widget publicado = repo (sha `20e3275b…`).
 - **`solucionesconia`:** limpio en `3602280`; el web root de `/acceso` = repo por sha256.
 - **`GambusasChile`:** sin cambios, `d366eb1`.
@@ -74,4 +92,6 @@
 
 ## 4 · El paso exacto siguiente
 
-**Brecha 2:** preguntar a Jaime si Liset sigue usando `/clientes/liset`; con su confirmación, retirar el portal antiguo (vista `cliente-portal.ejs`, ruta, bloque nginx con respaldo + `nginx -t`, `portal-vip.js` y su carga en `portal-vip.ejs`/`informe.ejs`). Mientras tanto, si hubo tráfico real, revisar las verificaciones pendientes de §1.1.
+**`rotar-secretos-borde.sh` + `AUTHZ_VIP` (§1.2):** alinear la precondición de la línea 101 y la cuenta de la línea 134 con la excepción de `^~ /clientes/assets/` en vip., con un test, y validarlo con `rotar-secretos-borde.sh --comprobar` en el VPS (no rota nada). Sin esto, la próxima rotación de secretos aborta al empezar.
+
+Después, por orden: verificaciones de uso real (§1.1); Brecha 7; borrar `src/assets/ds-v2/acceso.css` (sin consumidores desde el 08-oct) con su caso en `tests/dsRuntimeHojas.test.ts`; comentarios residuales que nombran el portal antiguo (`portal-vip.ejs:18/550`, `informe.ejs:131`, `dsRuntimeHojas.test.ts:11`). De Jaime: decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
