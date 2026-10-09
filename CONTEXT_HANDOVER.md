@@ -61,6 +61,17 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 | **Yami Spa, ficha local** (carpeta privada, fuera de git) | `privado_agencia/Clientes/yami-spa/` | `portal.config.json` → `logo` = ruta de producción; `yami_state.json` → `branding.logo`, `detalle` y `referencia` = `documentos/logo.png`; `assets/logo.png` borrado (sha256 idéntico al de `documentos/`) y `assets/` eliminado; README alineado. Chromium real sobre servidor loopback: logo visible, 0 errores de consola, 0 peticiones fallidas; logo de producción 200 `image/png` 225.192 B |
 | **Telemetría**: la entrada `2026-10-08-a` (`d52903e`) deja `cockpit-secretos-borde-rotacion-2026-10-08` al 60 % y `cockpit-backups-rotacion-limpieza` al 0 %; ambas están ya cerradas. Pasarlas a `finalizada` con esos mismos ids en el próximo cierre | `src/data/telemetry.ts` | — |
 
+### 0.e · 2026-10-09 — Brecha 7 CERRADA (fallback a `forte-spa` erradicado del login)
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **Parche**: `acceso.js` ya no tiene destino de reserva. Sin `tenantId` válido (`RE_TENANT`) falla cerrado: `ocupado(false)` + «No pudimos abrir tu portal…», sin redirigir | `solucionesconia` `fd37d38` | `node --check`; 0 `forte-spa` en el fichero. El backend siempre devuelve `tenantId` en el 200 (`clientLoginRoutes.ts:146`) |
+| **Publicación atómica** de `acceso/acceso.js` (NO por `deploy.sh`, ver §1.3): `git pull --ff-only` del clon `/opt/solucionesconia` (`7e5f4b5` → `fd37d38`) → `.new` → sha256 → `mv` | web root `/var/www/solucionesconia.cl/acceso/` | sha256 `.new` = blob del commit = local (`8ae2c452…`); loopback 200 con ese sha y 0 `forte-spa` |
+| **Purga selectiva en Cloudflare** de `acceso.js` (apex + `www`; token y Zone ID leídos del `.env` del clon dentro del VPS, sin imprimirse) | API `purge_cache` `{"files":[…]}` | HTTP 200 `success:true`; desde fuera `MISS` → `REVALIDATED`, sha `8ae2c452…` en ambos hosts |
+| **Cache-busting**: `acceso/index.html` pide `acceso.js?v=fd37d38` y `acceso.css?v=fd37d38` (el JS tenía `max-age` 30 días: los navegadores podían seguir con el viejo aunque se purgase el edge) | `solucionesconia` `0827a4c`, publicado igual (pull `fd37d38` → `0827a4c`, `.new`, sha256 `077a5501…`, `mv`) | Desde fuera: `/acceso/` 200 `DYNAMIC` con sha `077a5501…`; `acceso.js?v=` y `acceso.css?v=` 200 `MISS`; JS servido con 0 `forte-spa` |
+| **Respaldos** del código anterior, fuera del web root | `/root/backups-solucionesconia/20261009/` (700): `acceso.js.bak` (sha `d53470bf…`), `index.html.bak` | `acceso.js.bak` en el web root → 404. Rollback: copiar los `.bak` a su sitio |
+| **Sin probar en navegador**: login real de un cliente (no yami-spa) hasta `/vip/<tenant>/` y la rama de error interceptando la respuesta sin `tenantId` | — | Pendiente; no bloquea el cierre |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -71,7 +82,9 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
    - `ag-webhooks` en verde con la próxima reserva real de Sofía; además limpiar el lead y el evento de Calendar de la prueba E2E del 22-sep.
 2. ✅ **CERRADO en 2026-10-08-a (`e995a96`, §0.d).** Texto original: `rotar-secretos-borde.sh` abortará en la próxima rotación (nuevo, 2026-10-08): su precondición (línea 101) exige que el vhost de vip. NO lleve el Bearer maestro, y desde el 07-oct lo lleva en `^~ /clientes/assets/` —hoy versionado y aprobado como `AUTHZ_VIP`—. Además la compuerta del paso 3 (línea 134) calcula el diff esperado de vip. contando solo `EDGE_SECRET`. Arreglo: alinear ambas líneas con la excepción `AUTHZ_VIP` (contar `API_SECRET_TOKEN` en vip. solo dentro de ese location) y un test. Hacerlo ANTES de cualquier rotación.
    - ✅ **Brecha 2 CERRADA el 2026-10-08** (ver §0.c). Nota: el «A2» que listaba el handover anterior no existía: `portal-vip.ejs` e `informe.ejs` solo nombraban `portal-vip.js` en comentarios.
-3. **Brecha 7** (Baja): destino de reserva fijo `/vip/forte-spa/` en `acceso.js`.
+3. ✅ **Brecha 7 CERRADA el 2026-10-09** (`fd37d38` + `0827a4c`, §0.e). Quedan dos pendientes descubiertos al desplegarla:
+   - 🔴 **Firewall abierto por Gambusas (bloqueado por Jaime).** `ufw` tiene `80/tcp` y `443/tcp` `ALLOW Anywhere` (v4+v6) desde el **2026-10-04 03:24 UTC**, además de los 22 rangos de CF: el origen es alcanzable saltándose Cloudflare y `real_ip` puede falsearse. NO es un descuido: `gambusaschile.cl` y `www` resuelven DIRECTO a `161.35.85.101` (nube gris). El 09-oct Claude borró esas 4 reglas, la tienda dio timeout y se restauraron (rollback autorizado por Jaime; 200 de nuevo; respaldo de las reglas en `/root/backups-ufw/20261009-*`). Orden para cerrarlo: (1) Jaime activa la nube naranja en `gambusaschile.cl` y `www` (SSL Full strict); (2) comprobar que responde con IP de Cloudflare y que el webhook de WhatsApp de Meta sigue llegando; (3) `nslookup` de los 10 hostnames; (4) `ufw delete allow 80/tcp` y `443/tcp` con deadman switch, verificando desde fuera.
+   - 🟡 **Refactorizar `deploy.sh` de `solucionesconia` antes de volver a usarlo.** Hoy es destructivo: (a) su sección 6 hace `ufw allow 'Nginx Full'` (la desviación del 22-sep); (b) no hace `git pull`, y con el clon atrasado su `rsync --delete` borraría lo que falte en el clon (el 09-oct habría borrado `/acceso`); (c) regenera `vip-portal.conf` desde la plantilla de este repo (13 `location`, solo 2 secretos, `640`), que pisaría el snippet vivo (16 `location` con `AUTHZ_VIP` y `/clientes/assets/`, `600`) de `instalar-plantillas.sh`. Arreglo: quitar la sección 6, añadir `git pull --ff-only` con abortado si falla, y dejar una sola fuente de la plantilla del snippet (o que `deploy.sh` no lo toque). Hasta entonces, publicar ficheros sueltos como en §0.e.
 4. **A1** (Baja): schemas Fastify (1 de 35 rutas los declara; el resto valida a mano).
 5. Opcional: `clienteAuth.ts` → `export *` del índice de `identidad/`.
 6. Rareza: el render de `vip-portal.conf.plantilla` escribe los dos secretos en un comentario (línea 3) del snippet vivo.
@@ -86,7 +99,7 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 - **nginx del VPS:** = plantillas de `2621c00` (`--comprobar`: admin., vip., realip y seg «idénticas a la viva»). Respaldos de la Brecha 2 en `/root/backups-nginx/instalar-plantillas-20261008-*` y `/root/backups-brecha2/`.
 - **Postgres:** inquilinos `demovip`, `forte-spa`, `yami-spa` activos; `liset` suspendido.
 - **`admin_solucionesconia`:** limpio; `main` = `origin/main` = vip. en `67edb57`; widget publicado = repo (sha `20e3275b…`).
-- **`solucionesconia`:** limpio en `3602280`; el web root de `/acceso` = repo por sha256.
+- **`solucionesconia`:** limpio; `main` = `origin/main` = clon del VPS en `0827a4c`; el web root de `/acceso` = repo por sha256 (09-oct). El resto del web root no se ha vuelto a publicar desde el clon. El clon tiene un `.env.save` sin rastrear (no tocado).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`** y **portal de Jose:** cambios ajenos sin commitear; no se tocaron.
 
@@ -99,6 +112,7 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 - **`.env` del orquestador:** dotenv 17 se queda con la ÚLTIMA aparición de una clave repetida; un valor pegado desde chat puede llegar en formato Markdown.
 - **Diagnosticar un deploy:** `gh run view <id> --json jobs` y las anotaciones del job. `runner_name` vacío y 0 pasos = falta de runner de GitHub, no fallo nuestro. `/health` sigue en el commit viejo ~3 min tras el pull.
 - **Login de prueba desde el portátil** gasta intentos del rate limit de la IP de Jaime: evitarlo; usar el loopback del VPS o los logs.
+- **Antes de tocar `ufw`:** `nslookup` de los 10 hostnames. Cualquiera que resuelva a `161.35.85.101` (hoy Gambusas) se cae al cerrar 80/443 a Cloudflare. CLAUDE.md dice que los 10 van tras el proxy, y hoy es falso.
 - `obtenerAlmacenIdentidad()` es `async`; `buscarUsuario`/`fichaDe` sirven para lecturas de solo lectura sin tocar hashes.
 
 ---
@@ -119,4 +133,4 @@ ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'for k in API_SECRET_TOKEN EDGE
 
 (Cerrado en 2026-10-08-a: `rotar-secretos-borde.sh` + `AUTHZ_VIP`, §0.d.)
 
-Después, por orden: verificaciones de uso real (§1.1); Brecha 7; borrar `src/assets/ds-v2/acceso.css` (sin consumidores desde el 08-oct) con su caso en `tests/dsRuntimeHojas.test.ts`; comentarios residuales que nombran el portal antiguo (`portal-vip.ejs:18/550`, `informe.ejs:131`, `dsRuntimeHojas.test.ts:11`). De Jaime: decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
+Después, por orden: 🔴 de Jaime, nube naranja en `gambusaschile.cl` + `www` para poder cerrar 80/443 (§1.3); verificaciones de uso real (§1.1); refactor de `deploy.sh` (§1.3); borrar `src/assets/ds-v2/acceso.css` (sin consumidores desde el 08-oct) con su caso en `tests/dsRuntimeHojas.test.ts`; comentarios residuales que nombran el portal antiguo (`portal-vip.ejs:18/550`, `informe.ejs:131`, `dsRuntimeHojas.test.ts:11`). De Jaime: decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
