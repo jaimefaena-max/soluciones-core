@@ -103,7 +103,7 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 
 ## 4 · El paso exacto siguiente
 
-✅ **CONFIRMADO el 2026-10-09: la rotación del 08-oct (22:16 UTC) SÍ se aplicó.** Huellas vigentes `API=cb66cef9 EDGE=bea78222` (antes `2e2f571f`/`f74fa9ba`), calculadas por Claude en el VPS con la misma derivación que `h8()` del script. Queda: `shred` de `/root/backups-rotacion/secretos-borde-20261008-221640` y de los dos `20260923-*` (de Jaime: el modo automático bloquea el borrado). Trampa: `tr -d "\"\x27\n"` NO quita la comilla simple; `tr` no entiende `\x27` y borra `2`, `7` y `x` del valor → huellas falsas. Usar `tr -d "\042\047"` y `printf %s`.
+✅ **CONFIRMADO el 2026-10-09: la rotación del 08-oct (22:16 UTC) SÍ se aplicó.** Huellas vigentes `API=cb66cef9 EDGE=bea78222` (antes `2e2f571f`/`f74fa9ba`), calculadas por Claude en el VPS con la misma derivación que `h8()` del script. Backups de rotación LIMPIOS el 2026-10-09: `20261008-221640` con `shred -u` + `rmdir` (Claude, autorizado por Jaime); los dos `20260923-*` ya no existían (borrados el 08-oct ~22:35). En `/root/backups-rotacion/` solo queda `rotar-edge-secret.sh`. Trampa: `tr -d "\"\x27\n"` NO quita la comilla simple; `tr` no entiende `\x27` y borra `2`, `7` y `x` del valor → huellas falsas. Usar `tr -d "\042\047"` y `printf %s`.
 
 Comando original (histórico):
 
