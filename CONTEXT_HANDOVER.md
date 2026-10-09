@@ -103,7 +103,9 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 
 ## 4 · El paso exacto siguiente
 
-🔴 **Primero, de Jaime** (el modo automático bloquea a Claude la lectura del `.env`): confirmar si la rotación de las 22:16 UTC del 2026-10-08 se aplicó, comparando las huellas con las previas `API=2e2f571f EDGE=f74fa9ba`:
+✅ **CONFIRMADO el 2026-10-09: la rotación del 08-oct (22:16 UTC) SÍ se aplicó.** Huellas vigentes `API=cb66cef9 EDGE=bea78222` (antes `2e2f571f`/`f74fa9ba`), calculadas por Claude en el VPS con la misma derivación que `h8()` del script. Queda: `shred` de `/root/backups-rotacion/secretos-borde-20261008-221640` y de los dos `20260923-*` (de Jaime: el modo automático bloquea el borrado). Trampa: `tr -d "\"\x27\n"` NO quita la comilla simple; `tr` no entiende `\x27` y borra `2`, `7` y `x` del valor → huellas falsas. Usar `tr -d "\042\047"` y `printf %s`.
+
+Comando original (histórico):
 
 ```
 ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'for k in API_SECRET_TOKEN EDGE_SECRET; do printf "%s=" $k; grep -E "^$k=" /opt/zasa-orchestrator/.env | tail -1 | cut -d= -f2- | tr -d "\"\x27\n" | sha256sum | cut -c1-8; done'
