@@ -1,8 +1,10 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-08-a (rotar-secretos-borde.sh + AUTHZ_VIP)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-09-a (Brecha 7 + firewall solo-Cloudflare)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-2026-10-09` en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-08-a**, 20:00–22:39 UTC, **86,2 min activos**, **$50.283 CLP**, telemetría `zasa-orchestrator` `d52903e` (publicada: `/health` = `d52903e`). Lo nuevo está en §0.d; §0–§0.c es el estado acumulado de sesiones anteriores.
+> Memoria de arranque: `arranque-2026-10-10` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> **Última sesión: 2026-10-09-a**, 05:29–08:41 UTC, **117,5 min activos**, **$68.542 CLP**, telemetría `zasa-orchestrator` `23e68d3`. Lo nuevo está en §0.e y §1.3.
+>
+> Sesión 2026-10-08-a, 20:00–22:39 UTC, **86,2 min activos**, **$50.283 CLP**, telemetría `zasa-orchestrator` `d52903e` (publicada: `/health` = `d52903e`). Lo nuevo está en §0.d; §0–§0.c es el estado acumulado de sesiones anteriores.
 >
 > Sesiones anteriores:
 > Sesión del 2026-10-06, de 10:30 a 20:04 UTC: **436,8 min activos**, **$254.800 CLP**.
@@ -120,6 +122,12 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 ---
 
 ## 4 · El paso exacto siguiente
+
+🔴 **Bloqueado por Jaime:** prueba real de Meta → `https://gambusaschile.cl/api/webhook_wa.php` (botón «Probar» del webhook en el panel de Meta, o un WhatsApp a la tienda), avisando la hora. Claude la busca en `/var/log/nginx/access.log` (query oculta). POST 200 del origen = cerrado; nada en el log = revisar Security Events de la zona en Cloudflare (Bot Fight Mode no se salta con reglas en el plan Free); 401 = firma/secreto de la app.
+
+---
+
+Histórico de la sesión 2026-10-08-a:
 
 ✅ **CONFIRMADO el 2026-10-09: la rotación del 08-oct (22:16 UTC) SÍ se aplicó.** Huellas vigentes `API=cb66cef9 EDGE=bea78222` (antes `2e2f571f`/`f74fa9ba`), calculadas por Claude en el VPS con la misma derivación que `h8()` del script. Backups de rotación LIMPIOS el 2026-10-09: `20261008-221640` con `shred -u` + `rmdir` (Claude, autorizado por Jaime); los dos `20260923-*` ya no existían (borrados el 08-oct ~22:35). En `/root/backups-rotacion/` solo queda `rotar-edge-secret.sh`. Trampa: `tr -d "\"\x27\n"` NO quita la comilla simple; `tr` no entiende `\x27` y borra `2`, `7` y `x` del valor → huellas falsas. Usar `tr -d "\042\047"` y `printf %s`.
 
