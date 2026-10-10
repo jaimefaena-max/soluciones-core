@@ -8,7 +8,7 @@ Espacio de trabajo centralizado con **12 repos de git** (11 proyectos + el porta
 
 | Carpeta | Repo GitHub | Qué es | Producción |
 |---|---|---|---|
-| `Workspace_Agencia\Agencia_Solucionesconia\` | `solucionesconia` | La agencia (landing, assets, `nginx/vip-portal.conf.plantilla` y su `deploy.sh`). **Sin CI**: `deploy.sh` se lanza a mano en el VPS. El material privado de clientes NO está aquí: vive en `Workspace_Agencia\privado_agencia\Clientes\` (Jose, forte-spa, Liset Saavedra, `_Plantilla_Portal_SPA`), fuera de git salvo Jose | solucionesconia.cl |
+| `Workspace_Agencia\Agencia_Solucionesconia\` | `solucionesconia` | La agencia (landing, assets y `deploy.sh`). **Sin CI**: `deploy.sh` se lanza a mano en el VPS y solo publica ficheros (ver «Despliegue de la landing»). `nginx/vip-portal.conf.plantilla` ya no la aplica nadie: el snippet vivo lo instala `instalar-plantillas.sh` de `zasa-orchestrator`. El material privado de clientes NO está aquí: vive en `Workspace_Agencia\privado_agencia\Clientes\` (Jose, forte-spa, Liset Saavedra, `_Plantilla_Portal_SPA`), fuera de git salvo Jose | solucionesconia.cl |
 | `Workspace_Agencia\admin_solucionesconia\` | `admin_solucionesconia` | Frontend B2B (Vite/React): la SPA del Portal VIP/Cockpit y el bundle del widget de Sofía (`public/widget/vendedor-ia-v17.js`, rastreado). El backend operativo vive en `zasa-orchestrator`. 🔴 **Push a `main` → `deploy-vip.yml` DESPLIEGA solo** (~40 s): `npm test` → build → `desplegar-estaticos.sh --aplicar` publica el `dist/` en `/opt/agencia/public/vip` (**vip.**, no admin.) y el widget en `/opt/agencia/public/widget/`. Ya no se copia a mano | vip.solucionesconia.cl (SPA) · admin.solucionesconia.cl/widget/ (bundle) |
 | `Workspace_Agencia\privado_agencia\Clientes\Jose\` | (privado; **el clon local no tiene `origin` configurado**, rama `master`) | Portal privado del cliente Jose; su `.github/workflows/deploy.yml` lo despliega a `/var/www/elrincondedonselso/public/jose` (ver Infraestructura). Es el 12.º repo del workspace | elrincondedonselso.cl/jose/ (Basic Auth) |
 | `Workspace_Clientes\Elrincon\` | `elrincondedonselso` | Libro web "El Rincón de Don Selso": 11 capítulos + epílogo en HTML estático puro. El backend de pagos NO está aquí: vive en el repo hermano `Elrincon-backend\` | elrincondedonselso.cl |
@@ -76,6 +76,23 @@ El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (U
 - Portal de Jose: repo en `Workspace_Agencia\privado_agencia\Clientes\Jose`, se despliega por GitHub Actions a `/var/www/elrincondedonselso/public/jose`, servido en `/jose/` mediante symlink desde el web root, protegido con Basic Auth (`/etc/nginx/.htpasswd_jose`)
 - Capítulos 4-11 y todos los `.md` de Elrincon devuelven 404 en producción (decisión de auditoría — siguen en el repo)
 
+### Despliegue de la landing (`solucionesconia.cl`)
+
+Desde el 2026-10-10 (`solucionesconia` `594f6e2`), `deploy.sh` **solo publica ficheros**: no instala paquetes, no toca `ufw`, no reescribe el vhost, no renderiza `vip-portal.conf`, no lanza Certbot ni recarga nginx. Antes hacía todo eso y era destructivo (reabría 80/443 a todo internet y pisaba el snippet de vip.).
+
+```bash
+# 1. local: commit + push a main del repo solucionesconia
+# 2. VPS: primero simular (no toca nada), luego publicar
+ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101
+cd /opt/solucionesconia && bash deploy.sh --simular
+bash deploy.sh                      # aborta con exit 3 si el plan borra algo
+bash deploy.sh --permitir-borrado   # solo si esos borrados son los esperados
+```
+
+Qué hace por dentro: `fetch` + `merge --ff-only` y aborta si el clon no queda en `origin/main`; publica una **lista blanca** (`index.html acceso assets dist src`) desde un staging con el ID de LinkedIn inyectado; respalda el web root en `/root/backups-solucionesconia/<fecha>/webroot.tgz`; `rsync --delete --delay-updates`; verifica en loopback (sha del `index.html` + rutas en 200), y purga en Cloudflare **solo** las URL cambiadas.
+
+El **vhost** de `solucionesconia.cl` ya no lo gestiona ningún script: un cambio de CSP o cabeceras va a mano con respaldo + `nginx -t` (la plantilla anterior: `git show 0827a4c:deploy.sh`).
+
 ### Despliegue del backend de pagos (`/opt/elrincon-backend`)
 
 **Se despliega con `git pull`, no con `scp`.** Este documento dijo lo contrario hasta el 2026-09-04; `/opt/elrincon-backend` es un **checkout de git**, con `origin` en `git@github.com:jaimefaena-max/elrincon-backend.git` por SSH y una Deploy Key **de solo lectura**.
@@ -122,7 +139,7 @@ Ante **cualquier saludo** de Jaime ("hola", "buenas", "buenos días", "qué tal"
 
 La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 11 repos locales del polirepo (rama, cambios sin commitear, ahead/behind, último commit; el portal de Jose queda fuera porque su clon no tiene `origin`) y la salud de los **7 endpoints de producción** —incluido el Portal VIP en `vip.`— (~10 s), lee las memorias, y entrega un **Resumen Ejecutivo del Estado Operativo** con cuatro bloques: (1) estado operativo con semáforo, (2) dónde quedamos, (3) bloqueadores activos con su vía de desbloqueo, y (4) plan inmediato priorizado **por cercanía a producción**.
 
-Regla central del diagnóstico: separar siempre **repo / remoto / producción**. Un repo limpio y sincronizado NO significa desplegado — en este workspace la landing se despliega a mano (el Portal VIP y el widget, en cambio, se despliegan solos con cada push a `main` de `admin_solucionesconia`). Nombrar el **drift** explícitamente. Cuando una memoria choque con la salida del script, gana el script.
+Regla central del diagnóstico: separar siempre **repo / remoto / producción**. Un repo limpio y sincronizado NO significa desplegado — en este workspace la landing se despliega a mano con `deploy.sh` en el VPS (el Portal VIP y el widget, en cambio, se despliegan solos con cada push a `main` de `admin_solucionesconia`). Nombrar el **drift** explícitamente. Cuando una memoria choque con la salida del script, gana el script.
 
 **Antes de redactar el resumen, leer `CONTEXT_HANDOVER.md` de la raíz.** Es el hand-off
 de la última sesión: qué se cerró, qué quedó a medias y con qué trampas. El bloque
