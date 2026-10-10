@@ -2,7 +2,9 @@
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Memoria de arranque: `arranque-2026-10-10` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-09-b**, 23:55 UTC (09-oct) – 02:33 UTC (10-oct), **136,6 min activos**, **$79.683 CLP**, telemetría `zasa-orchestrator` `e9a3111` (publicada: `/health` = `e9a3111`). Lo nuevo está en §0.f. Memoria de arranque: `arranque-2026-10-11`.
+> **Última sesión: 2026-10-10-a**, 06:57–07:29 UTC, **31,8 min activos**, **$18.550 CLP**, telemetría `zasa-orchestrator` `21be967` (publicada: `/health` = `21be967`, y `2026-10-10-a` presente en `dist/data/telemetry.js` del VPS). Lo nuevo está en §0.g. Memoria de arranque: `arranque-2026-10-11` (actualizada).
+>
+> Sesión 2026-10-09-b (anterior): 23:55 UTC (09-oct) – 02:33 UTC (10-oct), **136,6 min activos**, **$79.683 CLP**, telemetría `e9a3111`. Lo nuevo está en §0.f.
 >
 > Sesión 2026-10-09-a (anterior):
 > **Última sesión: 2026-10-09-a**, 05:29–08:41 UTC, **117,5 min activos**, **$68.542 CLP**, telemetría `zasa-orchestrator` `23e68d3`. Lo nuevo está en §0.e y §1.3.
@@ -91,6 +93,15 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 
 Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero no se sirven por HTTP. Un rollback de `desplegar.sh` recompila el commit anterior con el `copy-assets` viejo: solo dejaría sobrantes, como antes.
 
+### 0.g · 2026-10-10-a — 503 descartados y entorno dev local del widget
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **No hay 503 pendientes en zasa-orchestrator.** 0 respuestas 503 en los 15 `access.log` (~14 días). Solo 11 × 5xx: 3 × 502 en `/health` (03, 04 y 05-oct, `connection refused` durante reinicios de deploy) y 8 × 500 de Gambusas del 30-sep. Los 65 reinicios de PM2: todos `exit 0` por SIGINT (deploys), 0 crashes | VPS: nginx + `/root/.pm2/` | `/health` 200 con `895d820` = HEAD en ese momento |
+| Log de errores del orquestador: 3 × 422 de Resend (03:30 UTC), anteriores al arreglo de `RESEND_FROM`; ninguno después. 1 timeout aislado de Claude en `salesAgentService` (04:45 UTC) | `/root/.pm2/logs/zasa-orchestrator-error.log` | Sin causa raíz que corregir; no se cambió código |
+| **Entorno local del widget alineado**: mismo token de desarrollo en `zasa-orchestrator/.env` y `admin_solucionesconia/.env.local` (valor anterior en `.env.local.bak`); `NODE_ENV=development` añadido al `.env` local (faltaba: sin él, localhost → 403 a propósito); Vite con `--port 5173` | ficheros locales ignorados por git; nada versionado | Por el proxy de Vite: chat 200 con respuesta de Sofía; sin token 403; origen ajeno 403. Detalle: memoria `dev-local-widget-sofia` |
+| Pendiente nuevo: `vite.config.ts` fija `port: 3000`, fuera de los orígenes de desarrollo del backend (5173/4173) | tarea `sc-dev-origen-vite-puerto-3000` | — |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -122,6 +133,7 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 - **`admin_solucionesconia`:** limpio; `main` = `origin/main` = vip. en `67edb57`; widget publicado = repo (sha `20e3275b…`).
 - **`solucionesconia`:** limpio; `main` = `origin/main` = clon del VPS = web root en `594f6e2` (publicado entero con `deploy.sh` el 2026-10-10). El clon tiene un `.env.save` sin rastrear (no tocado).
 - **`zasa-orchestrator` (2026-10-10):** producción en `c61ffe2` (`/health`); `18f4b68` retiró `acceso.css`.
+- **Al cierre de 2026-10-10-a:** `zasa-orchestrator` limpio, `main` = `origin/main` = producción en `21be967` (`/health`). 🔴 `admin_solucionesconia` **ahead 1**: `81e5cbb` (npm audit fix de `nanoid`/`source-map-js`, solo `package-lock.json`, 07:15 UTC) commiteado SIN push y no hecho por Claude; vip. sigue en `e0154f3`. Un push a `main` despliega vip. Quedaron corriendo en el portátil el orquestador (`:3001`) y Vite (`:5173`).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`** y **portal de Jose:** cambios ajenos sin commitear; no se tocaron.
 
@@ -141,7 +153,9 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 
 ## 4 · El paso exacto siguiente
 
-Verificaciones de uso real (§1.1): una descarga con sesión de operador en vip., un cliente real tras el hardening y una reserva real de Sofía. Se observan en `access.log`, no se fuerzan con datos falsos. Después: A1 (schemas Fastify) y, de Jaime, decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
+🔴 **Decisión de Jaime:** empujar o no `81e5cbb` en `admin_solucionesconia` (ahead 1, sin push; el push despliega vip. en ~40 s con `npm test` delante). Si se empuja: comprobar `gh run view` y el bundle de vip.
+
+Después: verificaciones de uso real (§1.1): una descarga con sesión de operador en vip., un cliente real tras el hardening y una reserva real de Sofía. Se observan en `access.log`, no se fuerzan con datos falsos. Después: A1 (schemas Fastify) y, de Jaime, decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
 
 (Cerrado el 2026-10-10: comentarios del portal antiguo `94d656d`; `CLAUDE.md` `fa2c1ac`; skill `cierre-sesion` sin `deploy-1gb.yml` `912b98f`.)
 
