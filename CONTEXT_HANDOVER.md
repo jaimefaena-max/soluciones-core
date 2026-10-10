@@ -2,6 +2,7 @@
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Memoria de arranque: `arranque-2026-10-10` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> **Añadido el 2026-10-10 (sesión en curso, sin telemetría aún):** §0.f — `deploy.sh` seguro, landing republicada, Brecha 2 cerrada de verdad (`c61ffe2`), Meta vía CF confirmado.
 > **Última sesión: 2026-10-09-a**, 05:29–08:41 UTC, **117,5 min activos**, **$68.542 CLP**, telemetría `zasa-orchestrator` `23e68d3`. Lo nuevo está en §0.e y §1.3.
 >
 > Sesión 2026-10-08-a, 20:00–22:39 UTC, **86,2 min activos**, **$50.283 CLP**, telemetría `zasa-orchestrator` `d52903e` (publicada: `/health` = `d52903e`). Lo nuevo está en §0.d; §0–§0.c es el estado acumulado de sesiones anteriores.
@@ -40,6 +41,8 @@
 
 ### 0.c · 2026-10-08 — Brecha 2 CERRADA (portal antiguo de Liset retirado de extremo a extremo)
 
+> ⚠️ Corrección del 2026-10-10: en producción quedaban `portal-vip.js` (200) y `cliente-portal.ejs` en el `dist/` del VPS. Cierre definitivo en `c61ffe2` (§0.f).
+
 Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos reales** a `/clientes/liset`: 72 × 401 del monitor de uptime (`curl`), 4 × 401 de un Chrome Android el 25-sep sin pasar el Basic Auth, 2 × 200 desde el propio VPS (pruebas del 06-oct).
 
 | Qué | Dónde | Verificación |
@@ -74,6 +77,18 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 | **Respaldos** del código anterior, fuera del web root | `/root/backups-solucionesconia/20261009/` (700): `acceso.js.bak` (sha `d53470bf…`), `index.html.bak` | `acceso.js.bak` en el web root → 404. Rollback: copiar los `.bak` a su sitio |
 | **Sin probar en navegador**: login real de un cliente (no yami-spa) hasta `/vip/<tenant>/` y la rama de error interceptando la respuesta sin `tenantId` | — | Pendiente; no bloquea el cierre |
 
+### 0.f · 2026-10-10 — `deploy.sh` no destructivo, landing republicada y Brecha 2 cerrada de verdad
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **Meta → webhook WA de Gambusas vía Cloudflare: CERRADO.** Dos POST reales de Meta (`2a03:2880:…`, `facebookexternalua`) el 09-oct a las 08:21:31 y 08:22:05 UTC, después del cierre de ufw (07:12) | `/var/log/nginx/access.log` + `/var/lib/gambusaschile/logs/webhook-wa-2026-10.log` | nginx 200 y log propio `ACEPTADO … mensajes=1` (firma válida). Con el origen solo-CF, prueba la cadena completa |
+| **`deploy.sh` de la landing, refactorizado: ya es seguro.** Solo publica ficheros: no instala paquetes, no toca ufw, no reescribe el vhost, no renderiza `vip-portal.conf`, no lanza Certbot ni recarga nginx. `git fetch` + `merge --ff-only` y aborta si HEAD ≠ `origin/main`; lista BLANCA (`index.html acceso assets dist src`); staging en `/tmp` con la inyección de LinkedIn; guarda contra borrados (`exit 3` salvo `--permitir-borrado`); `--simular`; `tar` del web root; `rsync -aic --delete --delay-updates`; verificación en loopback (sha del index + 4 rutas en 200); purga de Cloudflare solo de lo cambiado (antes `purge_everything` de toda la zona). Cuerpo dentro de `main()` para que el pull no lo corrompa en ejecución | `solucionesconia` `9b2faf3` + `594f6e2` (el `trap EXIT` usaba una variable local de `main()`; `STAGE` global) | `--simular` en el VPS: `EXIT=0`, sin temporales, plan = 8 borrados y 0 modificaciones |
+| **Landing republicada con el script nuevo**: fuera del web root `docs/`, `nginx/`, `diseño_premium.md` y `assets/.gitkeep`, que se servían con **200** (la plantilla de `vip-portal.conf` exponía el mapa de rutas; sin secretos) | web root `/var/www/solucionesconia.cl` = `594f6e2`; respaldo `/root/backups-solucionesconia/20261010-005844/webroot.tgz` | Loopback OK; desde fuera (apex y `www`): `/`, `/acceso/`, CSS, JS, logo 200; las 5 rutas internas 404. Purga de 10 URL. Rollback: `rm -rf /var/www/solucionesconia.cl && tar -C /var/www -xzf <respaldo>` |
+| **`acceso.css` retirado del DS** (sin consumidores desde el 08-oct) y su caso en `dsRuntimeHojas.test.ts` | `zasa-orchestrator` `18f4b68` | Suite 1.849 ✓; Actions success |
+| 🔴→✅ **La Brecha 2 NO estaba cerrada en producción** (corrige §0.c): `copy-assets.mjs` hacía `cpSync` sobre `dist/` sin borrar nunca, y el VPS construye siempre sobre el mismo `dist/`. Seguían ahí `dist/assets/portal-vip.js` (**200 público** en admin. y vip.), `dist/views/cliente-portal.ejs` y `acceso.css`. Arreglo: `sincronizar()` reconstruye `dist/views` y `dist/assets` en un hermano `.nuevo` y lo intercambia con dos `rename` (sin hueco de servicio mientras PM2 sirve), limpiando restos `.nuevo`/`.viejo` | `zasa-orchestrator` `c61ffe2` + `tests/copyAssets.test.ts` (4 casos) | Suite 1.853 ✓, typecheck ✓; Actions `38013835572` success; `/health` = `c61ffe2`; en el VPS `diff -rq src/ dist/` idéntico y los 3 restos fuera; desde fuera `portal-vip.js` y `acceso.css` **404** en admin. y vip., `utilities.css`/`tokens.css` 200; log de errores de PM2 vacío |
+
+Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero no se sirven por HTTP. Un rollback de `desplegar.sh` recompila el commit anterior con el `copy-assets` viejo: solo dejaría sobrantes, como antes.
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -86,9 +101,9 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
    - ✅ **Brecha 2 CERRADA el 2026-10-08** (ver §0.c). Nota: el «A2» que listaba el handover anterior no existía: `portal-vip.ejs` e `informe.ejs` solo nombraban `portal-vip.js` en comentarios.
 3. ✅ **Brecha 7 CERRADA el 2026-10-09** (`fd37d38` + `0827a4c`, §0.e). Quedan dos pendientes descubiertos al desplegarla:
    - ✅ **Firewall CERRADO el 2026-10-09 a las 07:12 UTC.** Jaime activó la nube naranja en `gambusaschile.cl` y `www` (DNS 1.1.1.1/8.8.8.8/autoritativo → `104.21.56.227`, `172.67.137.169`). `nslookup` de los 10 hostnames: 0 directos al VPS. Borradas las 4 reglas `Anywhere` con deadman de 10 min (`/root/backups-ufw/20261009-071147/`, `restaurar.sh`; desarmado tras verificar). Quedan solo los 22 rangos de CF (15 v4 + 7 v6) en 80/443. Verificado desde fuera: 10/10 hostnames 200/301 vía CF; `http(s)://161.35.85.101/` → `000`; SSH con conexión nueva OK; `certbot renew --dry-run` 6/6 (Gambusas incluido). Rollback: `bash /root/backups-ufw/20261009-071147/restaurar.sh`.
-     - 🟡 **Sin probar: la llegada real de Meta vía CF.** No hay tráfico de Meta a `/api/webhook_wa.php` desde el 04-oct. Testigo propio vía CF: GET con token falso 403 y POST sin firma 401 (los rechaza el PHP, no CF; `real_ip` da la IP real). Falta que Jaime pulse «Probar» en el panel de Meta o mande un WhatsApp; si CF lo bloquea (Bot Fight/WAF), excepción para esa ruta.
+     - ✅ **CERRADO el 2026-10-10 (§0.f): Meta llega vía CF** (POST 200 del 09-oct a las 08:21/08:22 UTC). Texto original: 🟡 **Sin probar: la llegada real de Meta vía CF.** No hay tráfico de Meta a `/api/webhook_wa.php` desde el 04-oct. Testigo propio vía CF: GET con token falso 403 y POST sin firma 401 (los rechaza el PHP, no CF; `real_ip` da la IP real). Falta que Jaime pulse «Probar» en el panel de Meta o mande un WhatsApp; si CF lo bloquea (Bot Fight/WAF), excepción para esa ruta.
      - Texto original: 🔴 **Firewall abierto por Gambusas (bloqueado por Jaime).** `ufw` tenía `80/tcp` y `443/tcp` `ALLOW Anywhere` (v4+v6) desde el **2026-10-04 03:24 UTC**, además de los 22 rangos de CF: el origen es alcanzable saltándose Cloudflare y `real_ip` puede falsearse. NO es un descuido: `gambusaschile.cl` y `www` resuelven DIRECTO a `161.35.85.101` (nube gris). El 09-oct Claude borró esas 4 reglas, la tienda dio timeout y se restauraron (rollback autorizado por Jaime; 200 de nuevo; respaldo de las reglas en `/root/backups-ufw/20261009-*`). Orden para cerrarlo: (1) Jaime activa la nube naranja en `gambusaschile.cl` y `www` (SSL Full strict); (2) comprobar que responde con IP de Cloudflare y que el webhook de WhatsApp de Meta sigue llegando; (3) `nslookup` de los 10 hostnames; (4) `ufw delete allow 80/tcp` y `443/tcp` con deadman switch, verificando desde fuera.
-   - 🟡 **Refactorizar `deploy.sh` de `solucionesconia` antes de volver a usarlo.** Hoy es destructivo: (a) su sección 6 hace `ufw allow 'Nginx Full'` (la desviación del 22-sep); (b) no hace `git pull`, y con el clon atrasado su `rsync --delete` borraría lo que falte en el clon (el 09-oct habría borrado `/acceso`); (c) regenera `vip-portal.conf` desde la plantilla de este repo (13 `location`, solo 2 secretos, `640`), que pisaría el snippet vivo (16 `location` con `AUTHZ_VIP` y `/clientes/assets/`, `600`) de `instalar-plantillas.sh`. Arreglo: quitar la sección 6, añadir `git pull --ff-only` con abortado si falla, y dejar una sola fuente de la plantilla del snippet (o que `deploy.sh` no lo toque). Hasta entonces, publicar ficheros sueltos como en §0.e.
+   - ✅ **CERRADO el 2026-10-10 (`9b2faf3` + `594f6e2`, §0.f): `deploy.sh` ya es no destructivo y seguro**, y se usó para republicar la landing. El vhost de `solucionesconia.cl` ya no lo gestiona ningún script: cambios de CSP/cabeceras a mano con respaldo + `nginx -t` (la plantilla vieja: `git show 0827a4c:deploy.sh`). Texto original: 🟡 **Refactorizar `deploy.sh` de `solucionesconia` antes de volver a usarlo.** Hoy es destructivo: (a) su sección 6 hace `ufw allow 'Nginx Full'` (la desviación del 22-sep); (b) no hace `git pull`, y con el clon atrasado su `rsync --delete` borraría lo que falte en el clon (el 09-oct habría borrado `/acceso`); (c) regenera `vip-portal.conf` desde la plantilla de este repo (13 `location`, solo 2 secretos, `640`), que pisaría el snippet vivo (16 `location` con `AUTHZ_VIP` y `/clientes/assets/`, `600`) de `instalar-plantillas.sh`. Arreglo: quitar la sección 6, añadir `git pull --ff-only` con abortado si falla, y dejar una sola fuente de la plantilla del snippet (o que `deploy.sh` no lo toque). Hasta entonces, publicar ficheros sueltos como en §0.e.
 4. **A1** (Baja): schemas Fastify (1 de 35 rutas los declara; el resto valida a mano).
 5. Opcional: `clienteAuth.ts` → `export *` del índice de `identidad/`.
 6. Rareza: el render de `vip-portal.conf.plantilla` escribe los dos secretos en un comentario (línea 3) del snippet vivo.
@@ -103,7 +118,8 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 - **nginx del VPS:** = plantillas de `2621c00` (`--comprobar`: admin., vip., realip y seg «idénticas a la viva»). Respaldos de la Brecha 2 en `/root/backups-nginx/instalar-plantillas-20261008-*` y `/root/backups-brecha2/`.
 - **Postgres:** inquilinos `demovip`, `forte-spa`, `yami-spa` activos; `liset` suspendido.
 - **`admin_solucionesconia`:** limpio; `main` = `origin/main` = vip. en `67edb57`; widget publicado = repo (sha `20e3275b…`).
-- **`solucionesconia`:** limpio; `main` = `origin/main` = clon del VPS en `0827a4c`; el web root de `/acceso` = repo por sha256 (09-oct). El resto del web root no se ha vuelto a publicar desde el clon. El clon tiene un `.env.save` sin rastrear (no tocado).
+- **`solucionesconia`:** limpio; `main` = `origin/main` = clon del VPS = web root en `594f6e2` (publicado entero con `deploy.sh` el 2026-10-10). El clon tiene un `.env.save` sin rastrear (no tocado).
+- **`zasa-orchestrator` (2026-10-10):** producción en `c61ffe2` (`/health`); `18f4b68` retiró `acceso.css`.
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`** y **portal de Jose:** cambios ajenos sin commitear; no se tocaron.
 
@@ -123,7 +139,9 @@ Evidencia previa: 14 días de `access.log` (25-sep → 08-oct) con **0 accesos r
 
 ## 4 · El paso exacto siguiente
 
-🔴 **Bloqueado por Jaime:** prueba real de Meta → `https://gambusaschile.cl/api/webhook_wa.php` (botón «Probar» del webhook en el panel de Meta, o un WhatsApp a la tienda), avisando la hora. Claude la busca en `/var/log/nginx/access.log` (query oculta). POST 200 del origen = cerrado; nada en el log = revisar Security Events de la zona en Cloudflare (Bot Fight Mode no se salta con reglas en el plan Free); 401 = firma/secreto de la app.
+Sin bloqueos de Jaime: comentarios residuales que nombran el portal antiguo (`portal-vip.ejs:18/550`, `informe.ejs:131`, `dsRuntimeHojas.test.ts`). Después, las verificaciones de uso real (§1.1). Corregir también en `CLAUDE.md` y en la skill `inicio-sesion` el despliegue de la landing (`deploy.sh` ya es seguro).
+
+Histórico (CERRADO el 2026-10-10, §0.f): 🔴 **Bloqueado por Jaime:** prueba real de Meta → `https://gambusaschile.cl/api/webhook_wa.php` (botón «Probar» del webhook en el panel de Meta, o un WhatsApp a la tienda), avisando la hora. Claude la busca en `/var/log/nginx/access.log` (query oculta). POST 200 del origen = cerrado; nada en el log = revisar Security Events de la zona en Cloudflare (Bot Fight Mode no se salta con reglas en el plan Free); 401 = firma/secreto de la app.
 
 ---
 
