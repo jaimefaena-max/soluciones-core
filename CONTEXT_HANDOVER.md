@@ -2,7 +2,9 @@
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Memoria de arranque: `arranque-2026-10-10` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-10-a**, 06:57–07:29 UTC, **31,8 min activos**, **$18.550 CLP**, telemetría `zasa-orchestrator` `21be967` (publicada: `/health` = `21be967`, y `2026-10-10-a` presente en `dist/data/telemetry.js` del VPS). Lo nuevo está en §0.g. Memoria de arranque: `arranque-2026-10-11` (actualizada).
+> **Última sesión: 2026-10-10-b**, 16:31–17:29 UTC, **57,2 min activos**, **$33.367 CLP**, telemetría `zasa-orchestrator` `035fa3e` (publicada: `/health` = `035fa3e`, y `2026-10-10-b` presente en `dist/data/telemetry.js` del VPS). Lo nuevo está en §0.h. Memoria de arranque: `arranque-2026-10-11` (actualizada).
+>
+> Sesión 2026-10-10-a (anterior): 06:57–07:29 UTC, **31,8 min activos**, **$18.550 CLP**, telemetría `21be967`. Lo nuevo está en §0.g.
 >
 > Sesión 2026-10-09-b (anterior): 23:55 UTC (09-oct) – 02:33 UTC (10-oct), **136,6 min activos**, **$79.683 CLP**, telemetría `e9a3111`. Lo nuevo está en §0.f.
 >
@@ -102,6 +104,15 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 | **Entorno local del widget alineado**: mismo token de desarrollo en `zasa-orchestrator/.env` y `admin_solucionesconia/.env.local` (valor anterior en `.env.local.bak`); `NODE_ENV=development` añadido al `.env` local (faltaba: sin él, localhost → 403 a propósito); Vite con `--port 5173` | ficheros locales ignorados por git; nada versionado | Por el proxy de Vite: chat 200 con respuesta de Sofía; sin token 403; origen ajeno 403. Detalle: memoria `dev-local-widget-sofia` |
 | Pendiente nuevo: `vite.config.ts` fija `port: 3000`, fuera de los orígenes de desarrollo del backend (5173/4173) | tarea `sc-dev-origen-vite-puerto-3000` | — |
 
+### 0.h · 2026-10-10-b — `81e5cbb` empujado, CI de vip. a Node 24 + `ubuntu-24.04`, skills de diseño
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **`81e5cbb` publicado** (nanoid 3.3.16→3.3.20, source-map-js 1.2.1→1.2.2; solo `package-lock.json`, devDependencies). Push lanzado por Jaime con `!` (el clasificador del modo automático bloquea los push que despliegan) | `admin_solucionesconia` | `npm test` exit 0 antes; run `38068568647` success; `desplegar-estaticos.sh`: «producción ya sirve exactamente este build» (build idéntico) |
+| **Acciones de `deploy-vip.yml` a runtime node24**: checkout v7, setup-node v7, cache v6, upload-artifact v7 (runtime leído del `action.yml` de cada tag) | `cd6bc48` | Run `38069194792` success, 0 anotaciones de Node 20. `upload-artifact` solo corre si falla una compuerta: sin ejercitar |
+| **Runner fijado a `ubuntu-24.04`** (antes de la migración de `ubuntu-latest` a Ubuntu 26 del 19-oct) | `01102ef` (commit de Jaime; su `Co-Authored-By` va sin `<…>`) | Run `38070008737` success, `Image: ubuntu-24.04 20261004.327.1`, 0 anotaciones |
+| **Skills globales de diseño**: `design-taste-frontend` (Leonxlnx/taste-skill), `emil-design-eng` (emilkowalski/skill), `impeccable` (pbakaus/impeccable), con `skills@1.7.2 --copy -g -a claude-code` (lo lanzó Jaime con `!`) | `~/.claude/skills/` | `SKILL.md` idénticos a lo revisado salvo CRLF; ningún hook en `settings.json`. `impeccable` descarga su motor de las releases de GitHub (verificado contra `.sha256` del mismo origen) solo si se usa `live`/hooks |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -123,7 +134,7 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
    - ✅ **Desviación de nginx en vip. CERRADA (2026-10-08, `31ca36b`)**: el bloque `location ^~ /clientes/assets/` vive en la plantilla versionada y `instalar-plantillas.sh` lo renderiza con los secretos vigentes; reinstalar ya no lo borra. Queda la consecuencia sobre `rotar-secretos-borde.sh` (punto 2).
    - **Sin confirmar**: un `grep` del 07-oct no encontró ningún `include` literal de `snippets/vip-portal.conf` en `sites-available/`, `sites-enabled/`, `nginx.conf` ni `conf.d/`. Antes de dar por activos sus bloques (incl. `/acceso/` de la brecha 8 y `/vip/`, que en vip. cae en la SPA), comprobar si se carga por otra vía.
 7. Heredado: rotar la credencial de julio de ExamenFácil si no se rotó; Gambusas: cabeceras duplicadas y `limit_req` del webhook WA, `meta-sync` sin `INSTAGRAM_BUSINESS_ACCOUNT_ID`, token de WhatsApp sin WABA (Jaime); `pm2-logrotate`; bandeja `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`.
-8. Higiene: `CLAUDE.md` raíz y la skill `cierre-sesion` aún nombran `deploy-1gb.yml` (ya no existe). `ubuntu-latest` migra a Ubuntu 26 el **2026-10-19**: vigilar el primer deploy posterior.
+8. Higiene: `CLAUDE.md` raíz y la skill `cierre-sesion` aún nombran `deploy-1gb.yml` (ya no existe). `ubuntu-latest` migra a Ubuntu 26 el **2026-10-19**: `admin_solucionesconia` ya fijado a `ubuntu-24.04` (§0.h); **falta `zasa-orchestrator`** (`deploy-admin-vip.yml` y `deploy-vps-4gb.yml`: acciones a node24 + runner fijado; tarea `cockpit-ci-acciones-node24-ubuntu`).
 
 ## 2 · Estado de los repos al cierre
 
@@ -134,6 +145,7 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 - **`solucionesconia`:** limpio; `main` = `origin/main` = clon del VPS = web root en `594f6e2` (publicado entero con `deploy.sh` el 2026-10-10). El clon tiene un `.env.save` sin rastrear (no tocado).
 - **`zasa-orchestrator` (2026-10-10):** producción en `c61ffe2` (`/health`); `18f4b68` retiró `acceso.css`.
 - **Al cierre de 2026-10-10-a:** `zasa-orchestrator` limpio, `main` = `origin/main` = producción en `21be967` (`/health`). 🔴 `admin_solucionesconia` **ahead 1**: `81e5cbb` (npm audit fix de `nanoid`/`source-map-js`, solo `package-lock.json`, 07:15 UTC) commiteado SIN push y no hecho por Claude; vip. sigue en `e0154f3`. Un push a `main` despliega vip. Quedaron corriendo en el portátil el orquestador (`:3001`) y Vite (`:5173`).
+- **Al cierre de 2026-10-10-b:** `admin_solucionesconia` limpio, `main` = `origin/main` = `01102ef`; vip. sirve el mismo build (los tres runs dijeron «nada que desplegar»). `zasa-orchestrator` limpio salvo `src/data/telemetry.ts.bak-20261010172841.` sin rastrear; producción en `035fa3e`.
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`** y **portal de Jose:** cambios ajenos sin commitear; no se tocaron.
 
@@ -153,7 +165,9 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 
 ## 4 · El paso exacto siguiente
 
-🔴 **Decisión de Jaime:** empujar o no `81e5cbb` en `admin_solucionesconia` (ahead 1, sin push; el push despliega vip. en ~40 s con `npm test` delante). Si se empuja: comprobar `gh run view` y el bundle de vip.
+**Replicar en `zasa-orchestrator` lo de §0.h** antes del 2026-10-19: acciones a versiones node24 y `runs-on: ubuntu-24.04` en `deploy-admin-vip.yml` (y `deploy-vps-4gb.yml`). El push despliega admin.: el commit lo hace Claude y el push, si el clasificador lo bloquea, lo lanza Jaime con `!` (barras normales: `! cd /c/Proyectos/...`, la shell del `!` es bash). Verificar con `gh run view` + `/health`.
+
+(Cerrado el 2026-10-10-b: `81e5cbb` empujado y verificado, §0.h.)
 
 Después: verificaciones de uso real (§1.1): una descarga con sesión de operador en vip., un cliente real tras el hardening y una reserva real de Sofía. Se observan en `access.log`, no se fuerzan con datos falsos. Después: A1 (schemas Fastify) y, de Jaime, decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
 
