@@ -2,7 +2,9 @@
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Memoria de arranque: `arranque-2026-10-10` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Añadido el 2026-10-10 (sesión en curso, sin telemetría aún):** §0.f — `deploy.sh` seguro, landing republicada, Brecha 2 cerrada de verdad (`c61ffe2`), Meta vía CF confirmado.
+> **Última sesión: 2026-10-09-b**, 23:55 UTC (09-oct) – 02:33 UTC (10-oct), **136,6 min activos**, **$79.683 CLP**, telemetría `zasa-orchestrator` `e9a3111` (publicada: `/health` = `e9a3111`). Lo nuevo está en §0.f. Memoria de arranque: `arranque-2026-10-11`.
+>
+> Sesión 2026-10-09-a (anterior):
 > **Última sesión: 2026-10-09-a**, 05:29–08:41 UTC, **117,5 min activos**, **$68.542 CLP**, telemetría `zasa-orchestrator` `23e68d3`. Lo nuevo está en §0.e y §1.3.
 >
 > Sesión 2026-10-08-a, 20:00–22:39 UTC, **86,2 min activos**, **$50.283 CLP**, telemetría `zasa-orchestrator` `d52903e` (publicada: `/health` = `d52903e`). Lo nuevo está en §0.d; §0–§0.c es el estado acumulado de sesiones anteriores.
@@ -139,7 +141,9 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 
 ## 4 · El paso exacto siguiente
 
-Sin bloqueos de Jaime: comentarios residuales que nombran el portal antiguo (`portal-vip.ejs:18/550`, `informe.ejs:131`, `dsRuntimeHojas.test.ts`). Después, las verificaciones de uso real (§1.1). Corregir también en `CLAUDE.md` y en la skill `inicio-sesion` el despliegue de la landing (`deploy.sh` ya es seguro).
+Verificaciones de uso real (§1.1): una descarga con sesión de operador en vip., un cliente real tras el hardening y una reserva real de Sofía. Se observan en `access.log`, no se fuerzan con datos falsos. Después: A1 (schemas Fastify) y, de Jaime, decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
+
+(Cerrado el 2026-10-10: comentarios del portal antiguo `94d656d`; `CLAUDE.md` `fa2c1ac`; skill `cierre-sesion` sin `deploy-1gb.yml` `912b98f`.)
 
 Histórico (CERRADO el 2026-10-10, §0.f): 🔴 **Bloqueado por Jaime:** prueba real de Meta → `https://gambusaschile.cl/api/webhook_wa.php` (botón «Probar» del webhook en el panel de Meta, o un WhatsApp a la tienda), avisando la hora. Claude la busca en `/var/log/nginx/access.log` (query oculta). POST 200 del origen = cerrado; nada en el log = revisar Security Events de la zona en Cloudflare (Bot Fight Mode no se salta con reglas en el plan Free); 401 = firma/secreto de la app.
 
