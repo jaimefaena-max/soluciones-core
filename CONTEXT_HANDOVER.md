@@ -1,8 +1,10 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-09-a (Brecha 7 + firewall solo-Cloudflare)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-10-c (landing: CTAs a Sofía, propuesta B2B y 4 pilares)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Memoria de arranque: `arranque-2026-10-10` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-10-b**, 16:31–17:29 UTC, **57,2 min activos**, **$33.367 CLP**, telemetría `zasa-orchestrator` `035fa3e` (publicada: `/health` = `035fa3e`, y `2026-10-10-b` presente en `dist/data/telemetry.js` del VPS). Lo nuevo está en §0.h. Memoria de arranque: `arranque-2026-10-11` (actualizada).
+> **Última sesión: 2026-10-10-c** (misma conversación que la -b, medida solo desde su cierre), 17:28 UTC (10-oct) – 20:07 UTC (11-oct), **203,1 min activos**, **$118.475 CLP**, telemetría `zasa-orchestrator` `174002b`. Lo nuevo está en §0.i: la landing. Memoria de arranque: `arranque-2026-10-12`.
+>
+> Sesión 2026-10-10-b (anterior): 16:31–17:29 UTC, **57,2 min activos**, **$33.367 CLP**, telemetría `035fa3e`. Lo nuevo está en §0.h.
 >
 > Sesión 2026-10-10-a (anterior): 06:57–07:29 UTC, **31,8 min activos**, **$18.550 CLP**, telemetría `21be967`. Lo nuevo está en §0.g.
 >
@@ -113,6 +115,23 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 | **Runner fijado a `ubuntu-24.04`** (antes de la migración de `ubuntu-latest` a Ubuntu 26 del 19-oct) | `01102ef` (commit de Jaime; su `Co-Authored-By` va sin `<…>`) | Run `38070008737` success, `Image: ubuntu-24.04 20261004.327.1`, 0 anotaciones |
 | **Skills globales de diseño**: `design-taste-frontend` (Leonxlnx/taste-skill), `emil-design-eng` (emilkowalski/skill), `impeccable` (pbakaus/impeccable), con `skills@1.7.2 --copy -g -a claude-code` (lo lanzó Jaime con `!`) | `~/.claude/skills/` | `SKILL.md` idénticos a lo revisado salvo CRLF; ningún hook en `settings.json`. `impeccable` descarga su motor de las releases de GitHub (verificado contra `.sha256` del mismo origen) solo si se usa `live`/hooks |
 
+### 0.i · 2026-10-10-c — Landing: CTAs a Sofía, propuesta B2B orientada a resultados y 4 pilares de servicios
+
+Todo publicado con `deploy.sh` (simulación primero) y verificado desde fuera en apex y `www`: `curl` vía Cloudflare + Chromium (Playwright de `Elrincon-qa`) contra la web real, 0 errores JS. Web root = `5b1218b`.
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| 🔴→✅ **`deploy.sh` nunca purgaba Cloudflare**: el filtro buscaba `<f`, pero rsync en local marca `>f`; el plan salía vacío y la purga se omitía sin avisar (desde `9b2faf3`) | `solucionesconia` `1f0bd74` (líneas 133 y 205: `[<>]f`) | Purgas reales: «purgadas 4/8 URL» en cada despliegue posterior |
+| **Cache busting de CSS/JS**: nginx los sirve con `max-age` 30 días; `index.html` lleva `?v=$CSS_VERSION`/`$JS_VERSION` y `deploy.sh` los sustituye por 10 caracteres del sha256 del contenido (aborta si queda un marcador) | `4a77309` | `style.css?v=…` y `main.js?v=…` cambian solo cuando cambia el fichero |
+| **Hero**: cascada de `data-reveal` por sección, h1 sin reveal (LCP), `noscript`; espaciado con clamp y `100svh`; Inter con `opsz`; **el hover de los botones nunca funcionó** (inline gana a la hoja) → reglas globales con `!important`, `:active` y `:focus-visible` | `8bc9453`, `0d62ec9`, `131fff9`, `5e763a6`, `71f60d8` | Micro-prueba visible en 1280×720, 1366×768, 375×667 |
+| **Widget de Sofía con `open()`**: `window.SolucionesconiaVendedorIA.open()` emite `sofia:open`, que escucha el componente | `admin_solucionesconia` `4645cfe` (run `38086033168`; rollback `/opt/agencia/respaldos-estaticos/20261010-210302`) | Widget en producción sha `2f4e7b3008aa` |
+| **CTAs del hero y del cierre abren a Sofía** (Cal.com de respaldo si el widget no cargó; `mailto` sin JS). Textos «Habla con Sofía ahora» / «Diagnóstico inmediato con IA» y meta/og/twitter alineados | `c7dd2dc`, `7646b60`, `3fef5e2` | E2E 2/2 CTAs en ambos dominios |
+| **Tarjetas orientadas a resultados** + enlace `data-open-sofia` por tarjeta; `main.js` atiende `[data-open-scheduler], [data-open-sofia]`; regla `.sc-card-link` | `868613e` | E2E 3/3 |
+| **Servicios ampliados a 4 pilares** en rejilla 2×2 (`#agentes` conserva su id: lo usa el botón secundario del hero): Diagnóstico Estratégico · Agentes de Ventas y Cobranza 24/7 (Sofía) · Automatización Back‑office · Web y 3D | `5b1218b`; respaldo previo `/root/backups-solucionesconia/20261011-200508/webroot.tgz` | E2E 4/4 en 1280 y 375 px; sin scroll horizontal |
+| **Informe de propuesta de valor** (dolor 3, autoridad 0, solución 3, CTA 2; sin cifras inventadas) | `solucionesconia/docs/informe-propuesta-valor-2026-10-10.md` **sin commit** (docs/ no se publica) | — |
+
+Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de datos. La latencia real está en `ejecuciones_agentes.latencia_ms` (PostgreSQL del VPS); la consulta de solo lectura la bloqueó el modo automático («Production Reads»): la lanza Jaime.
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -134,7 +153,8 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
    - ✅ **Desviación de nginx en vip. CERRADA (2026-10-08, `31ca36b`)**: el bloque `location ^~ /clientes/assets/` vive en la plantilla versionada y `instalar-plantillas.sh` lo renderiza con los secretos vigentes; reinstalar ya no lo borra. Queda la consecuencia sobre `rotar-secretos-borde.sh` (punto 2).
    - **Sin confirmar**: un `grep` del 07-oct no encontró ningún `include` literal de `snippets/vip-portal.conf` en `sites-available/`, `sites-enabled/`, `nginx.conf` ni `conf.d/`. Antes de dar por activos sus bloques (incl. `/acceso/` de la brecha 8 y `/vip/`, que en vip. cae en la SPA), comprobar si se carga por otra vía.
 7. Heredado: rotar la credencial de julio de ExamenFácil si no se rotó; Gambusas: cabeceras duplicadas y `limit_req` del webhook WA, `meta-sync` sin `INSTAGRAM_BUSINESS_ACCOUNT_ID`, token de WhatsApp sin WABA (Jaime); `pm2-logrotate`; bandeja `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`.
-8. Higiene: `CLAUDE.md` raíz y la skill `cierre-sesion` aún nombran `deploy-1gb.yml` (ya no existe). `ubuntu-latest` migra a Ubuntu 26 el **2026-10-19**: `admin_solucionesconia` ya fijado a `ubuntu-24.04` (§0.h); **falta `zasa-orchestrator`** (`deploy-admin-vip.yml` y `deploy-vps-4gb.yml`: acciones a node24 + runner fijado; tarea `cockpit-ci-acciones-node24-ubuntu`).
+8. **Landing (§0.i)**: (a) de Jaime, confirmar los claims publicados «0 tareas repetitivas a mano», «experiencias 3D» (sin caso que mostrar) y «Lista en semanas»; (b) p95 real de latencia de Sofía para «<30 s» (`sc-landing-metrica-latencia-sofia`); (c) la landing no mide conversiones: ni clics de CTA ni aperturas del chat (`sc-landing-medicion-conversiones`); (d) commit del informe de `docs/`; (e) llenar el pilar de autoridad (un caso y una cifra reales, con permiso del cliente).
+9. Higiene: `CLAUDE.md` raíz y la skill `cierre-sesion` aún nombran `deploy-1gb.yml` (ya no existe). `ubuntu-latest` migra a Ubuntu 26 el **2026-10-19**: `admin_solucionesconia` ya fijado a `ubuntu-24.04` (§0.h); **falta `zasa-orchestrator`** (`deploy-admin-vip.yml` y `deploy-vps-4gb.yml`: acciones a node24 + runner fijado; tarea `cockpit-ci-acciones-node24-ubuntu`).
 
 ## 2 · Estado de los repos al cierre
 
@@ -146,6 +166,7 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 - **`zasa-orchestrator` (2026-10-10):** producción en `c61ffe2` (`/health`); `18f4b68` retiró `acceso.css`.
 - **Al cierre de 2026-10-10-a:** `zasa-orchestrator` limpio, `main` = `origin/main` = producción en `21be967` (`/health`). 🔴 `admin_solucionesconia` **ahead 1**: `81e5cbb` (npm audit fix de `nanoid`/`source-map-js`, solo `package-lock.json`, 07:15 UTC) commiteado SIN push y no hecho por Claude; vip. sigue en `e0154f3`. Un push a `main` despliega vip. Quedaron corriendo en el portátil el orquestador (`:3001`) y Vite (`:5173`).
 - **Al cierre de 2026-10-10-b:** `admin_solucionesconia` limpio, `main` = `origin/main` = `01102ef`; vip. sirve el mismo build (los tres runs dijeron «nada que desplegar»). `zasa-orchestrator` limpio salvo `src/data/telemetry.ts.bak-20261010172841.` sin rastrear; producción en `035fa3e`.
+- **Al cierre de 2026-10-10-c:** `solucionesconia` `main` = `origin/main` = clon del VPS = web root en `5b1218b` (solo `docs/informe-propuesta-valor-2026-10-10.md` sin rastrear). `admin_solucionesconia` en `4645cfe` (vip. y widget). `zasa-orchestrator` en `174002b` (telemetría 2026-10-10-c).
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`** y **portal de Jose:** cambios ajenos sin commitear; no se tocaron.
 
@@ -153,12 +174,13 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 
 - **Widget de Sofía:** importa `src/api/httpCore.ts` y `httpClientWidget.ts`. Cualquier cambio en ellos cambia el widget, y la CI de `admin_solucionesconia` falla hasta commitear `public/widget/vendedor-ia-v17.js` regenerado (`npm run build:widget`), lo que **publica el widget en las webs de clientes**: pedir OK. Cambios solo en `httpClient.ts` (la SPA) ya no deberían tocarlo; comprobar con `git status` tras el build.
 - **CSP:** Cloudflare inyecta su beacon en el HTML que ve el navegador, no en el de `curl`. Verificar una CSP con Chromium real (Playwright de `Workspace_Clientes/Elrincon-qa`), no solo por cabeceras.
-- **nginx:** un `add_header` en un `location` anula todos los del server block; repetir el juego completo. El vhost de `solucionesconia.cl` lo genera `deploy.sh` y el snippet `vip-portal.conf` sale de su plantilla: no editar solo en el VPS.
+- **nginx:** un `add_header` en un `location` anula todos los del server block; repetir el juego completo. El vhost de `solucionesconia.cl` ya NO lo genera `deploy.sh` (desde `594f6e2`, a mano con respaldo + `nginx -t`) y el snippet `vip-portal.conf` sale de su plantilla: no editar solo en el VPS.
 - **Secretos:** nada que imprima un comando por SSH es privado. Contraseñas nuevas → fichero `600` en `/root` que Jaime lee en terminal aparte; si algún paso falla, `shred` automático. Al volcar `access.log`, ocultar la query (el handshake de Meta lleva `hub.verify_token`). Al listar claves del `.env`, ojo con valores multilínea (PEM).
 - **`.env` del orquestador:** dotenv 17 se queda con la ÚLTIMA aparición de una clave repetida; un valor pegado desde chat puede llegar en formato Markdown.
 - **Diagnosticar un deploy:** `gh run view <id> --json jobs` y las anotaciones del job. `runner_name` vacío y 0 pasos = falta de runner de GitHub, no fallo nuestro. `/health` sigue en el commit viejo ~3 min tras el pull.
 - **Login de prueba desde el portátil** gasta intentos del rate limit de la IP de Jaime: evitarlo; usar el loopback del VPS o los logs.
 - **Antes de tocar `ufw`:** `nslookup` de los 10 hostnames. Cualquiera que resuelva a `161.35.85.101` se cae al cerrar 80/443 a Cloudflare (le pasó a Gambusas el 09-oct mientras estaba en nube gris; desde las 07:12 UTC los 10 van por CF).
+- **Landing:** los estilos de reposo van inline en `index.html` y le ganan a la hoja; cualquier `:hover`/`:active` nuevo necesita `!important` en `src/input.css`. Un `data-reveal` en un `<a>` le hereda el `transition-delay` al hover: envolverlo en un `<div>`. En móvil el chat de Sofía abierto tapa la página (las pruebas E2E recargan entre clics).
 - `obtenerAlmacenIdentidad()` es `async`; `buscarUsuario`/`fichaDe` sirven para lecturas de solo lectura sin tocar hashes.
 
 ---
@@ -168,6 +190,8 @@ Matices: los `.js` compilados obsoletos siguen en `dist/` (`tsc` no borra), pero
 **Replicar en `zasa-orchestrator` lo de §0.h** antes del 2026-10-19: acciones a versiones node24 y `runs-on: ubuntu-24.04` en `deploy-admin-vip.yml` (y `deploy-vps-4gb.yml`). El push despliega admin.: el commit lo hace Claude y el push, si el clasificador lo bloquea, lo lanza Jaime con `!` (barras normales: `! cd /c/Proyectos/...`, la shell del `!` es bash). Verificar con `gh run view` + `/health`.
 
 (Cerrado el 2026-10-10-b: `81e5cbb` empujado y verificado, §0.h.)
+
+Landing (§1.8), sin urgencia de fecha: el primero de la cola es de Jaime, confirmar los tres claims publicados. Después, medir conversiones antes de cualquier A/B de copy.
 
 Después: verificaciones de uso real (§1.1): una descarga con sesión de operador en vip., un cliente real tras el hardening y una reserva real de Sofía. Se observan en `access.log`, no se fuerzan con datos falsos. Después: A1 (schemas Fastify) y, de Jaime, decidir cuándo destruir `/root/backups-brecha2/liset_legacy_archive.tgz`.
 
