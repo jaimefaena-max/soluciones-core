@@ -1,8 +1,10 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-10-c (landing: CTAs a Sofía, propuesta B2B y 4 pilares)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-11-a (CI de zasa blindado, Gran Consejo y piloto nacho)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-2026-10-10` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-10-c** (misma conversación que la -b, medida solo desde su cierre), 17:28 UTC (10-oct) – 20:07 UTC (11-oct), **203,1 min activos**, **$118.475 CLP**, telemetría `zasa-orchestrator` `174002b`. Lo nuevo está en §0.i: la landing. Memoria de arranque: `arranque-2026-10-12`.
+> Memoria de arranque: `arranque-2026-10-13` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> **Última sesión: 2026-10-11-a** (conversación `3f5814c5…`), 02:11–04:19 UTC del 12-oct (23:11–01:19 hora local del 11-oct), **109,1 min activos**, **$63.642 CLP**, telemetría `zasa-orchestrator` `422ba47`. Quedó en solo lectura por la guarda de `/nacho` (§3) y la cerró la sesión `f55dc836…`. Lo nuevo está en §0.j.
+>
+> Sesión 2026-10-10-c (anterior; misma conversación que la -b, medida solo desde su cierre): 17:28 UTC (10-oct) – 20:07 UTC (11-oct), **203,1 min activos**, **$118.475 CLP**, telemetría `174002b`. Lo nuevo está en §0.i: la landing.
 >
 > Sesión 2026-10-10-b (anterior): 16:31–17:29 UTC, **57,2 min activos**, **$33.367 CLP**, telemetría `035fa3e`. Lo nuevo está en §0.h.
 >
@@ -132,6 +134,16 @@ Todo publicado con `deploy.sh` (simulación primero) y verificado desde fuera en
 
 Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de datos. La latencia real está en `ejecuciones_agentes.latencia_ms` (PostgreSQL del VPS); la consulta de solo lectura la bloqueó el modo automático («Production Reads»): la lanza Jaime.
 
+### 0.j · 2026-10-11-a — CI de zasa blindado, `/inicio-sesion` mide `/health`, Gran Consejo y piloto `nacho`
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **CI de `zasa-orchestrator` listo para el 19-oct**: los 4 jobs de los 3 workflows con `runs-on: ubuntu-24.04` (`7a4551d`); `actions/checkout` y `setup-node` de v4 a **v7**, runtime node24 (`663da53`). `node-version` de la app sigue en `'22'` | `.github/workflows/{deploy-admin-vip,deploy-vps-4gb,uptime-monitor}.yml`; CHANGELOG en `422ba47` | Runs `38197273779` y `38198536210` success, `Image: ubuntu-24.04`, 0 avisos de Node 20 en el segundo; `/health` = `663da53`. Sin ejercitar con v7: `uptime-monitor.yml` (programado) y `deploy-vps-4gb.yml` (manual) |
+| **`/inicio-sesion` ya no da un falso verde del Cockpit**: medía `/`, cuyo 401 es el Basic Auth de nginx (con PM2 caído seguía en verde). Ahora `/health` (200 + `status: ok`) y compara su commit con el HEAD local: `commitCoincide`, `serviciosConDrift` (drift ≠ caída) | `claude-skills` `91f5178` (empujado) | 5 casos: real, drift forzado, 200 no JSON, host inalcanzable, hook `-SinRed` |
+| **Auditoría del Gran Consejo** (2 skills + 12 agentes) e informe de migración a skills: ningún agente declara `tools:` (los 12 heredan Bash/SSH/push); `support.md` y `ramon.md` apuntan a la IP muerta `159.223.213.237`; `marco.md` vive en DO App Platform y edita `telemetry.ts` a mano | Solo en el chat de `3f5814c5…` (no persistido) | — |
+| **Piloto `nacho` + guardia P0**: `skills/nacho/SKILL.md` (cumplimiento 19.628 / 21.719 / 20.584, solo lectura) y `skills/_consejo/guardia.ps1` (hook `PreToolUse` que solo restringe y falla cerrado; ASCII puro) | `claude-skills` `81a24a8` (**sin push**; no despliega nada) | 62/62 pruebas offline (cazaron `git -c core.pager` y el hook que no bloqueaba si la guarda no arrancaba; corregidos). En vivo: `git status` pasa; `git commit --dry-run` y `ssh -V` denegados |
+| **Excepción `!Workspace_Agencia/doctrina/`** en el `.gitignore` raíz (los 4 ficheros de doctrina no estaban en ningún repo) | repo raíz, **sin commit** | `git add --dry-run` = exactamente los 4 ficheros; sin secretos. Falta la decisión de Jaime sobre `CEO_PERFIL_JAIME.md` (§1.10) |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -154,7 +166,12 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
    - **Sin confirmar**: un `grep` del 07-oct no encontró ningún `include` literal de `snippets/vip-portal.conf` en `sites-available/`, `sites-enabled/`, `nginx.conf` ni `conf.d/`. Antes de dar por activos sus bloques (incl. `/acceso/` de la brecha 8 y `/vip/`, que en vip. cae en la SPA), comprobar si se carga por otra vía.
 7. Heredado: rotar la credencial de julio de ExamenFácil si no se rotó; Gambusas: cabeceras duplicadas y `limit_req` del webhook WA, `meta-sync` sin `INSTAGRAM_BUSINESS_ACCOUNT_ID`, token de WhatsApp sin WABA (Jaime); `pm2-logrotate`; bandeja `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`.
 8. **Landing (§0.i)**: (a) de Jaime, confirmar los claims publicados «0 tareas repetitivas a mano», «experiencias 3D» (sin caso que mostrar) y «Lista en semanas»; (b) p95 real de latencia de Sofía para «<30 s» (`sc-landing-metrica-latencia-sofia`); (c) la landing no mide conversiones: ni clics de CTA ni aperturas del chat (`sc-landing-medicion-conversiones`); (d) commit del informe de `docs/`; (e) llenar el pilar de autoridad (un caso y una cifra reales, con permiso del cliente).
-9. Higiene: `CLAUDE.md` raíz y la skill `cierre-sesion` aún nombran `deploy-1gb.yml` (ya no existe). `ubuntu-latest` migra a Ubuntu 26 el **2026-10-19**: `admin_solucionesconia` ya fijado a `ubuntu-24.04` (§0.h); **falta `zasa-orchestrator`** (`deploy-admin-vip.yml` y `deploy-vps-4gb.yml`: acciones a node24 + runner fijado; tarea `cockpit-ci-acciones-node24-ubuntu`).
+9. ✅ **CERRADO el 2026-10-12 (§0.j): `zasa-orchestrator` fijado a `ubuntu-24.04` con acciones v7.** Los dos repos con CI de despliegue ya no dependen de `ubuntu-latest` antes del **2026-10-19**. (Lo de `deploy-1gb.yml` se cerró el 10-oct en `912b98f`.)
+10. **Gran Consejo (§0.j)**, por riesgo:
+    - 🔴 **`.claude/settings.local.json`** (no versionado) preaprueba `Bash(git push *)` (push a `main` = despliegue), `Bash(ssh -i *)` y un `scp` de `config.php` a `159.223.213.237` con `StrictHostKeyChecking=no` (IP retirada el 04-sep; DigitalOcean puede haberla reasignado), y repite en 4 reglas el token de `liset` en claro (retirado el 08-oct). Retirarlas con respaldo previo en el scratchpad; es configuración de permisos de Jaime: **su OK primero**. Tarea `cockpit-settings-local-reglas-riesgo`.
+    - 🔴 `support.md` y `ramon.md` con la IP muerta; `marco.md`/`ana.md` con DO App Platform; `inicio-sesion` dice «6 repos»; `cierre-sesion` apunta la memoria a `C--Proyectos-Workspace-Agencia` (la real es `C--Proyectos`); `creative.md` propone una cifra de prueba social sin fuente. Tarea `cockpit-consejo-datos-obsoletos`.
+    - De Jaime: ¿`doctrina/CEO_PERFIL_JAIME.md` entra en el repo raíz o va como contra-excepción? Lleva datos personales sensibles (de Jaime y de un tercero). Luego, commit de `.gitignore` + `doctrina/` en `agencia-root-orchestrator` (sin CI). Tarea `sc-doctrina-versionada`.
+    - Fase 2 del piloto: decidir entre `context: fork` (verificar que existe en esta instalación) o skills con guarda solo en sesión dedicada; verificar `disable-model-invocation` y `model:`; push de `81a24a8`. Tarea `cockpit-consejo-skills-piloto` (65 %).
 
 ## 2 · Estado de los repos al cierre
 
@@ -167,6 +184,7 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 - **Al cierre de 2026-10-10-a:** `zasa-orchestrator` limpio, `main` = `origin/main` = producción en `21be967` (`/health`). 🔴 `admin_solucionesconia` **ahead 1**: `81e5cbb` (npm audit fix de `nanoid`/`source-map-js`, solo `package-lock.json`, 07:15 UTC) commiteado SIN push y no hecho por Claude; vip. sigue en `e0154f3`. Un push a `main` despliega vip. Quedaron corriendo en el portátil el orquestador (`:3001`) y Vite (`:5173`).
 - **Al cierre de 2026-10-10-b:** `admin_solucionesconia` limpio, `main` = `origin/main` = `01102ef`; vip. sirve el mismo build (los tres runs dijeron «nada que desplegar»). `zasa-orchestrator` limpio salvo `src/data/telemetry.ts.bak-20261010172841.` sin rastrear; producción en `035fa3e`.
 - **Al cierre de 2026-10-10-c:** `solucionesconia` `main` = `origin/main` = clon del VPS = web root en `5b1218b` (solo `docs/informe-propuesta-valor-2026-10-10.md` sin rastrear). `admin_solucionesconia` en `4645cfe` (vip. y widget). `zasa-orchestrator` en `174002b` (telemetría 2026-10-10-c).
+- **Al cierre de 2026-10-11-a (hecho el 2026-10-12):** `zasa-orchestrator` `main` = `origin/main` = `422ba47` (telemetría + CHANGELOG; código en producción `663da53`). `claude-skills` **ahead 1** (`81a24a8`, piloto `nacho`; sin CI). Repo raíz: `.gitignore` modificado + `doctrina/` sin rastrear, sin commit a la espera de Jaime (§1.10). `solucionesconia`: solo el informe de `docs/` sin rastrear.
 - **`GambusasChile`:** sin cambios, `d366eb1`.
 - **`AuditorLegal`** y **portal de Jose:** cambios ajenos sin commitear; no se tocaron.
 
@@ -182,14 +200,16 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 - **Antes de tocar `ufw`:** `nslookup` de los 10 hostnames. Cualquiera que resuelva a `161.35.85.101` se cae al cerrar 80/443 a Cloudflare (le pasó a Gambusas el 09-oct mientras estaba en nube gris; desde las 07:12 UTC los 10 van por CF).
 - **Landing:** los estilos de reposo van inline en `index.html` y le ganan a la hoja; cualquier `:hover`/`:active` nuevo necesita `!important` en `src/input.css`. Un `data-reveal` en un `<a>` le hereda el `transition-delay` al hover: envolverlo en un `<div>`. En móvil el chat de Sofía abierto tapa la página (las pruebas E2E recargan entre clics).
 - `obtenerAlmacenIdentidad()` es `async`; `buscarUsuario`/`fichaDe` sirven para lecturas de solo lectura sin tocar hashes.
+- 🔴 **Una skill con hook en su frontmatter deja la sesión entera restringida.** Tras invocar `/nacho`, su `PreToolUse` siguió activo hasta el final: sin commits, sin memoria, sin `/cierre-sesion` (la guarda deniega Skill). No se apaga desde dentro; la salida es una sesión nueva. Invocar skills del Consejo solo en sesión dedicada o tras dejar commits y handover. Memoria `hooks-skill-persisten-toda-la-sesion`.
+- **Cerrar una sesión desde otra:** `end_session.js` mide por defecto el transcript más reciente (el de la sesión que cierra). Pasarle `--transcript <ruta>.jsonl` de la sesión que se audita, y `-SessionId` a `session-audit.ps1`.
 
 ---
 
 ## 4 · El paso exacto siguiente
 
-**Replicar en `zasa-orchestrator` lo de §0.h** antes del 2026-10-19: acciones a versiones node24 y `runs-on: ubuntu-24.04` en `deploy-admin-vip.yml` (y `deploy-vps-4gb.yml`). El push despliega admin.: el commit lo hace Claude y el push, si el clasificador lo bloquea, lo lanza Jaime con `!` (barras normales: `! cd /c/Proyectos/...`, la shell del `!` es bash). Verificar con `gh run view` + `/health`.
+🔴 **Necesita el OK de Jaime (es su configuración de permisos).** Neutralizar la IP muerta `159.223.213.237` y los preaprobados de riesgo de `.claude/settings.local.json` (§1.10): copia en el scratchpad, retirar `Bash(git push *)`, `Bash(ssh -i *)`, el `scp … config.php` con `StrictHostKeyChecking=no` y las 4 reglas con el token de `liset`, sin imprimir el token. Local, no despliega nada. Después, la IP en `support.md` y `ramon.md`.
 
-(Cerrado el 2026-10-10-b: `81e5cbb` empujado y verificado, §0.h.)
+(Cerrado el 2026-10-12: CI de `zasa-orchestrator` con `ubuntu-24.04` + acciones v7, §0.j.)
 
 Landing (§1.8), sin urgencia de fecha: el primero de la cola es de Jaime, confirmar los tres claims publicados. Después, medir conversiones antes de cualquier A/B de copy.
 
