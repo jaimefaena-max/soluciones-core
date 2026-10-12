@@ -1,6 +1,6 @@
 # Workspace de Jaime — C:\Proyectos
 
-Espacio de trabajo centralizado con **12 repos de git** (11 proyectos + el portal privado de Jose) que se referencian entre sí. Abrir Claude Code siempre en `C:\Proyectos`.
+Espacio de trabajo centralizado con **11 repos de git** que se referencian entre sí. Abrir Claude Code siempre en `C:\Proyectos`.
 
 ## Proyectos
 
@@ -8,9 +8,8 @@ Espacio de trabajo centralizado con **12 repos de git** (11 proyectos + el porta
 
 | Carpeta | Repo GitHub | Qué es | Producción |
 |---|---|---|---|
-| `Workspace_Agencia\Agencia_Solucionesconia\` | `solucionesconia` | La agencia (landing, assets y `deploy.sh`). **Sin CI**: `deploy.sh` se lanza a mano en el VPS y solo publica ficheros (ver «Despliegue de la landing»). `nginx/vip-portal.conf.plantilla` ya no la aplica nadie: el snippet vivo lo instala `instalar-plantillas.sh` de `zasa-orchestrator`. El material privado de clientes NO está aquí: vive en `Workspace_Agencia\privado_agencia\Clientes\` (Jose, forte-spa, Liset Saavedra, `_Plantilla_Portal_SPA`), fuera de git salvo Jose | solucionesconia.cl |
+| `Workspace_Agencia\Agencia_Solucionesconia\` | `solucionesconia` | La agencia (landing, assets y `deploy.sh`). **Sin CI**: `deploy.sh` se lanza a mano en el VPS y solo publica ficheros (ver «Despliegue de la landing»). `nginx/vip-portal.conf.plantilla` ya no la aplica nadie: el snippet vivo lo instala `instalar-plantillas.sh` de `zasa-orchestrator`. El material privado de clientes NO está aquí: vive en `Workspace_Agencia\privado_agencia\Clientes\` (forte-spa, Liset Saavedra, `_Plantilla_Portal_SPA`), fuera de git | solucionesconia.cl |
 | `Workspace_Agencia\admin_solucionesconia\` | `admin_solucionesconia` | Frontend B2B (Vite/React): la SPA del Portal VIP/Cockpit y el bundle del widget de Sofía (`public/widget/vendedor-ia-v17.js`, rastreado). El backend operativo vive en `zasa-orchestrator`. 🔴 **Push a `main` → `deploy-vip.yml` DESPLIEGA solo** (~40 s): `npm test` → build → `desplegar-estaticos.sh --aplicar` publica el `dist/` en `/opt/agencia/public/vip` (**vip.**, no admin.) y el widget en `/opt/agencia/public/widget/`. Ya no se copia a mano | vip.solucionesconia.cl (SPA) · admin.solucionesconia.cl/widget/ (bundle) |
-| `Workspace_Agencia\privado_agencia\Clientes\Jose\` | (privado; **el clon local no tiene `origin` configurado**, rama `master`) | Portal privado del cliente Jose; su `.github/workflows/deploy.yml` lo despliega a `/var/www/elrincondedonselso/public/jose` (ver Infraestructura). Es el 12.º repo del workspace | elrincondedonselso.cl/jose/ (Basic Auth) |
 | `Workspace_Clientes\Elrincon\` | `elrincondedonselso` | Libro web "El Rincón de Don Selso": 11 capítulos + epílogo en HTML estático puro. El backend de pagos NO está aquí: vive en el repo hermano `Elrincon-backend\` | elrincondedonselso.cl |
 | `Workspace_Clientes\ExamenFacil\` | `examenfacil-cl` | Plataforma ExamenFacil | examenfacil.cl |
 | `Workspace_Clientes\AuditorLegal\` | `auditorlegal` | Web estática con `api_handler.php` | — |
@@ -23,7 +22,7 @@ Espacio de trabajo centralizado con **12 repos de git** (11 proyectos + el porta
 
 ## Topología del workspace (dónde va cada cosa)
 
-Consolidada el 2026-09-09. **Esto es un polirepo, no un monorepo**: 12 repos de git
+Consolidada el 2026-09-09. **Esto es un polirepo, no un monorepo**: 11 repos de git
 independientes que comparten una carpeta local. Ningún despliegue lee de una ruta
 local — los pipelines (GitHub Actions por SSH al VPS; DO App Platform se retiró el
 2026-09-07) clonan del remoto GitHub de cada repo. Mover carpetas en Windows
@@ -73,7 +72,7 @@ El VPS DigitalOcean es **`161.35.85.101`**, hostname `zasa-server-restaurado` (U
 - Acceso: `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101`
 - Server blocks en `/etc/nginx/sites-available/`
 - elrincondedonselso.cl: web root `/var/www/elrincondedonselso.cl`; backend Node en :3000 vía PM2, expuesto como `/api/`; webhook de auto-deploy `/gh-webhook` (:9000)
-- Portal de Jose: repo en `Workspace_Agencia\privado_agencia\Clientes\Jose`, se despliega por GitHub Actions a `/var/www/elrincondedonselso/public/jose`, servido en `/jose/` mediante symlink desde el web root, protegido con Basic Auth (`/etc/nginx/.htpasswd_jose`)
+- Portal de Jose: ficheros en `/var/www/elrincondedonselso/public/jose`, servido en `/jose/` mediante symlink desde el web root, protegido con Basic Auth (`/etc/nginx/.htpasswd_jose`)
 - Capítulos 4-11 y todos los `.md` de Elrincon devuelven 404 en producción (decisión de auditoría — siguen en el repo)
 
 ### Despliegue de la landing (`solucionesconia.cl`)
@@ -137,7 +136,7 @@ Rollback: `git checkout <sha-anterior> && pm2 restart elrincon-backend`.
 
 Ante **cualquier saludo** de Jaime ("hola", "buenas", "buenos días", "qué tal", "arrancamos"…) o cualquier pedido de estado, ejecutar **de inmediato y sin pedir permiso** la skill `/inicio-sesion` (en `.claude/skills/inicio-sesion/`). No esperar a que Jaime lo pida ni preguntar si quiere el resumen.
 
-La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 11 repos locales del polirepo (rama, cambios sin commitear, ahead/behind, último commit; el portal de Jose queda fuera porque su clon no tiene `origin`) y la salud de los **7 endpoints de producción** —incluido el Portal VIP en `vip.`— (~10 s), lee las memorias, y entrega un **Resumen Ejecutivo del Estado Operativo** con cuatro bloques: (1) estado operativo con semáforo, (2) dónde quedamos, (3) bloqueadores activos con su vía de desbloqueo, y (4) plan inmediato priorizado **por cercanía a producción**.
+La skill corre `workspace-status.ps1`, que escanea **autónomamente** los 11 repos locales del polirepo (rama, cambios sin commitear, ahead/behind, último commit) y la salud de los **7 endpoints de producción** —incluido el Portal VIP en `vip.`— (~10 s), lee las memorias, y entrega un **Resumen Ejecutivo del Estado Operativo** con cuatro bloques: (1) estado operativo con semáforo, (2) dónde quedamos, (3) bloqueadores activos con su vía de desbloqueo, y (4) plan inmediato priorizado **por cercanía a producción**.
 
 Regla central del diagnóstico: separar siempre **repo / remoto / producción**. Un repo limpio y sincronizado NO significa desplegado — en este workspace la landing se despliega a mano con `deploy.sh` en el VPS (el Portal VIP y el widget, en cambio, se despliegan solos con cada push a `main` de `admin_solucionesconia`). Nombrar el **drift** explícitamente. Cuando una memoria choque con la salida del script, gana el script.
 
