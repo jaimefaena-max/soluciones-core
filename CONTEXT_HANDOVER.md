@@ -1,8 +1,10 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-11-a (CI de zasa blindado, Gran Consejo y piloto nacho)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-12-a (permisos de riesgo purgados, CI de EF y Gambusas, Jose retirado)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-2026-10-13` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-11-a** (conversación `3f5814c5…`), 02:11–04:19 UTC del 12-oct (23:11–01:19 hora local del 11-oct), **109,1 min activos**, **$63.642 CLP**, telemetría `zasa-orchestrator` `422ba47`. Quedó en solo lectura por la guarda de `/nacho` (§3) y la cerró la sesión `f55dc836…`. Lo nuevo está en §0.j.
+> Memoria de arranque: `arranque-2026-10-14` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> **Última sesión: 2026-10-12-a** (conversación `f55dc836…`), 04:24–06:09 UTC del 12-oct, **104,9 min activos**, **$61.192 CLP**, telemetría `zasa-orchestrator` `282624b`. Empezó cerrando la 2026-10-11-a. Lo nuevo está en §0.k; §1.9 corrige un error del cierre anterior.
+>
+> Sesión 2026-10-11-a (anterior; conversación `3f5814c5…`): 02:11–04:19 UTC del 12-oct (23:11–01:19 hora local del 11-oct), **109,1 min activos**, **$63.642 CLP**, telemetría `422ba47`. Quedó en solo lectura por la guarda de `/nacho` (§3). Lo nuevo está en §0.j.
 >
 > Sesión 2026-10-10-c (anterior; misma conversación que la -b, medida solo desde su cierre): 17:28 UTC (10-oct) – 20:07 UTC (11-oct), **203,1 min activos**, **$118.475 CLP**, telemetría `174002b`. Lo nuevo está en §0.i: la landing.
 >
@@ -144,6 +146,16 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 | **Piloto `nacho` + guardia P0**: `skills/nacho/SKILL.md` (cumplimiento 19.628 / 21.719 / 20.584, solo lectura) y `skills/_consejo/guardia.ps1` (hook `PreToolUse` que solo restringe y falla cerrado; ASCII puro) | `claude-skills` `81a24a8` (**sin push**; no despliega nada) | 62/62 pruebas offline (cazaron `git -c core.pager` y el hook que no bloqueaba si la guarda no arrancaba; corregidos). En vivo: `git status` pasa; `git commit --dry-run` y `ssh -V` denegados |
 | **Excepción `!Workspace_Agencia/doctrina/`** en el `.gitignore` raíz (los 4 ficheros de doctrina no estaban en ningún repo) | repo raíz, **sin commit** | `git add --dry-run` = exactamente los 4 ficheros; sin secretos. Falta la decisión de Jaime sobre `CEO_PERFIL_JAIME.md` (§1.10) |
 
+### 0.k · 2026-10-12-a — Permisos de riesgo purgados, CI de EF y Gambusas, agentes sin IP muerta, Jose retirado
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **`settings.local.json` purgado** (allow 443 → 376): 51 reglas a la IP muerta `159.223.213.237` (incl. `scp … config.php` con `StrictHostKeyChecking=no`), 5 con tokens en claro (`liset` ×3, `Authorization` contra la app retirada de DO ×2), `git push` ×2, `ssh *`, `ssh -i *`, `KEY="…/.ssh/elrincon_deploy" *` (aprobaba cualquier comando), `Read(~/.ssh/**)`, `node -e ' *`, `python -c ' *`, `git checkout/restore/rm *`. **Desde ahora `git push` y `ssh` piden permiso** | `.claude/settings.local.json` (no versionado); respaldos `settings.local.json.bak-20261012` (**con tokens**: borrar) y `-paso2` en el scratchpad de `f55dc836` | JSON válido; 0 IP muerta, 0 hex ≥32, 0 reglas `git push`/`ssh`; diff enmascarado en `permisos-enmascarado.diff` |
+| **CI de ExamenFácil** a `ubuntu-24.04` + `checkout@v7` (`ssh-action` es Docker: sin cambios) | `examenfacil-cl` `2548ef7` | Run `38206843915` success 23 s, `Image: ubuntu-24.04`, 0 anotaciones, simulacro rsync 0 huérfanos, `Deploy OK` (incluye `ef-nginx-verificar`), `curl -sI` 200 |
+| **CI de GambusasChile**, igual (`scp-action`/`ssh-action` Docker) | `gambusaschile` `ea3e118` | Run `38207618444` success 30 s, `ubuntu-24.04`, 0 anotaciones, `Deploy OK`, 200 con cabeceras de seguridad intactas |
+| **Agentes Diego y Ramón**: IP `161.35.85.101`, hostname `zasa-server-restaurado`; el deploy de Diego pasa a push a `main` + `deploy.yml` (su rsync manual sin excluir `storage/` habría borrado la Bóveda Médica) | `claude-skills` `1db2184` (empujado) | Sin restos de IP, URL `jaime/examenfacil.git` ni rsync manual |
+| **Portal de Jose: repo local retirado.** No tenía remoto (no existe en GitHub; su `deploy.yml` nunca corrió y escuchaba `main` con la rama en `master`) y guardaba fuera de su `.gitignore` un `.pfx`, la cédula y PDF tributarios. Respaldo cifrado a `9632DDAB` (subclave `1244E251EABC3365`), 99 entradas, 6,0 MB; **Jaime borró la carpeta a mano** | `Workspace_Agencia/vault/jose_backup_encrypted.tar.gz.gpg` (ignorado por `*.gpg`); `CLAUDE.md` `ba1ebed`; `session-audit.ps1` `80fdbfa` | `gpg --list-packets`: destinatario correcto; carpeta ausente; `session-audit.ps1` corre sin error. **Restauración sin probar** (privada dividida en shards). `/jose/` sigue en producción |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -166,10 +178,11 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
    - **Sin confirmar**: un `grep` del 07-oct no encontró ningún `include` literal de `snippets/vip-portal.conf` en `sites-available/`, `sites-enabled/`, `nginx.conf` ni `conf.d/`. Antes de dar por activos sus bloques (incl. `/acceso/` de la brecha 8 y `/vip/`, que en vip. cae en la SPA), comprobar si se carga por otra vía.
 7. Heredado: rotar la credencial de julio de ExamenFácil si no se rotó; Gambusas: cabeceras duplicadas y `limit_req` del webhook WA, `meta-sync` sin `INSTAGRAM_BUSINESS_ACCOUNT_ID`, token de WhatsApp sin WABA (Jaime); `pm2-logrotate`; bandeja `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`.
 8. **Landing (§0.i)**: (a) de Jaime, confirmar los claims publicados «0 tareas repetitivas a mano», «experiencias 3D» (sin caso que mostrar) y «Lista en semanas»; (b) p95 real de latencia de Sofía para «<30 s» (`sc-landing-metrica-latencia-sofia`); (c) la landing no mide conversiones: ni clics de CTA ni aperturas del chat (`sc-landing-medicion-conversiones`); (d) commit del informe de `docs/`; (e) llenar el pilar de autoridad (un caso y una cifra reales, con permiso del cliente).
-9. ✅ **CERRADO el 2026-10-12 (§0.j): `zasa-orchestrator` fijado a `ubuntu-24.04` con acciones v7.** Los dos repos con CI de despliegue ya no dependen de `ubuntu-latest` antes del **2026-10-19**. (Lo de `deploy-1gb.yml` se cerró el 10-oct en `912b98f`.)
+9. ✅ **CERRADO de verdad el 2026-10-12 (§0.j + §0.k): los 4 pipelines que despliegan están en `ubuntu-24.04` + `checkout@v7`** antes del **2026-10-19**: `zasa-orchestrator` (`663da53`), `admin_solucionesconia` (`01102ef`), `examenfacil-cl` (`2548ef7`) y `GambusasChile` (`ea3e118`), todos con run success y 200. 🔴 **Corrección:** el cierre de 2026-10-11-a decía «los dos repos con CI de despliegue» y daba el frente por cerrado mirando solo zasa; quedaban EF, Gambusas y Jose. Lección en la memoria `frente-transversal-barrer-todos-los-repos`. El de Jose no cuenta: nunca tuvo remoto (§0.k). (Lo de `deploy-1gb.yml` se cerró el 10-oct en `912b98f`.)
 10. **Gran Consejo (§0.j)**, por riesgo:
-    - 🔴 **`.claude/settings.local.json`** (no versionado) preaprueba `Bash(git push *)` (push a `main` = despliegue), `Bash(ssh -i *)` y un `scp` de `config.php` a `159.223.213.237` con `StrictHostKeyChecking=no` (IP retirada el 04-sep; DigitalOcean puede haberla reasignado), y repite en 4 reglas el token de `liset` en claro (retirado el 08-oct). Retirarlas con respaldo previo en el scratchpad; es configuración de permisos de Jaime: **su OK primero**. Tarea `cockpit-settings-local-reglas-riesgo`.
-    - 🔴 `support.md` y `ramon.md` con la IP muerta; `marco.md`/`ana.md` con DO App Platform; `inicio-sesion` dice «6 repos»; `cierre-sesion` apunta la memoria a `C--Proyectos-Workspace-Agencia` (la real es `C--Proyectos`); `creative.md` propone una cifra de prueba social sin fuente. Tarea `cockpit-consejo-datos-obsoletos`.
+    - ✅ **CERRADO el 2026-10-12 (§0.k):** `settings.local.json` purgado. Tarea `cockpit-settings-local-reglas-riesgo`.
+    - 🟡 **Datos obsoletos de agentes y skills** (`cockpit-consejo-datos-obsoletos`, 40 %). Hecho: IP y deploy de `support.md`/`ramon.md` (§0.k). Falta: `support.md` línea 69 `chown -R www-data:www-data /var/www/` (contradice al pipeline, que deja el código `deploy:www-data`: si Diego lo ejecuta, el siguiente deploy de EF choca), su tabla de sitios (`/var/www/elrincon`, `/var/www/solucionesconia`) y su `description` («deploy via rsync/SSH»); `marco.md`/`ana.md` con DO App Platform; `inicio-sesion` dice «6 repos»; `cierre-sesion` apunta la memoria a `C--Proyectos-Workspace-Agencia` (la real es `C--Proyectos`); `creative.md` propone una cifra de prueba social sin fuente.
+    - De Jaime (Jose, §0.k): probar la restauración del `.gpg` con 2 de 3 shards y sacar una copia fuera del portátil; borrar `settings.local.json.bak-20261012` del scratchpad de `f55dc836` (lleva tokens retirados). Queda una regla fija en `settings.local.json` con la ruta vieja `…\Agencia_Solucionesconia\Clientes\Jose`: inofensiva.
     - De Jaime: ¿`doctrina/CEO_PERFIL_JAIME.md` entra en el repo raíz o va como contra-excepción? Lleva datos personales sensibles (de Jaime y de un tercero). Luego, commit de `.gitignore` + `doctrina/` en `agencia-root-orchestrator` (sin CI). Tarea `sc-doctrina-versionada`.
     - Fase 2 del piloto: decidir entre `context: fork` (verificar que existe en esta instalación) o skills con guarda solo en sesión dedicada; verificar `disable-model-invocation` y `model:`; push de `81a24a8`. Tarea `cockpit-consejo-skills-piloto` (65 %).
 
@@ -185,8 +198,9 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 - **Al cierre de 2026-10-10-b:** `admin_solucionesconia` limpio, `main` = `origin/main` = `01102ef`; vip. sirve el mismo build (los tres runs dijeron «nada que desplegar»). `zasa-orchestrator` limpio salvo `src/data/telemetry.ts.bak-20261010172841.` sin rastrear; producción en `035fa3e`.
 - **Al cierre de 2026-10-10-c:** `solucionesconia` `main` = `origin/main` = clon del VPS = web root en `5b1218b` (solo `docs/informe-propuesta-valor-2026-10-10.md` sin rastrear). `admin_solucionesconia` en `4645cfe` (vip. y widget). `zasa-orchestrator` en `174002b` (telemetría 2026-10-10-c).
 - **Al cierre de 2026-10-11-a (hecho el 2026-10-12):** `zasa-orchestrator` `main` = `origin/main` = `422ba47` (telemetría + CHANGELOG; código en producción `663da53`). `claude-skills` **ahead 1** (`81a24a8`, piloto `nacho`; sin CI). Repo raíz: `.gitignore` modificado + `doctrina/` sin rastrear, sin commit a la espera de Jaime (§1.10). `solucionesconia`: solo el informe de `docs/` sin rastrear.
-- **`GambusasChile`:** sin cambios, `d366eb1`.
-- **`AuditorLegal`** y **portal de Jose:** cambios ajenos sin commitear; no se tocaron.
+- **Al cierre de 2026-10-12-a:** `zasa-orchestrator` `main` = `origin/main` = `282624b` (telemetría). `examenfacil-cl` = `2548ef7` y `GambusasChile` = `ea3e118`, ambos publicados. `claude-skills` = `origin` en `80fdbfa`. Repo raíz = `origin` en `ba1ebed` + este handover; siguen sin commit `.gitignore` y `doctrina/` (§1.10). La carpeta del portal de Jose ya no existe en disco.
+- **`GambusasChile`:** `ea3e118` (CI, 12-oct).
+- **`AuditorLegal`:** cambios ajenos sin commitear; no se tocaron.
 
 ## 3 · Trampas operativas (nuevas o confirmadas hoy)
 
@@ -207,9 +221,11 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 
 ## 4 · El paso exacto siguiente
 
-🔴 **Necesita el OK de Jaime (es su configuración de permisos).** Neutralizar la IP muerta `159.223.213.237` y los preaprobados de riesgo de `.claude/settings.local.json` (§1.10): copia en el scratchpad, retirar `Bash(git push *)`, `Bash(ssh -i *)`, el `scp … config.php` con `StrictHostKeyChecking=no` y las 4 reglas con el token de `liset`, sin imprimir el token. Local, no despliega nada. Después, la IP en `support.md` y `ramon.md`.
+**Corregir `support.md` línea 69** (`chown -R www-data:www-data /var/www/` → el modelo real: código `deploy:www-data`, runtime `www-data` en 640/750) y seguir con el resto de `cockpit-consejo-datos-obsoletos` (§1.10). Local, en `claude-skills`, que no despliega nada.
 
-(Cerrado el 2026-10-12: CI de `zasa-orchestrator` con `ubuntu-24.04` + acciones v7, §0.j.)
+Después, de Jaime: `CEO_PERFIL_JAIME.md` dentro o fuera (§1.10), los 3 claims de la landing (§1.8) y la prueba de restauración del respaldo de Jose (§0.k).
+
+(Cerrado el 2026-10-12: `settings.local.json` purgado, los 4 pipelines en `ubuntu-24.04`, agentes sin IP muerta y Jose retirado, §0.k. Antes, el 2026-10-12: CI de `zasa-orchestrator`, §0.j.)
 
 Landing (§1.8), sin urgencia de fecha: el primero de la cola es de Jaime, confirmar los tres claims publicados. Después, medir conversiones antes de cualquier A/B de copy.
 
