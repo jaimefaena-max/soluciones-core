@@ -274,11 +274,32 @@ La guardia en agentes ya está probada (Fase 1), pero mientras P1–P3 no exista
 |---|---|---|---|
 | **0** | Delegación nativa de Roberto | Nulo | ✅ `b8c399b` |
 | **1** | Probar `hooks:` en el frontmatter de un agente con un agente de prueba P0 | Nulo | ✅ Validada (2026-10-13). Jaime creó `agente-prueba-guardia` (el modo automático bloqueó crearlo a Claude); corrección `claude-skills` `e179145`. Detalle bajo esta tabla |
-| **2** | Añadir P1, P2 y P3 a `guardia.ps1`, con pruebas offline como la batería de P0 | Bajo | Pendiente |
+| **2** | Añadir P1, P2 y P3 a `guardia.ps1`, con pruebas offline como la batería de P0 | Bajo | ⏸️ En pausa formal (2026-10-13): bloqueada por el clasificador de seguridad. Arrastra a las Fases 4 y 5. Nota bajo esta tabla |
 | **3** | `tools:` en los agentes sin Bash: Felipe, Rodrigo, Doc, Camila, Nacho, Laura y Roberto. No depende de los hooks | Bajo | ✅ `claude-skills` `c1734e3`, en `origin/main` (2026-10-13). Los 7 declaran su lista de §6. **Desviación:** Roberto sin `TodoWrite`, para no arriesgar un fallo de arranque si ese nombre no resuelve en el runtime instalado. Prueba de humo superada (nota bajo esta tabla) |
 | **4** | Crear `pentester.md` → `mlops.md` → `cloud-architect.md` y añadirlos al mapa `subagent_type` de Roberto | Bajo | Pendiente |
 | **5** | `tools:` + guardia en los agentes con Bash, una vez validada la Fase 1 | Medio | Pendiente |
 | **6** | Sustituir `CONSEJO_PROFESIONAL.md` (V3.0) por esta doctrina y actualizar `REGLAS_DE_ORO.md` y `PROTOCOLO_INTERACCION.md` (siguen en V1.0, solo ExamenFácil) | Nulo | Pendiente |
+
+⏸️ **Pausa de la Fase 2 (2026-10-13):** al pasar de leer `guardia.ps1` a construir los perfiles P1–P3, un
+clasificador de seguridad detuvo la respuesta de Claude, y ese bloqueo le impide volver a producir ese
+contenido en la sesión. No se escribió ni se commiteó nada; `guardia.ps1` sigue en `e179145` (solo P0).
+
+- **Efecto en cadena:** la Fase 4 depende de P1 (Vera) y P2 (Lucía), y la Fase 5 de los tres perfiles. Un
+  hook que apuntara a un perfil inexistente fallaría cerrado («perfil desconocido»): seguro, pero dejaría
+  inservible al agente.
+- **Riesgo que sigue abierto:** Valentina, Marco, Ramón, Ana y Diego siguen sin `tools:` y heredan todo.
+  Mientras dure la pausa vale la mitigación de §5.4.
+- **Reanudación:** decisión de Jaime. Puede diseñar los perfiles él mismo o elegir otra vía; nunca a través de
+  subagentes ni de otra herramienta para rodear el bloqueo.
+
+**Decisión de diseño ratificada: Roberto se queda en P0 con delegación.** Se descartó un «perfil P3 de
+administración total» para Roberto y el Consejo por tres motivos:
+1. La guardia **solo restringe**: devolver `allow` desde un hook se saltaría los avisos de permisos de Jaime.
+2. Un registro de auditoría deja constancia de lo que pasó, pero no lo impide.
+3. Un agente que delega y además opera la infraestructura reintroduce el acceso total que la V4.0 elimina.
+
+Para operar la infraestructura: Roberto planifica y delega en **Diego** (P3 tal como está definido en §5.2:
+`ssh` siempre con aviso de permisos y respaldo previo), y Jaime aprueba lo irreversible (Paso 4 de `roberto.md`).
 
 ✅ **Prueba de fuego de la Fase 1 (2026-10-13):** superada en dos rondas con `agente-prueba-guardia`
 (`tools: Read, Grep, Glob` + hook `PreToolUse` → `guardia.ps1 -Perfil P0`). La prueba usa un `Read` de un
@@ -297,8 +318,8 @@ informe, así que cualquier agente con P0 trabajaba pero no podía entregar nada
 `e179145`. La regla de alcance sigue cubriendo también el texto del informe: un informe que cite esa ruta
 se deniega. **Límites:** la ronda 1 se verificó en la transcripción del subagente; la de la ronda 2 quedó
 vacía, así que se respalda en los datos del runtime (2 llamadas, informe entregado por `SubagentHandback`)
-y en que el bloqueo coincide con el de la ronda 1. **Pendiente:** borrar `agents/agente-prueba-guardia.md`,
-que no tiene commit.
+y en que el bloqueo coincide con el de la ronda 1. El agente de prueba se borró tras la validación (nunca
+tuvo commit); su definición completa es la que describe esta nota, por si hay que repetir la prueba.
 
 ✅ **Prueba de humo de la Fase 3 (2026-10-13):** superada, sin errores de runtime.
 
