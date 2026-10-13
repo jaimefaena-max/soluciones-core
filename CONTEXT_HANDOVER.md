@@ -282,6 +282,8 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 
 ## 4 · El paso exacto siguiente
 
+✅ **SOL-23 CERRADO (23:16 UTC del 13-oct): autonomía de los 5 agentes técnicos APLICADA.** `autoMode.allow` en `.claude/settings.json` (`claude-skills` `91105c5`) + `CONSEJO_V4.md` §5.4 (raíz `37b036b`). Desde la próxima sesión, SSH a 161.35.85.101 y push a `main` no se bloquean en modo automático (vale para toda la sesión). Siguiente: **SOL-25** (Claude: telemetría de 2026-10-13-b con id `-b`), luego SOL-8, SOL-9/10, SOL-21.
+
 ✅ **SOL-39 CERRADO (23:06 UTC del 13-oct): `total_post_19sep = 0`, Bóveda sin daño** (0 intentos en `logs/ef_errors.log`; solo escriben la Bóveda los análisis con email y `payment_id` no `ANON_`). El paso siguiente es el primero de «Después», abajo. Texto original: 🔴 **Bloqueado por Jaime (Claude no puede: Production Reads). SOL-39** — SOL-5 se cerró sin este dato. Medir si se perdieron exámenes pagados entre el 19-sep y el 13-oct; el script ya está en `~/diag/`. Desde **Git Bash**:
 
 ```bash
