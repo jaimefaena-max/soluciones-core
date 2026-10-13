@@ -1,8 +1,11 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-b (Gran Consejo V4.0: Fases 0, 1 y 3 cerradas, Fase 2 en pausa)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-c (backlog en Linear; baja de claude_handler.php; sudoers; datos obsoletos del Consejo cerrados)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-2026-10-15` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-13-b** (conversación `d0e8c4f0…`), tarde del 13-oct. Solo tooling y doctrina, en `claude-skills` y en el repo raíz (sin CI): **nada desplegado a producción**. **Sin telemetría:** no se ejecutó `/cierre-sesion` completo (ni tiempo medido, ni coste, ni push a `zasa-orchestrator`). Lo nuevo está en §0.m, §1.10 y §4.
+> Memoria de arranque: `arranque-2026-10-16` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..39`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
+> **Última sesión: 2026-10-13-c** (conversación `273502bd…`), 19:54–22:55 UTC del 13-oct, **162,5 min activos**, **$94.792 CLP**, telemetría `zasa-orchestrator` `e2cba69`. Lo nuevo está en §0.n, §3 y §4. El id `-c` deja `-b` libre para medir la sesión `d0e8c4f0…` (SOL-25).
+>
+> Sesión 2026-10-13-b (anterior) (conversación `d0e8c4f0…`), tarde del 13-oct. Solo tooling y doctrina, en `claude-skills` y en el repo raíz (sin CI): **nada desplegado a producción**. **Sin telemetría:** no se ejecutó `/cierre-sesion` completo (ni tiempo medido, ni coste, ni push a `zasa-orchestrator`). Lo nuevo está en §0.m, §1.10 y §4.
 >
 > Sesión 2026-10-13-a (anterior) (conversación `70a1382e…`), 14:49–15:55 UTC del 13-oct, **65,2 min activos**, **$38.033 CLP**, telemetría `zasa-orchestrator` `36c81dc`, publicada con `27526f1` (`/health`). Lo nuevo está en §0.l y §4.
 >
@@ -187,6 +190,20 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 | **Doctrina versionada**: excepción `!Workspace_Agencia/doctrina/` y **contra-excepción para `CEO_PERFIL_JAIME.md`** (queda fuera de git) | repo raíz `acfa146` | `git check-ignore` ✓; `ls-files` sin el perfil |
 | **Inventario de modelos de IA en producción**: `deepseek-chat` (agente de Sofía), `claude-haiku-4-5` (clasificador de Sofía), `claude-sonnet-5` (M. Jesús), `gemini-2.5-flash` (ExamenFácil). 🔴 `claude_handler.php` de EF apunta al App Platform retirado | `CONSEJO_V4.md` §4.3 | Solo código; `.env` de producción sin mirar |
 
+### 0.n · 2026-10-13-c — Backlog en Linear y primera tanda cerrada
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **Linear poblado** desde este handover: 7 proyectos (`P-SOL-1` EF · `-2` Cockpit/VIP · `-3` Landing · `-4` Consejo/tooling · `-5` Infra/seguridad · `-6` Gambusas · `-7` AuditorLegal), issues `SOL-5..38` + `SOL-39`, etiquetas `bloqueado-jaime`/`claude-local`/`toca-producción`/`seguridad`; onboarding `SOL-1..4` cancelado | linear.app/solucionesconia | Lecturas por MCP tras cada escritura |
+| 🔴→✅ **`claude_handler.php` dado de baja (SOL-7).** URL fija a App Platform muerto y `?test` **público sin auth** (no estaba en la lista de bloqueo del vhost): mandaba el Bearer del orquestador y datos del paciente a ese host (riesgo de toma de subdominio). Evidencia previa: 0 peticiones en 14 días de `access.log` (control: 2.144 `/health.php`, 69 `/api_handler.php`) y sin cron de `brain_sync.php` | `examenfacil-cl` `aa75935` (borra `claude_handler.php` y `admin/brain_sync.php`; `claude_handler` en la regex de bloqueo de `examenfacil.cl.nginx`) | Vhost aplicado ANTES del push con `EF_VHOST_MODO=aplicar ef-nginx-verificar` (respaldo `/root/nginx-backups/examenfacil.cl.pre-sync.2026-10-13-213555`, `nginx -t`, reload); run `38472048337` success con «vhost coincide»; `?test` → **403** desde fuera; ficheros fuera del web root; Bóveda intacta |
+| ✅ **Sudoers (SOL-6):** `deploy-examenfacil-boveda` ya estaba en 0440; quitada la línea 10 duplicada de `/etc/sudoers.d/deploy` (respaldo + `visudo -cf` + `mv` atómico) | `~/diag/sol6-sudoers-quitar-linea10.sh`; respaldo `/root/backups-sudoers/20261013T211052Z` | `visudo -c` 8/8; `sudo -l -U deploy` conserva los 3 comandos de `storage` |
+| 🟡 **SOL-5 cerrado por decisión de Jaime** con evidencia parcial (18 registros de `exam_counters`). **`sin_ruta`/`total_post_19sep` siguen SIN medir** → SOL-39. El script ya vive en `~/diag/ef-boveda-conteo.php` (estaba solo en un scratchpad; sha256 idéntico) | Linear SOL-5, SOL-39 | — |
+| ✅ **Claims de la landing (SOL-18):** se mantienen tal cual por decisión comercial. Producción = `6b9bacd` (posterior al `5b1218b` de §0.i) | `index.html` l. 319-320, 390, 402-404, 409 | `curl` vía CF |
+| ✅ **`cockpit-consejo-datos-obsoletos` CERRADO (SOL-24):** `marco.md` (descripción + 11 referencias) y `ana.md` sin App Platform; `inicio-sesion` 11 repos / 7 endpoints; `cierre-sesion` con memoria en `C--Proyectos`; `creative.md` sin «2.400 análisis» | `claude-skills` `45eb0d8`, `90f0ccf` (push con límites de `/git-sync`) | Script sin red devuelve 11 repos; hook parsea |
+| ✅ **Respaldo con tokens borrado (SOL-31)** por Jaime; el resto del scratchpad de `f55dc836` sin secretos (SHA y digests Docker) | — | `ls` |
+| Memoria de agosto huérfana (`C--Proyectos-Workspace-Agencia/memory/`): migrada limpia `cliente-nuevo-solo-una-fila`; las otras dos descartadas (una lleva datos personales de un tercero; borrarla es de Jaime) | memoria | — |
+| ⏸️ **Autonomía de despliegue para los 5 agentes técnicos** (decisión de Jaime): bloqueada como «Permission Grant». Redactados en el chat el texto de §5.4 de `CONSEJO_V4.md` y un `autoMode.allow` para `.claude/settings.json`; **los aplica Jaime**. Contradice SOL-23 | — | Sin aplicar |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -237,6 +254,7 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 - **Al cierre de 2026-10-12-a:** `zasa-orchestrator` `main` = `origin/main` = `282624b` (telemetría). `examenfacil-cl` = `2548ef7` y `GambusasChile` = `ea3e118`, ambos publicados. `claude-skills` = `origin` en `80fdbfa`. Repo raíz = `origin` en `ba1ebed` + este handover; siguen sin commit `.gitignore` y `doctrina/` (§1.10). La carpeta del portal de Jose ya no existe en disco.
 - **Al cierre de 2026-10-13-a:** `examenfacil-cl` `main` = `origin/main` = producción en `882ebd2`. `zasa-orchestrator` = `36c81dc` (telemetría). `claude-skills`: `agents/support.md` sin commit (no es de Claude). Repo raíz: `.gitignore` + `doctrina/` siguen sin commit (§1.10) + este handover.
 - **Al cierre de 2026-10-13-b:** `claude-skills` `main` = `origin/main` = `cddda7f` (limpio). Repo raíz `main` = `origin/main` = `44b3c1e` + este handover. Los repos de producción no se tocaron.
+- **Al cierre de 2026-10-13-c:** `examenfacil-cl` `main` = `origin/main` = producción en `aa75935`. `zasa-orchestrator` = `e2cba69` (telemetría). `claude-skills` = `origin` en `90f0ccf` (limpio). `solucionesconia` = `6b9bacd` en producción, con `docs/informe-propuesta-valor-2026-10-10.md` sin rastrear (SOL-21). Repo raíz: solo este handover.
 - **`GambusasChile`:** `ea3e118` (CI, 12-oct).
 - **`AuditorLegal`:** cambios ajenos sin commitear; no se tocaron.
 
@@ -256,13 +274,25 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 - 🟢 **La guardia en un AGENTE no secuestra la sesión** (al contrario que en una skill): el hook vive y muere con el subagente (Fase 1, 2026-10-13-b). Todo perfil debe permitir `SubagentHandback`, o el agente trabaja pero no entrega nada. La guardia filtra también el texto del informe: si un informe cita la carpeta personal protegida, se deniega.
 - 🔴 **Modo automático y definiciones de agentes (2026-10-13-b):** **quitar** capacidad pasa (`tools:` restrictivo, `c1734e3`); **dar** capacidad (crear agentes con `hooks:`, delegación nativa) se bloquea como «Self-Modification», también con autorización en el chat. La vía es que Jaime lo aplique en persona. Memoria `modo-automatico-bloqueos-vps`.
 - **Un subagente SÍ puede delegar** (hasta 3 niveles, `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). La auditoría del 11-oct y el primer protocolo de Roberto decían lo contrario.
+- 🔴 **Vhost de EF antes del push (2026-10-13-c):** `deploy.yml` corre `ef-nginx-verificar` en modo verificar y pone el job en ROJO si el vhost vivo ≠ `examenfacil.cl.nginx`; nunca lo aplica. Un cambio de vhost va así: `ssh … 'EF_VHOST_MODO=aplicar /usr/local/sbin/ef-nginx-verificar' < examenfacil.cl.nginx` (respaldo + `nginx -t` + reload) y DESPUÉS el push. Entre medias, cualquier otro push a EF sale en rojo.
+- **Modo automático (2026-10-13-c):** bloquea de forma intermitente las escrituras en Linear («External System Writes») y, siempre, dar permisos a agentes o al clasificador («Permission Grant», incluso para leer el fichero en esa tarea; «Self-Modification» al editar `settings`). Escrituras en el VPS: «Remote Shell Writes», que pasó al segundo intento con orden explícita de Jaime. Claude no hace borrados permanentes de ficheros: los lanza Jaime.
 - **Cerrar una sesión desde otra:** `end_session.js` mide por defecto el transcript más reciente (el de la sesión que cierra). Pasarle `--transcript <ruta>.jsonl` de la sesión que se audita, y `-SessionId` a `session-audit.ps1`.
 
 ---
 
 ## 4 · El paso exacto siguiente
 
-🔴 **Bloqueado por Jaime (Claude no puede: Production Reads).** Medir si se perdieron exámenes pagados entre el 19-sep y el 13-oct. Desde **Git Bash**, sin comillas:
+🔴 **Bloqueado por Jaime (Claude no puede: Production Reads). SOL-39** — SOL-5 se cerró sin este dato. Medir si se perdieron exámenes pagados entre el 19-sep y el 13-oct; el script ya está en `~/diag/`. Desde **Git Bash**:
+
+```bash
+ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'cd /var/www/examenfacil.cl && php' < ~/diag/ef-boveda-conteo.php
+```
+
+`sin_ruta > 0` = clientes que pagaron sin fichero en la Bóveda: reabrir SOL-5. `sin_ruta = 0` = cerrar SOL-39.
+
+Después, por orden: de Jaime, aplicar (o descartar) la autonomía de los 5 agentes técnicos (§0.n; reescribir SOL-23) y retirar/rotar la credencial del orquestador que usaba `claude_handler.php` (SOL-8). Claude: medir la telemetría de 2026-10-13-b (SOL-25, id `-b`), SOL-9/SOL-10 (snippet `vip-portal.conf`) y SOL-21. **El resto de la cola, en Linear.**
+
+Histórico (2026-10-13-b), ya resuelto en 2026-10-13-c salvo el conteo: 🔴 **Bloqueado por Jaime (Claude no puede: Production Reads).** Medir si se perdieron exámenes pagados entre el 19-sep y el 13-oct. Desde **Git Bash**, sin comillas:
 
 ```bash
 ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'cd /var/www/examenfacil.cl && php' < ~/diag/ef-boveda-conteo.php
