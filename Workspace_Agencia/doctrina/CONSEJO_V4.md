@@ -32,11 +32,11 @@ Verificados en la documentación oficial salvo donde se indica.
 | `tools:` **omitido = hereda todas** las herramientas. Con lista explícita, lo no listado queda fuera (también `PowerShell` y los MCP) | Basta una lista explícita para quitar Bash, PowerShell y MCP a quien no los necesita |
 | `disallowedTools:` existe, pero `Bash(git push *)` **quita Bash entero**, no solo ese comando | Para limitar *argumentos* hace falta la guardia (§5), no `disallowedTools` |
 | `hooks:` es un campo válido del frontmatter de un agente. Los hooks **solo corren mientras el subagente está activo y se limpian al terminar** | A diferencia de las skills (cuya guardia se queda toda la sesión), la guardia en agentes no secuestra la sesión principal |
-| Los hooks de agentes de proyecto solo corren si se aceptó el **diálogo de confianza** de la carpeta que contiene el agente | Por inferencia está aceptada (el hook `SessionStart` de `.claude/settings.json` corre), **no verificado** |
+| Los hooks de agentes de proyecto solo corren si se aceptó el **diálogo de confianza** de la carpeta que contiene el agente | ✅ Aceptada: la guardia del agente de prueba corrió en la Fase 1 (2026-10-13) |
 | `name:` no admite `:`, no puede empezar por `-` ni pasar de 256 caracteres | `cloud-architect`, `pentester` y `mlops` son válidos |
 | Los cambios en `.claude/agents/` se recogen **en caliente**, sin reiniciar | Una corrección de agente rige desde la siguiente delegación |
 
-🟡 **Pendiente de prueba empírica:** la guardia en el frontmatter de un agente (§5). El 2026-10-13 el modo automático bloqueó como «Self-Modification» crear el agente de prueba, así que la compatibilidad está **documentada, no ejecutada** en esta instalación.
+✅ **Verificado en esta instalación (Fase 1, 2026-10-13):** la guardia declarada en el `hooks:` de un agente se ejecuta, se queda dentro del subagente (la sesión principal no queda restringida) y, desde `e179145`, deja al agente entregar su informe. Detalle en §7, bajo la tabla de fases.
 
 ---
 
@@ -209,7 +209,7 @@ revocado por Google; `deepseek_handler.php` no tiene llamadores; `MODELO_OPUS` e
 
 | Perfil | `tools:` base | La guardia permite | La guardia deniega | Estado |
 |---|---|---|---|---|
-| **P0 Lectura** | `Read, Grep, Glob` (+ `WebSearch, WebFetch` si investiga) | — | Escrituras, Bash, PowerShell, MCP de escritura | ✅ existe en `guardia.ps1` (62/62 pruebas offline) |
+| **P0 Lectura** | `Read, Grep, Glob` (+ `WebSearch, WebFetch` si investiga) | — | Escrituras, Bash, PowerShell, MCP de escritura | ✅ existe en `guardia.ps1`. Permite `SubagentHandback` desde `e179145`. Regresión 60/60 offline (58 de la batería + 2 de `SubagentHandback`); el handover del 12-oct citaba 62/62, incluidas pruebas en vivo |
 | **P1 Verificación** | P0 + `Bash` | Tests, `curl`, `php -l`, `git status/diff/log` | `ssh`, `scp`, `rsync`, `git commit/push`, `rm`, redirecciones a fichero | 🆕 por construir |
 | **P2 Construcción local** | P1 + `Edit, Write` | Edición del repo, `npm test`, `git add/commit` | `ssh`, `scp`, `rsync`, `git push`, `.env`, secretos | 🆕 por construir |
 | **P3 Operación** | P2 + SSH | `ssh` a `161.35.85.101`, siempre con prompt de permisos (nunca en la lista de permitidos) | `git push` que despliega sin OK de Jaime; `chown -R /var/www/` | 🆕 por construir |
@@ -232,8 +232,8 @@ agente está activo, así que no reproduce la trampa de las skills (memoria `hoo
 
 ### 5.4 Mitigación provisional
 
-Hasta que P1–P3 existan y la guardia en agentes esté probada, un agente con `Bash` en `tools:` tiene Bash
-completo. Para ese periodo: reglas `ask` globales en `.claude/settings.json` para `Bash(ssh *)`,
+La guardia en agentes ya está probada (Fase 1), pero mientras P1–P3 no existan, un agente con `Bash` en
+`tools:` tiene Bash completo. Para ese periodo: reglas `ask` globales en `.claude/settings.json` para `Bash(ssh *)`,
 `Bash(scp *)` y `Bash(git push *)`. Afectan también a la sesión principal y requieren el OK de Jaime.
 
 ---
@@ -273,12 +273,32 @@ completo. Para ese periodo: reglas `ask` globales en `.claude/settings.json` par
 | Fase | Qué | Riesgo | Estado |
 |---|---|---|---|
 | **0** | Delegación nativa de Roberto | Nulo | ✅ `b8c399b` |
-| **1** | Probar `hooks:` en el frontmatter de un agente con un agente de prueba P0 | Nulo | 🔴 Bloqueada por el modo automático («Self-Modification»): requiere que Jaime cree el agente de prueba o una regla de permisos |
-| **2** | Añadir P1, P2 y P3 a `guardia.ps1`, con pruebas offline como las 62 de P0 | Bajo | Pendiente |
+| **1** | Probar `hooks:` en el frontmatter de un agente con un agente de prueba P0 | Nulo | ✅ Validada (2026-10-13). Jaime creó `agente-prueba-guardia` (el modo automático bloqueó crearlo a Claude); corrección `claude-skills` `e179145`. Detalle bajo esta tabla |
+| **2** | Añadir P1, P2 y P3 a `guardia.ps1`, con pruebas offline como la batería de P0 | Bajo | Pendiente |
 | **3** | `tools:` en los agentes sin Bash: Felipe, Rodrigo, Doc, Camila, Nacho, Laura y Roberto. No depende de los hooks | Bajo | ✅ `claude-skills` `c1734e3`, en `origin/main` (2026-10-13). Los 7 declaran su lista de §6. **Desviación:** Roberto sin `TodoWrite`, para no arriesgar un fallo de arranque si ese nombre no resuelve en el runtime instalado. Prueba de humo superada (nota bajo esta tabla) |
 | **4** | Crear `pentester.md` → `mlops.md` → `cloud-architect.md` y añadirlos al mapa `subagent_type` de Roberto | Bajo | Pendiente |
 | **5** | `tools:` + guardia en los agentes con Bash, una vez validada la Fase 1 | Medio | Pendiente |
 | **6** | Sustituir `CONSEJO_PROFESIONAL.md` (V3.0) por esta doctrina y actualizar `REGLAS_DE_ORO.md` y `PROTOCOLO_INTERACCION.md` (siguen en V1.0, solo ExamenFácil) | Nulo | Pendiente |
+
+✅ **Prueba de fuego de la Fase 1 (2026-10-13):** superada en dos rondas con `agente-prueba-guardia`
+(`tools: Read, Grep, Glob` + hook `PreToolUse` → `guardia.ps1 -Perfil P0`). La prueba usa un `Read` de un
+archivo inexistente cuyo nombre activa la regla de alcance de `TRAMITE JUZGADO`: si el hook no corriera,
+`Read` diría «el archivo no existe».
+
+| | Ronda 1 | Ronda 2 (tras `e179145`) |
+|---|---|---|
+| `Read` interceptado por la guardia | ✅ `PreToolUse:Read hook error: [guardia P0] C:\TRAMITE JUZGADO esta fuera de alcance (CLAUDE.md)` | ✅ Mismo bloqueo |
+| Entrega del informe (`SubagentHandback`) | ❌ 10 intentos denegados: `[guardia P0] solo lectura: 'SubagentHandback' no esta permitida en este perfil` | ✅ Al primer intento |
+| Llamadas a herramientas | 6, más 1 tras pedirle el informe | 2 (1 `Read` + 1 `SubagentHandback`) |
+| Sesión principal durante la prueba | Sin restricción: el hook no salió del subagente | Ídem |
+
+**Hallazgo y corrección:** P0 denegaba `SubagentHandback`, el canal por el que un subagente devuelve su
+informe, así que cualquier agente con P0 trabajaba pero no podía entregar nada. Corregido en `claude-skills`
+`e179145`. La regla de alcance sigue cubriendo también el texto del informe: un informe que cite esa ruta
+se deniega. **Límites:** la ronda 1 se verificó en la transcripción del subagente; la de la ronda 2 quedó
+vacía, así que se respalda en los datos del runtime (2 llamadas, informe entregado por `SubagentHandback`)
+y en que el bloqueo coincide con el de la ronda 1. **Pendiente:** borrar `agents/agente-prueba-guardia.md`,
+que no tiene commit.
 
 ✅ **Prueba de humo de la Fase 3 (2026-10-13):** superada, sin errores de runtime.
 
