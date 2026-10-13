@@ -295,8 +295,11 @@ del runtime. Lo que sí respalda la prueba es que la línea devuelta coincide ex
 
 ⚠️ **Sobre el modo automático:** editar la definición de un agente para **darle** capacidad (hooks,
 delegación) se bloquea como «Self-Modification» y la autorización en el chat no lo desbloquea (2026-10-13).
-**Quitar** capacidad (las Fases 3 y 5) no está probado. Contar con que Jaime aplique en persona los cambios
-que el clasificador frene, como ya hizo con `b8c399b`.
+**Quitar** capacidad sí pasa sin bloqueo: la Fase 3 (`c1734e3`) añadió `tools:` restrictivo a 7 agentes, con
+edición y commit hechos por Claude, y el clasificador no la frenó (2026-10-13). No se puede extrapolar a la
+Fase 5, que además de restringir añade `hooks:` (justo lo que se bloqueó en la Fase 1), ni a la Fase 4, que
+crea agentes nuevos. Contar con que Jaime aplique en persona los cambios que el clasificador frene, como ya
+hizo con `b8c399b`.
 
 **Orden de retorno de los agentes nuevos:** Vera primero (pagos y datos de salud en juego), luego Lucía
 (coste de IA variable y sin red de evaluación en Sofía), y por último Sebastián (su primer encargo, el
