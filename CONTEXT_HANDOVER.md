@@ -1,8 +1,10 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-12-a (permisos de riesgo purgados, CI de EF y Gambusas, Jose retirado)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-a (Bóveda Médica de ExamenFácil sin escritura, corregida)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-2026-10-14` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-12-a** (conversación `f55dc836…`), 04:24–06:09 UTC del 12-oct, **104,9 min activos**, **$61.192 CLP**, telemetría `zasa-orchestrator` `282624b`. Empezó cerrando la 2026-10-11-a. Lo nuevo está en §0.k; §1.9 corrige un error del cierre anterior.
+> Memoria de arranque: `arranque-2026-10-15` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> **Última sesión: 2026-10-13-a** (conversación `70a1382e…`), 14:49–15:55 UTC del 13-oct, **65,2 min activos**, **$38.033 CLP**, telemetría `zasa-orchestrator` `36c81dc`. Lo nuevo está en §0.l y §4.
+>
+> Sesión 2026-10-12-a (anterior) (conversación `f55dc836…`), 04:24–06:09 UTC del 12-oct, **104,9 min activos**, **$61.192 CLP**, telemetría `zasa-orchestrator` `282624b`. Empezó cerrando la 2026-10-11-a. Lo nuevo está en §0.k; §1.9 corrige un error del cierre anterior.
 >
 > Sesión 2026-10-11-a (anterior; conversación `3f5814c5…`): 02:11–04:19 UTC del 12-oct (23:11–01:19 hora local del 11-oct), **109,1 min activos**, **$63.642 CLP**, telemetría `422ba47`. Quedó en solo lectura por la guarda de `/nacho` (§3). Lo nuevo está en §0.j.
 >
@@ -156,6 +158,15 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 | **Agentes Diego y Ramón**: IP `161.35.85.101`, hostname `zasa-server-restaurado`; el deploy de Diego pasa a push a `main` + `deploy.yml` (su rsync manual sin excluir `storage/` habría borrado la Bóveda Médica) | `claude-skills` `1db2184` (empujado) | Sin restos de IP, URL `jaime/examenfacil.git` ni rsync manual |
 | **Portal de Jose: repo local retirado.** No tenía remoto (no existe en GitHub; su `deploy.yml` nunca corrió y escuchaba `main` con la rama en `master`) y guardaba fuera de su `.gitignore` un `.pfx`, la cédula y PDF tributarios. Respaldo cifrado a `9632DDAB` (subclave `1244E251EABC3365`), 99 entradas, 6,0 MB; **Jaime borró la carpeta a mano** | `Workspace_Agencia/vault/jose_backup_encrypted.tar.gz.gpg` (ignorado por `*.gpg`); `CLAUDE.md` `ba1ebed`; `session-audit.ps1` `80fdbfa` | `gpg --list-packets`: destinatario correcto; carpeta ausente; `session-audit.ps1` corre sin error. **Restauración sin probar** (privada dividida en shards). `/jose/` sigue en producción |
 
+### 0.l · 2026-10-13-a — Bóveda Médica de ExamenFácil: PHP no podía escribir
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| 🔴→✅ **`storage/` (Bóveda Médica) sin escritura para PHP.** El `rsync` la excluía (desde el 19-sep, para no borrarla), pero quedaba fuera de los dos bucles de permisos de runtime: el `chown -R deploy:www-data` la dejaba `deploy:www-data` 755 y el `copy()` de `api_handler.php:867` fallaba en silencio (solo un WARN en `logs/ef_errors.log`). Antes del arreglo: vacía y sin cambios desde el 19-sep | `examenfacil-cl` `882ebd2` (`storage` en ambos bucles de `deploy.yml`) + `/etc/sudoers.d/deploy-examenfacil-boveda` (Jaime, root, antes del push; Claude comprobó los 3 comandos con `sudo -l -U deploy`) | Run `38424321257` success con todos los pasos (incl. `ef-nginx-verificar`); `storage/` y `storage/examenes` `www-data:www-data` 750; `sudo -u www-data test -w` OK; `logs/uploads/informes` intactas en 2750; `examenfacil.cl` 200 |
+| **`support.md` línea 69**: el arreglo (código `deploy:www-data`, runtime `www-data` 750/640, nunca `chown -R /var/www/`) estaba sin commitear y **no lo hizo Claude**. Auditado contra `deploy.yml`: coincide | `.claude/agents/support.md`, sin commit | Le falta `storage` en el bucle tras `882ebd2` |
+| **Sudoers, restos**: `deploy-examenfacil-boveda` quedó en 644 (debe ser 0440; `visudo -c` lo marca) y el `chown` de `storage` está también en la línea 10 de `/etc/sudoers.d/deploy` (editado a mano a las 15:37 UTC pese a «NO editar a mano») | VPS | Pendiente, de Jaime (`ef-sudoers-boveda-modo-0440`) |
+| **Bloqueos del modo automático**: la lectura de MySQL de producción (aunque `READ ONLY`), crear una skill para lanzar esas lecturas, y una de dos ediciones de `deploy.yml` (pasó al reintentar con autorización explícita). En el Code tab **el `!` no ejecuta comandos**: van a Git Bash | memoria `modo-automatico-bloqueos-vps` | — |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -199,6 +210,7 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 - **Al cierre de 2026-10-10-c:** `solucionesconia` `main` = `origin/main` = clon del VPS = web root en `5b1218b` (solo `docs/informe-propuesta-valor-2026-10-10.md` sin rastrear). `admin_solucionesconia` en `4645cfe` (vip. y widget). `zasa-orchestrator` en `174002b` (telemetría 2026-10-10-c).
 - **Al cierre de 2026-10-11-a (hecho el 2026-10-12):** `zasa-orchestrator` `main` = `origin/main` = `422ba47` (telemetría + CHANGELOG; código en producción `663da53`). `claude-skills` **ahead 1** (`81a24a8`, piloto `nacho`; sin CI). Repo raíz: `.gitignore` modificado + `doctrina/` sin rastrear, sin commit a la espera de Jaime (§1.10). `solucionesconia`: solo el informe de `docs/` sin rastrear.
 - **Al cierre de 2026-10-12-a:** `zasa-orchestrator` `main` = `origin/main` = `282624b` (telemetría). `examenfacil-cl` = `2548ef7` y `GambusasChile` = `ea3e118`, ambos publicados. `claude-skills` = `origin` en `80fdbfa`. Repo raíz = `origin` en `ba1ebed` + este handover; siguen sin commit `.gitignore` y `doctrina/` (§1.10). La carpeta del portal de Jose ya no existe en disco.
+- **Al cierre de 2026-10-13-a:** `examenfacil-cl` `main` = `origin/main` = producción en `882ebd2`. `zasa-orchestrator` = `36c81dc` (telemetría). `claude-skills`: `agents/support.md` sin commit (no es de Claude). Repo raíz: `.gitignore` + `doctrina/` siguen sin commit (§1.10) + este handover.
 - **`GambusasChile`:** `ea3e118` (CI, 12-oct).
 - **`AuditorLegal`:** cambios ajenos sin commitear; no se tocaron.
 
@@ -221,7 +233,17 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 
 ## 4 · El paso exacto siguiente
 
-**Corregir `support.md` línea 69** (`chown -R www-data:www-data /var/www/` → el modelo real: código `deploy:www-data`, runtime `www-data` en 640/750) y seguir con el resto de `cockpit-consejo-datos-obsoletos` (§1.10). Local, en `claude-skills`, que no despliega nada.
+🔴 **Bloqueado por Jaime (Claude no puede: Production Reads).** Medir si se perdieron exámenes pagados entre el 19-sep y el 13-oct. Desde **Git Bash**, sin comillas:
+
+```bash
+ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'cd /var/www/examenfacil.cl && php' < ~/diag/ef-boveda-conteo.php
+```
+
+Solo lectura (`READ ONLY` + `ROLLBACK`), solo recuentos. `sin_ruta > 0` = exámenes perdidos: el fichero no está, pero las métricas sí están en `analisis_metricas` (decidir si avisar a esos clientes). `total_post_19sep = 0` = fallo latente, sin daño. Tarea `ef-boveda-examenes-perdidos-19sep`.
+
+Después (Claude, local): `storage` en el bucle de runtime de `support.md` y commit en `claude-skills`; luego el resto de `cockpit-consejo-datos-obsoletos`. De Jaime: `chmod 0440` del sudoers nuevo y quitar la línea 10 duplicada de `deploy` (§0.l).
+
+Histórico (2026-10-12-a): **Corregir `support.md` línea 69** (`chown -R www-data:www-data /var/www/` → el modelo real: código `deploy:www-data`, runtime `www-data` en 640/750) y seguir con el resto de `cockpit-consejo-datos-obsoletos` (§1.10). Local, en `claude-skills`, que no despliega nada.
 
 Después, de Jaime: `CEO_PERFIL_JAIME.md` dentro o fuera (§1.10), los 3 claims de la landing (§1.8) y la prueba de restauración del respaldo de Jose (§0.k).
 
