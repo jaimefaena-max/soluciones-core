@@ -80,8 +80,8 @@ revisada el 2026-10-13. Corrige la premisa falsa de `8a225f6`, que suponía que 
   ejecuta su fase; nunca atribuye a un agente trabajo que no hizo, y lo reporta como degradación.
 - **Presupuesto de anidación:** los especialistas ejecutan su fase sin lanzar subagentes.
 
-**Pendiente:** `roberto.md` aún no declara `tools:`. En la V4.0 debe incluir `Agent` explícitamente (§6);
-si se le quitara, caería al modo de respaldo en todas las misiones.
+✅ **`tools:` aplicado** (`claude-skills` `c1734e3`): `roberto.md` declara `Read, Grep, Glob, Agent`. `Agent`
+es explícito (§6); si se le quitara, caería al modo de respaldo en todas las misiones.
 
 **Mapa `subagent_type` V4.0** (añadir a la tabla del Paso 0 cuando existan los agentes nuevos):
 
@@ -242,15 +242,15 @@ completo. Para ese periodo: reglas `ask` globales en `.claude/settings.json` par
 
 | Agente | Perfil | `tools:` propuesto | Pierde | Ajuste en su `.md` |
 |---|---|---|---|---|
-| Roberto | P0 + delegación | `Read, Grep, Glob, Agent, TodoWrite` | Bash, PowerShell, Edit, Write, MCP | Conserva `Agent` (§3). Ejecutar lo hacen los especialistas |
-| Felipe | P0 | `Read, Grep, Glob` | Todo lo demás | Entrega el backlog como texto |
-| Rodrigo | P0 + web | `Read, Grep, Glob, WebSearch, WebFetch` | Bash | Analiza los logs que le entrega Diego |
-| Doc | P0 + edición | `Read, Grep, Glob, Edit, WebSearch, WebFetch` | Bash, Write | Edita prompts existentes; la evaluación la corre Lucía |
-| Camila | Edición sin Bash | `Read, Grep, Glob, Edit, Write, WebFetch` | Bash | Retirar la cifra de prueba social sin fuente |
+| Roberto | P0 + delegación | `Read, Grep, Glob, Agent` ✅ | Bash, PowerShell, Edit, Write, MCP | Conserva `Agent` (§3). Ejecutar lo hacen los especialistas. Sin `TodoWrite` (ver §7, Fase 3) |
+| Felipe | P0 | `Read, Grep, Glob` ✅ | Todo lo demás | Entrega el backlog como texto |
+| Rodrigo | P0 + web | `Read, Grep, Glob, WebSearch, WebFetch` ✅ | Bash | Analiza los logs que le entrega Diego |
+| Doc | P0 + edición | `Read, Grep, Glob, Edit, WebSearch, WebFetch` ✅ | Bash, Write | Edita prompts existentes; la evaluación la corre Lucía |
+| Camila | Edición sin Bash | `Read, Grep, Glob, Edit, Write, WebFetch` ✅ | Bash | Retirar la cifra de prueba social sin fuente |
 | Valentina | P2 | `Read, Grep, Glob, Edit, Write, Bash` | `git push`, SSH, MCP, `Agent` | — |
 | Marco | P2 | `Read, Grep, Glob, Edit, Write, Bash` | `git push` (en zasa despliega), SSH, `Agent` | Retirar DO App Platform |
-| Nacho | P0 + web | `Read, Grep, Glob, WebSearch, WebFetch` | Todo lo que escribe | Alinear con la skill `/nacho` o retirar el agente |
-| Laura | P0 | `Read, Grep, Glob` | Todo lo demás | Entrega correos redactados; **nunca los envía** |
+| Nacho | P0 + web | `Read, Grep, Glob, WebSearch, WebFetch` ✅ | Todo lo que escribe | Alinear con la skill `/nacho` o retirar el agente |
+| Laura | P0 | `Read, Grep, Glob` ✅ | Todo lo demás | Entrega correos redactados; **nunca los envía** |
 | Ramón | P2 | `Read, Grep, Glob, Edit, Write, Bash, WebFetch` | SSH, OWASP (pasa a Vera), `Agent` | Retirar seguridad de su `description` |
 | Ana | P2 | `Read, Grep, Glob, Edit, Write, Bash` | `git push`, SSH, `Agent` | Retirar DO App Platform (`ana.md:45`) |
 | Diego | **P3** | `Read, Grep, Glob, Edit, Bash` | Write, MCP, `Agent` | Único con SSH; siempre con prompt y respaldo previo |
@@ -275,7 +275,7 @@ completo. Para ese periodo: reglas `ask` globales en `.claude/settings.json` par
 | **0** | Delegación nativa de Roberto | Nulo | ✅ `b8c399b` |
 | **1** | Probar `hooks:` en el frontmatter de un agente con un agente de prueba P0 | Nulo | 🔴 Bloqueada por el modo automático («Self-Modification»): requiere que Jaime cree el agente de prueba o una regla de permisos |
 | **2** | Añadir P1, P2 y P3 a `guardia.ps1`, con pruebas offline como las 62 de P0 | Bajo | Pendiente |
-| **3** | `tools:` en los agentes sin Bash: Felipe, Rodrigo, Doc, Camila, Nacho, Laura y Roberto. No depende de los hooks | Bajo | Pendiente |
+| **3** | `tools:` en los agentes sin Bash: Felipe, Rodrigo, Doc, Camila, Nacho, Laura y Roberto. No depende de los hooks | Bajo | ✅ `claude-skills` `c1734e3`, en `origin/main` (2026-10-13). Los 7 declaran su lista de §6. **Desviación:** Roberto sin `TodoWrite`, para no arriesgar un fallo de arranque si ese nombre no resuelve en el runtime instalado. Verificado el diff; los agentes no se han invocado aún con la lista nueva |
 | **4** | Crear `pentester.md` → `mlops.md` → `cloud-architect.md` y añadirlos al mapa `subagent_type` de Roberto | Bajo | Pendiente |
 | **5** | `tools:` + guardia en los agentes con Bash, una vez validada la Fase 1 | Medio | Pendiente |
 | **6** | Sustituir `CONSEJO_PROFESIONAL.md` (V3.0) por esta doctrina y actualizar `REGLAS_DE_ORO.md` y `PROTOCOLO_INTERACCION.md` (siguen en V1.0, solo ExamenFácil) | Nulo | Pendiente |
