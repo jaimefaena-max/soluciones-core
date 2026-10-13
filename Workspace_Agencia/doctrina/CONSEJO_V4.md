@@ -275,10 +275,23 @@ completo. Para ese periodo: reglas `ask` globales en `.claude/settings.json` par
 | **0** | Delegación nativa de Roberto | Nulo | ✅ `b8c399b` |
 | **1** | Probar `hooks:` en el frontmatter de un agente con un agente de prueba P0 | Nulo | 🔴 Bloqueada por el modo automático («Self-Modification»): requiere que Jaime cree el agente de prueba o una regla de permisos |
 | **2** | Añadir P1, P2 y P3 a `guardia.ps1`, con pruebas offline como las 62 de P0 | Bajo | Pendiente |
-| **3** | `tools:` en los agentes sin Bash: Felipe, Rodrigo, Doc, Camila, Nacho, Laura y Roberto. No depende de los hooks | Bajo | ✅ `claude-skills` `c1734e3`, en `origin/main` (2026-10-13). Los 7 declaran su lista de §6. **Desviación:** Roberto sin `TodoWrite`, para no arriesgar un fallo de arranque si ese nombre no resuelve en el runtime instalado. Verificado el diff; los agentes no se han invocado aún con la lista nueva |
+| **3** | `tools:` en los agentes sin Bash: Felipe, Rodrigo, Doc, Camila, Nacho, Laura y Roberto. No depende de los hooks | Bajo | ✅ `claude-skills` `c1734e3`, en `origin/main` (2026-10-13). Los 7 declaran su lista de §6. **Desviación:** Roberto sin `TodoWrite`, para no arriesgar un fallo de arranque si ese nombre no resuelve en el runtime instalado. Prueba de humo superada (nota bajo esta tabla) |
 | **4** | Crear `pentester.md` → `mlops.md` → `cloud-architect.md` y añadirlos al mapa `subagent_type` de Roberto | Bajo | Pendiente |
 | **5** | `tools:` + guardia en los agentes con Bash, una vez validada la Fase 1 | Medio | Pendiente |
 | **6** | Sustituir `CONSEJO_PROFESIONAL.md` (V3.0) por esta doctrina y actualizar `REGLAS_DE_ORO.md` y `PROTOCOLO_INTERACCION.md` (siguen en V1.0, solo ExamenFácil) | Nulo | Pendiente |
+
+✅ **Prueba de humo de la Fase 3 (2026-10-13):** superada, sin errores de runtime.
+
+| Paso | Resultado |
+|---|---|
+| El hilo principal invoca `roberto` con `Agent` | Arranca con `Read, Grep, Glob, Agent`, sin Bash ni PowerShell |
+| Roberto, ya como subagente (nivel 1), delega en `felipe` con `Agent` | Delegación hecha (nivel 2), en unos 6 s: la anidación queda **verificada en este equipo**, no solo documentada |
+| Felipe lee la primera línea de `Workspace_Agencia/Agencia_Solucionesconia/README.md` | Arranca con `Read, Grep, Glob`, sin Bash, Edit, Write ni `Agent`. Solo usa `Read` y devuelve `# Soluciones con IA`, que coincide con el valor de referencia tomado antes de la prueba |
+
+Ambos ven además `SubagentHandback`, que el runtime inyecta en todo subagente para devolver su informe
+(no viene de `tools:`). Felipe ve los servidores MCP en sus instrucciones, pero no tiene ninguna de sus
+herramientas. **Límite:** las listas de herramientas las informa cada agente sobre sí mismo, no una traza
+del runtime. Lo que sí respalda la prueba es que la línea devuelta coincide exactamente con la referencia.
 
 ⚠️ **Sobre el modo automático:** editar la definición de un agente para **darle** capacidad (hooks,
 delegación) se bloquea como «Self-Modification» y la autorización en el chat no lo desbloquea (2026-10-13).
