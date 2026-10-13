@@ -1,8 +1,10 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-a (Bóveda Médica de ExamenFácil sin escritura, corregida)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-b (Gran Consejo V4.0: Fases 0, 1 y 3 cerradas, Fase 2 en pausa)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
 > Memoria de arranque: `arranque-2026-10-15` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> **Última sesión: 2026-10-13-a** (conversación `70a1382e…`), 14:49–15:55 UTC del 13-oct, **65,2 min activos**, **$38.033 CLP**, telemetría `zasa-orchestrator` `36c81dc`, publicada con `27526f1` (`/health`). Lo nuevo está en §0.l y §4.
+> **Última sesión: 2026-10-13-b** (conversación `d0e8c4f0…`), tarde del 13-oct. Solo tooling y doctrina, en `claude-skills` y en el repo raíz (sin CI): **nada desplegado a producción**. **Sin telemetría:** no se ejecutó `/cierre-sesion` completo (ni tiempo medido, ni coste, ni push a `zasa-orchestrator`). Lo nuevo está en §0.m, §1.10 y §4.
+>
+> Sesión 2026-10-13-a (anterior) (conversación `70a1382e…`), 14:49–15:55 UTC del 13-oct, **65,2 min activos**, **$38.033 CLP**, telemetría `zasa-orchestrator` `36c81dc`, publicada con `27526f1` (`/health`). Lo nuevo está en §0.l y §4.
 >
 > Sesión 2026-10-12-a (anterior) (conversación `f55dc836…`), 04:24–06:09 UTC del 12-oct, **104,9 min activos**, **$61.192 CLP**, telemetría `zasa-orchestrator` `282624b`. Empezó cerrando la 2026-10-11-a. Lo nuevo está en §0.k; §1.9 corrige un error del cierre anterior.
 >
@@ -168,6 +170,23 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 | 🔴→✅ **CI de `zasa-orchestrator` roto por bombas de fecha** (sin cambio de código): `cobrosRoutes`/`pagosMercadoPago` creaban cobros con vencimiento fijo `2026-10-12` y emisión «ahora» → 400 desde el 13-oct; el extracto esperaba «pendiente» y ya sale «vencida». Tumbó el run de la telemetría (`38426139940`) | `zasa-orchestrator` `27526f1` (emisión fija `2026-09-30` en fixtures; vencimiento relativo a hoy en el test del extracto; sin cambios en `src/`) | 1.865 tests ✓, `tsc` ✓; run `38427413486` success; `/health` = `27526f1`; `dist/data/telemetry.js` con `2026-10-13-a` |
 | **Bloqueos del modo automático**: la lectura de MySQL de producción (aunque `READ ONLY`), crear una skill para lanzar esas lecturas, y una de dos ediciones de `deploy.yml` (pasó al reintentar con autorización explícita). En el Code tab **el `!` no ejecuta comandos**: van a Git Bash | memoria `modo-automatico-bloqueos-vps` | — |
 
+### 0.m · 2026-10-13-b — Gran Consejo V4.0: doctrina, menor privilegio y guardia en agentes
+
+Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Agencia/doctrina/CONSEJO_V4.md`.
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **Auditoría del Consejo** (12 agentes, 2 skills, guardia) y **especificación V4.0**: 3 agentes Élite (Vera/Pentester, Lucía/MLOps, Sebastián/Cloud Architect), matriz de `tools:`, perfiles P0–P3, plan en 7 fases | `CONSEJO_V4.md` (repo raíz `acfa146` → `44b3c1e`) | — |
+| **`support.md`**: `storage/` en el bucle de runtime (igual que `examenfacil-cl` `882ebd2`) + la corrección de la línea 69 que estaba sin commit | `claude-skills` `4f71cbf` | Cotejado contra los dos bucles de `deploy.yml` |
+| **Fase 0, delegación nativa de Roberto.** Un subagente SÍ puede lanzar subagentes, hasta 3 niveles (`8a225f6` suponía lo contrario). El Paso 0 lo aplicó Jaime: el modo automático bloqueó a Claude («Self-Modification», también con autorización en el chat) | `claude-skills` `b8c399b` | Idéntico a la propuesta (diff) |
+| **Fase 3, `tools:` en los 7 agentes sin Bash**: Felipe, Rodrigo, Doc, Camila, Nacho, Laura y Roberto (`Read, Grep, Glob, Agent`; sin `TodoWrite`) | `claude-skills` `c1734e3` | Prueba de humo: Roberto → `Agent` → Felipe lee el README de la agencia (`# Soluciones con IA`), sin errores |
+| **Fase 1, guardia en el frontmatter de agentes: VALIDADA.** El hook corre, se queda dentro del subagente y no restringe la sesión principal. **Hallazgo:** P0 denegaba `SubagentHandback` (10 entregas fallidas) → corregido | `claude-skills` `e179145`; agente de prueba creado por Jaime y ya borrado | Ronda 2: `Read` bloqueado + informe entregado al primer intento; regresión P0 60/60 offline |
+| ⏸️ **Fase 2 (P1–P3) en pausa formal**: un clasificador de seguridad detuvo la construcción de los perfiles y Claude no puede volver a producir ese contenido. Arrastra a las Fases 4 y 5. Se descartó un «P3 de administración total» (la guardia solo restringe) | `CONSEJO_V4.md` §7 (`ec4d639`) | `guardia.ps1` sigue solo con P0 |
+| **Skill `/git-sync`**: push de commits ya hechos solo en `claude-skills` y en el repo raíz; se niega en repos con `.github/workflows/`, sin `--force`, no commitea | `claude-skills` `cddda7f` | Usada 3 veces con éxito (`e179145..cddda7f`, `7993de5..ec4d639`, `ec4d639..44b3c1e`) |
+| **Fase 6 (parcial)**: `REGLAS_DE_ORO.md` (10 reglas: Zero-Trust, prohibido escalar, secretos, evidencia) y `PROTOCOLO_INTERACCION.md` (matriz, reglas de `SubagentHandback`) a V4.0. Se retira la figura de «Victoria», que nunca existió como agente, y el nombre completo de Jaime de la cabecera | repo raíz `44b3c1e` | `CONSEJO_PROFESIONAL.md` (V3.0) sigue como histórico |
+| **Doctrina versionada**: excepción `!Workspace_Agencia/doctrina/` y **contra-excepción para `CEO_PERFIL_JAIME.md`** (queda fuera de git) | repo raíz `acfa146` | `git check-ignore` ✓; `ls-files` sin el perfil |
+| **Inventario de modelos de IA en producción**: `deepseek-chat` (agente de Sofía), `claude-haiku-4-5` (clasificador de Sofía), `claude-sonnet-5` (M. Jesús), `gemini-2.5-flash` (ExamenFácil). 🔴 `claude_handler.php` de EF apunta al App Platform retirado | `CONSEJO_V4.md` §4.3 | Solo código; `.env` de producción sin mirar |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -191,7 +210,12 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 7. Heredado: rotar la credencial de julio de ExamenFácil si no se rotó; Gambusas: cabeceras duplicadas y `limit_req` del webhook WA, `meta-sync` sin `INSTAGRAM_BUSINESS_ACCOUNT_ID`, token de WhatsApp sin WABA (Jaime); `pm2-logrotate`; bandeja `ventas@`, compra real del pack $14.990, DMARC `p=quarantine`.
 8. **Landing (§0.i)**: (a) de Jaime, confirmar los claims publicados «0 tareas repetitivas a mano», «experiencias 3D» (sin caso que mostrar) y «Lista en semanas»; (b) p95 real de latencia de Sofía para «<30 s» (`sc-landing-metrica-latencia-sofia`); (c) la landing no mide conversiones: ni clics de CTA ni aperturas del chat (`sc-landing-medicion-conversiones`); (d) commit del informe de `docs/`; (e) llenar el pilar de autoridad (un caso y una cifra reales, con permiso del cliente).
 9. ✅ **CERRADO de verdad el 2026-10-12 (§0.j + §0.k): los 4 pipelines que despliegan están en `ubuntu-24.04` + `checkout@v7`** antes del **2026-10-19**: `zasa-orchestrator` (`663da53`), `admin_solucionesconia` (`01102ef`), `examenfacil-cl` (`2548ef7`) y `GambusasChile` (`ea3e118`), todos con run success y 200. 🔴 **Corrección:** el cierre de 2026-10-11-a decía «los dos repos con CI de despliegue» y daba el frente por cerrado mirando solo zasa; quedaban EF, Gambusas y Jose. Lección en la memoria `frente-transversal-barrer-todos-los-repos`. El de Jose no cuenta: nunca tuvo remoto (§0.k). (Lo de `deploy-1gb.yml` se cerró el 10-oct en `912b98f`.)
-10. **Gran Consejo (§0.j)**, por riesgo:
+10. **Gran Consejo (§0.j, §0.m)**, por riesgo:
+    - 🔴 **Riesgo abierto**: Valentina, Marco, Ramón, Ana y Diego siguen **sin `tools:`** y heredan todo (Bash, SSH, push, MCP de GitHub). Depende de la Fase 2 (P1–P3, en pausa) y de la Fase 5. Mientras tanto vale la mitigación de `CONSEJO_V4.md` §5.4 (reglas `ask` para `ssh`/`scp`/`git push`, con OK de Jaime).
+    - ⏸️ Fase 2: reanudarla es decisión de Jaime (diseñar él los perfiles u otra vía), nunca rodeando el bloqueo.
+    - Fase 6: marcarla como parcial en `CONSEJO_V4.md` y decidir si `CONSEJO_PROFESIONAL.md` (V3.0) se archiva o se borra.
+    - De Jaime: su nombre completo sigue en el historial publicado del repo raíz (`acfa146`, cabecera V1.0 del Protocolo). Quitarlo exige reescribir el historial: decisión suya.
+    - ✅ **CERRADO el 2026-10-13-b:** `CEO_PERFIL_JAIME.md` fuera de git y doctrina versionada (`sc-doctrina-versionada`); `support.md` con `storage` y línea 69; push de `81a24a8`.
     - ✅ **CERRADO el 2026-10-12 (§0.k):** `settings.local.json` purgado. Tarea `cockpit-settings-local-reglas-riesgo`.
     - 🟡 **Datos obsoletos de agentes y skills** (`cockpit-consejo-datos-obsoletos`, 40 %). Hecho: IP y deploy de `support.md`/`ramon.md` (§0.k). Falta: `support.md` línea 69 `chown -R www-data:www-data /var/www/` (contradice al pipeline, que deja el código `deploy:www-data`: si Diego lo ejecuta, el siguiente deploy de EF choca), su tabla de sitios (`/var/www/elrincon`, `/var/www/solucionesconia`) y su `description` («deploy via rsync/SSH»); `marco.md`/`ana.md` con DO App Platform; `inicio-sesion` dice «6 repos»; `cierre-sesion` apunta la memoria a `C--Proyectos-Workspace-Agencia` (la real es `C--Proyectos`); `creative.md` propone una cifra de prueba social sin fuente.
     - De Jaime (Jose, §0.k): probar la restauración del `.gpg` con 2 de 3 shards y sacar una copia fuera del portátil; borrar `settings.local.json.bak-20261012` del scratchpad de `f55dc836` (lleva tokens retirados). Queda una regla fija en `settings.local.json` con la ruta vieja `…\Agencia_Solucionesconia\Clientes\Jose`: inofensiva.
@@ -212,6 +236,7 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 - **Al cierre de 2026-10-11-a (hecho el 2026-10-12):** `zasa-orchestrator` `main` = `origin/main` = `422ba47` (telemetría + CHANGELOG; código en producción `663da53`). `claude-skills` **ahead 1** (`81a24a8`, piloto `nacho`; sin CI). Repo raíz: `.gitignore` modificado + `doctrina/` sin rastrear, sin commit a la espera de Jaime (§1.10). `solucionesconia`: solo el informe de `docs/` sin rastrear.
 - **Al cierre de 2026-10-12-a:** `zasa-orchestrator` `main` = `origin/main` = `282624b` (telemetría). `examenfacil-cl` = `2548ef7` y `GambusasChile` = `ea3e118`, ambos publicados. `claude-skills` = `origin` en `80fdbfa`. Repo raíz = `origin` en `ba1ebed` + este handover; siguen sin commit `.gitignore` y `doctrina/` (§1.10). La carpeta del portal de Jose ya no existe en disco.
 - **Al cierre de 2026-10-13-a:** `examenfacil-cl` `main` = `origin/main` = producción en `882ebd2`. `zasa-orchestrator` = `36c81dc` (telemetría). `claude-skills`: `agents/support.md` sin commit (no es de Claude). Repo raíz: `.gitignore` + `doctrina/` siguen sin commit (§1.10) + este handover.
+- **Al cierre de 2026-10-13-b:** `claude-skills` `main` = `origin/main` = `cddda7f` (limpio). Repo raíz `main` = `origin/main` = `44b3c1e` + este handover. Los repos de producción no se tocaron.
 - **`GambusasChile`:** `ea3e118` (CI, 12-oct).
 - **`AuditorLegal`:** cambios ajenos sin commitear; no se tocaron.
 
@@ -228,6 +253,9 @@ Cifras: **no se publicó «<30 s» ni «+40 % cualificación»** por falta de da
 - **Landing:** los estilos de reposo van inline en `index.html` y le ganan a la hoja; cualquier `:hover`/`:active` nuevo necesita `!important` en `src/input.css`. Un `data-reveal` en un `<a>` le hereda el `transition-delay` al hover: envolverlo en un `<div>`. En móvil el chat de Sofía abierto tapa la página (las pruebas E2E recargan entre clics).
 - `obtenerAlmacenIdentidad()` es `async`; `buscarUsuario`/`fichaDe` sirven para lecturas de solo lectura sin tocar hashes.
 - 🔴 **Una skill con hook en su frontmatter deja la sesión entera restringida.** Tras invocar `/nacho`, su `PreToolUse` siguió activo hasta el final: sin commits, sin memoria, sin `/cierre-sesion` (la guarda deniega Skill). No se apaga desde dentro; la salida es una sesión nueva. Invocar skills del Consejo solo en sesión dedicada o tras dejar commits y handover. Memoria `hooks-skill-persisten-toda-la-sesion`.
+- 🟢 **La guardia en un AGENTE no secuestra la sesión** (al contrario que en una skill): el hook vive y muere con el subagente (Fase 1, 2026-10-13-b). Todo perfil debe permitir `SubagentHandback`, o el agente trabaja pero no entrega nada. La guardia filtra también el texto del informe: si un informe cita la carpeta personal protegida, se deniega.
+- 🔴 **Modo automático y definiciones de agentes (2026-10-13-b):** **quitar** capacidad pasa (`tools:` restrictivo, `c1734e3`); **dar** capacidad (crear agentes con `hooks:`, delegación nativa) se bloquea como «Self-Modification», también con autorización en el chat. La vía es que Jaime lo aplique en persona. Memoria `modo-automatico-bloqueos-vps`.
+- **Un subagente SÍ puede delegar** (hasta 3 niveles, `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). La auditoría del 11-oct y el primer protocolo de Roberto decían lo contrario.
 - **Cerrar una sesión desde otra:** `end_session.js` mide por defecto el transcript más reciente (el de la sesión que cierra). Pasarle `--transcript <ruta>.jsonl` de la sesión que se audita, y `-SessionId` a `session-audit.ps1`.
 
 ---
@@ -242,7 +270,9 @@ ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'cd /var/www/examenfacil.cl && 
 
 Solo lectura (`READ ONLY` + `ROLLBACK`), solo recuentos. `sin_ruta > 0` = exámenes perdidos: el fichero no está, pero las métricas sí están en `analisis_metricas` (decidir si avisar a esos clientes). `total_post_19sep = 0` = fallo latente, sin daño. Tarea `ef-boveda-examenes-perdidos-19sep`.
 
-Después (Claude, local): `storage` en el bucle de runtime de `support.md` y commit en `claude-skills`; luego el resto de `cockpit-consejo-datos-obsoletos`. De Jaime: `chmod 0440` del sudoers nuevo y quitar la línea 10 duplicada de `deploy` (§0.l).
+Después (Claude, local, sin CI): el resto de `cockpit-consejo-datos-obsoletos`: `marco.md`/`ana.md` con DO App Platform, `inicio-sesion` dice «6 repos», ruta de memoria de `cierre-sesion` (línea 191), cifra sin fuente de `creative.md`. Y medir la telemetría de 2026-10-13-b con `/cierre-sesion` (no se hizo). De Jaime: `chmod 0440` del sudoers nuevo y quitar la línea 10 duplicada de `deploy` (§0.l); decidir cómo reanudar la Fase 2 del Consejo (§1.10).
+
+(Cerrado el 2026-10-13-b: `storage` en `support.md`, `4f71cbf`.)
 
 Histórico (2026-10-12-a): **Corregir `support.md` línea 69** (`chown -R www-data:www-data /var/www/` → el modelo real: código `deploy:www-data`, runtime `www-data` en 640/750) y seguir con el resto de `cockpit-consejo-datos-obsoletos` (§1.10). Local, en `claude-skills`, que no despliega nada.
 
