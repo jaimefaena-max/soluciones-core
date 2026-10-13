@@ -230,15 +230,31 @@ hooks:
 Es el mismo contrato que ya usa la skill `nacho` (`81a24a8`). En un agente, el hook vive solo mientras el
 agente está activo, así que no reproduce la trampa de las skills (memoria `hooks-skill-persisten-toda-la-sesion`).
 
-### 5.4 Mitigación provisional
+### 5.4 Autonomía operativa de los agentes técnicos (decisión de Jaime, 2026-10-13)
 
-La guardia en agentes ya está probada (Fase 1), pero mientras P1–P3 no existan, un agente con `Bash` en
-`tools:` tiene Bash completo. Para ese periodo: reglas `ask` globales en `.claude/settings.json` para `Bash(ssh *)`,
-`Bash(scp *)` y `Bash(git push *)`. Afectan también a la sesión principal y requieren el OK de Jaime.
+Diego (`support`), Valentina (`coder`), Marco (`marco`), Ramón (`ramon`) y Ana (`ana`) tienen autonomía para:
+- usar Git Bash/PowerShell en el portátil;
+- conectarse por SSH al VPS `161.35.85.101` con `~/.ssh/elrincon_deploy` (incluidos `ssh 'bash -s'`, `scp` y `rsync`);
+- hacer `git push` a `main` de los repos del workspace, incluidos los que despliegan por CI.
+
+Se retiran las reglas `ask` provisionales para `ssh`, `scp` y `git push` que proponía esta sección.
+
+**Implementación:** `autoMode.allow` en `.claude/settings.json` (`claude-skills` `91105c5`), sobre `$defaults`.
+Los agentes técnicos ya heredan esas herramientas al no declarar `tools:`; lo que las frenaba era el clasificador
+del modo automático. La regla vale para **toda la sesión** (el clasificador no distingue agente); los 7 agentes no
+técnicos siguen sin Bash por su `tools:`.
+
+**Siguen vigentes:** las Reglas de Oro (secretos nunca por el chat; respaldo + `nginx -t` antes de tocar nginx;
+nunca `push --force` ni borrados sin evidencia; vhost de EF aplicado antes del push) y las protecciones de
+`$defaults`. Sustituye a la mitigación provisional anterior (reglas `ask`, nunca aplicada).
 
 ---
 
 ## 6. Matriz de privilegios de los 12 agentes existentes
+
+> ⚠️ **Superada en parte por §5.4 (2026-10-13):** para Valentina, Marco, Ramón, Ana y Diego ya no aplica
+> «pierde `git push`/SSH» ni «único con SSH»; los cinco operan SSH y push. El resto de la matriz (los 7 sin
+> Bash) sigue vigente.
 
 | Agente | Perfil | `tools:` propuesto | Pierde | Ajuste en su `.md` |
 |---|---|---|---|---|
