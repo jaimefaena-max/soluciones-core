@@ -1,9 +1,11 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-c (backlog en Linear; baja de claude_handler.php; sudoers; datos obsoletos del Consejo cerrados)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-e (embudo anónimo de la landing en producción; SOL-9/10/19/21/33 cerrados; SOL-35 a falta de Meta)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-2026-10-16` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..39`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
-> **Última sesión: 2026-10-13-c** (conversación `273502bd…`), 19:54–22:55 UTC del 13-oct, **162,5 min activos**, **$94.792 CLP**, telemetría `zasa-orchestrator` `e2cba69`. Lo nuevo está en §0.n, §3 y §4. El id `-c` deja `-b` libre para medir la sesión `d0e8c4f0…` (SOL-25).
+> Memoria de arranque: `arranque-2026-10-17` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..40`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
+> **Última sesión: 2026-10-13-e** (conversación `b0e0c037…`), 01:47–02:51 UTC del 14-oct (empezó el 13-oct en hora de Chile), **63,1 min activos**, **$36.808 CLP**, telemetría `zasa-orchestrator` `1c6bc9a` (`/health` = `1c6bc9a`; `2026-10-13-e` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.o y al principio de §4.
+>
+> Sesión 2026-10-13-c (anterior) (conversación `273502bd…`), 19:54–22:55 UTC del 13-oct, **162,5 min activos**, **$94.792 CLP**, telemetría `zasa-orchestrator` `e2cba69`. Lo nuevo está en §0.n, §3 y §4. El id `-c` deja `-b` libre para medir la sesión `d0e8c4f0…` (SOL-25).
 >
 > Sesión 2026-10-13-b (anterior) (conversación `d0e8c4f0…`), tarde del 13-oct. Solo tooling y doctrina, en `claude-skills` y en el repo raíz (sin CI): **nada desplegado a producción**. **Sin telemetría:** no se ejecutó `/cierre-sesion` completo (ni tiempo medido, ni coste, ni push a `zasa-orchestrator`). Lo nuevo está en §0.m, §1.10 y §4.
 >
@@ -204,6 +206,18 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 | Memoria de agosto huérfana (`C--Proyectos-Workspace-Agencia/memory/`): migrada limpia `cliente-nuevo-solo-una-fila`; las otras dos descartadas (una lleva datos personales de un tercero; borrarla es de Jaime) | memoria | — |
 | ⏸️ **Autonomía de despliegue para los 5 agentes técnicos** (decisión de Jaime): bloqueada como «Permission Grant». Redactados en el chat el texto de §5.4 de `CONSEJO_V4.md` y un `autoMode.allow` para `.claude/settings.json`; **los aplica Jaime**. Contradice SOL-23 | — | Sin aplicar |
 
+### 0.o · 2026-10-13-e — Cola de Linear y embudo de la landing
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| ✅ **SOL-9:** `snippets/vip-portal.conf` SÍ se carga, vía `include /etc/nginx/snippets/vip-portal*.conf;` en el vhost de **solucionesconia.cl** (no de vip.). El grep del 07-oct buscaba el nombre literal y el glob lo ocultaba | `nginx -T` l. 1627; `CLAUDE.md` raíz `0698c17` (decía que lo instalaba `instalar-plantillas.sh`: falso) | Lectura filtrada, sin volcar el snippet |
+| 🔴→✅ **SOL-10:** la línea 3 del snippet vivo era un comentario con **API_SECRET_TOKEN y EDGE_SECRET en claro**. Reescrita sin valores. Ningún script gestiona el snippet: `deploy.sh` dejó de renderizarlo en `594f6e2`, `instalar-plantillas.sh` no lo incluye y solo `rotar-secretos-borde.sh` lo toca (con un `sed` que compara recuentos, así que no se rompe) | VPS (respaldo `/root/backups-nginx/sol10-20261014T015127Z/`, **con los secretos viejos: borrarlo, Jaime**); plantilla `solucionesconia` `54cd7c4` | 6 → 5 líneas con secreto, todas `proxy_set_header`; diff efectivo 0; `nginx -t` ok (sin reload); plantilla = vivo en config efectiva (65 líneas) |
+| ✅ **SOL-21:** informe de propuesta de valor commiteado | `solucionesconia` `d167ba6` | Revisado: sin datos de clientes ni cifras inventadas |
+| ✅ **SOL-33:** PM2 ya rota con `/etc/logrotate.d/pm2-root` (desde el 16-sep: daily, rotate 14, maxsize 20M, copytruncate) | VPS | 14 generaciones, 468 KB en total; **no** instalar `pm2-logrotate` |
+| ✅ **SOL-19, embudo anónimo de la landing EN PRODUCCIÓN.** `visita` → `cta_clic/{hero,tarjeta,cierre}` → `chat_abierto/{cta,burbuja}` → `chat_mensaje` (1 por apertura) → `reserva`. Totales diarios por día de Chile, sin IP, cookies ni filas por visitante. `POST /api/sales-agent/evento` (pública exacta en `RUTAS_PUBLICAS`, Origin exacto de la landing, lista cerrada, 512 B, 30/min/IP; sin tocar nginx) y `GET /api/analytics/landing` (staff) | `zasa-orchestrator` `ec614fb`; landing `fa663c5` + `0e5b7ef` (`mode: "cors"`: en no-cors el CORP de helmet dejaba un error de red por evento) + `90c6748` (escucha el widget y `?v=20261014-embudo`); widget `admin_solucionesconia` `923f625` (emite `sofia:abierto|mensaje|reserva` en `window`, sin datos personales). Memoria `embudo-landing-anonimo` | 26 tests nuevos y suite 1.890 ✓. Desde fuera: 400/403/401 correctos. Bundle publicado = local (`e29ffcfc0ae0`). Chromium contra la web real: 204 por evento, 0 errores, sin llamadas a `/chat` ni `/book`. Lectura en loopback: llegan a Postgres. **Descontar el día 2026-10-13 (Chile): son todo pruebas** (4 visita, 2 cta_clic/hero, 1 chat_abierto/burbuja) |
+| 🟡 **SOL-35, Gambusas.** (1) Cabeceras duplicadas en la API (`webhook_wa`: CSP, Referrer-Policy con 2 valores y nosniff; `webhook_mp`: nosniff): la única fuente pasa a ser nginx. (2) `location ~ ^/api/webhook_(wa\|mp)\.php$` con `limit_req zone=webhook_limit burst=60 nodelay` + 429 | `gambusaschile` `e88c1d0` (deploy `38502271905`); vhost VPS (respaldo `/root/backups-nginx/gambusaschile.cl.sol35-20261014T024449Z`) | 0 duplicados vía CF; WA sin token 403, MP sin firma 401, tienda 200; ráfaga en loopback de 400 → **176 × 429**. Falta el «Probar» de Meta (Jaime). La zona la comparte `/api/webhook` de El Rincón (`burst=50`). El vhost de Gambusas **no está versionado** |
+| Revisión de uso real (SOL-11/12/13) en `access.log` desde el 06-oct | Linear | 0 logins de cliente, 0 descargas de operador. 5 × `POST /api/webhook/leads` 200 (10 y 12-oct) = **pruebas de Jaime**: la entrega del webhook funciona, pero no hay ninguna reserva real |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -281,6 +295,25 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 ---
 
 ## 4 · El paso exacto siguiente
+
+### Tras 2026-10-13-e (vigente)
+
+**Primero (Claude): SOL-40**, en el run del primer deploy de `zasa-orchestrator` posterior al **14-oct 14:31 UTC** (el de la telemetría `1c6bc9a`, a las ~02:50 UTC, todavía no cuenta). Buscar el paso «Retención de respaldos (modo: informe)»: debe listar solo carpetas `AAAAMMDD-HHMMSS` de más de 7 días que no estén entre las 10 últimas. Si es así, OK de Jaime → commit con `RETENCION_MODO` por defecto en `aplicar` (surte efecto **un deploy después**) → cerrar SOL-40.
+
+**De Jaime:**
+1. «Probar» en el webhook de WhatsApp del panel de Meta (o un WhatsApp a la tienda), avisando la hora. Claude busca el POST 200 en `access.log` (query oculta) y cierra SOL-35.
+2. Borrar `/root/backups-nginx/sol10-20261014T015127Z/`, que guarda los secretos del comentario viejo.
+3. Borrar en zasa `src/data/telemetry.ts.bak-20261014011414.` y `.bak-20261014025137.`. El primero hace fallar `endSessionDesdeJson` en local; en CI no aparece.
+4. Limpiar los leads y eventos de Calendar de prueba (22-sep, 10 y 12-oct).
+
+**Después (Claude), de Linear:** versionar el vhost de Gambusas (issue nuevo, a semejanza de `ef-nginx-verificar`); vista del embudo en el Cockpit; SOL-15/16/17/27. **Lectura de negocio:** 0 reservas reales en 8 días. El embudo ya mide dónde se cae la demanda, así que conviene mirarlo antes de tocar copy.
+
+**Trampas nuevas:**
+- `grep -r` no sigue los symlinks de `sites-enabled/`: usar `-R` o `nginx -T`.
+- `deploy.sh --simular` no hace pull: para ver el plan real, `git merge --ff-only origin/main` en el clon y luego simular.
+- Editar nginx por SSH con `bash -s <<'EOF'` y reemplazo de línea literal: `sed`/`perl` con comillas anidadas fallaron en silencio.
+
+### Anterior (2026-10-13-c/d)
 
 ✅ **SOL-23 CERRADO (23:16 UTC del 13-oct): autonomía de los 5 agentes técnicos APLICADA.** `autoMode.allow` en `.claude/settings.json` (`claude-skills` `91105c5`) + `CONSEJO_V4.md` §5.4 (raíz `37b036b`). Desde la próxima sesión, SSH a 161.35.85.101 y push a `main` no se bloquean en modo automático (vale para toda la sesión). ### Telemetría 2026-10-13-d (tramo 22:55Z–01:12Z del mismo transcript)
 Medida con un transcript recortado (`~/.claude/projects/_tramos-cierre/`) para no duplicar la -c: **137,3 min activos, $80.092 CLP**, `zasa-orchestrator` `ae6d8cb` (`/health` = `ae6d8cb`). En ese deploy (run `38494633830`) ya corrió el paso nuevo: «Retención de respaldos (modo: informe)» → «nada fuera de la ventana». Quedó sin rastrear `src/data/telemetry.ts.bak-20261014011414.` (respaldo del script; borrarlo es de Jaime).
