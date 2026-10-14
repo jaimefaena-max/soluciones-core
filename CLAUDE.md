@@ -2,6 +2,15 @@
 
 Espacio de trabajo centralizado con **11 repos de git** que se referencian entre sí. Abrir Claude Code siempre en `C:\Proyectos`.
 
+## Estilo de Comunicación
+
+Directiva global y permanente para todas las respuestas:
+
+- **Ultracortas y directas al grano.** Solo lo necesario para actuar o decidir.
+- **Sin saludos largos, cortesías redundantes ni introducciones teóricas.** Empezar por el resultado.
+- **Datos técnicos siempre en listas esquemáticas o tablas**, nunca en párrafos.
+- **Excepción:** los avisos de seguridad o de riesgo de producción no se omiten ni se recortan por brevedad.
+
 ## Proyectos
 
 > Nota de mapeo: la columna **Carpeta** es la ruta local; **Repo GitHub** es el nombre en `github.com/jaimefaena-max/`. No siempre coinciden (p. ej. `Agencia_Solucionesconia\` → repo `solucionesconia`). Mantener ambas columnas sincronizadas para no reintroducir drift.
