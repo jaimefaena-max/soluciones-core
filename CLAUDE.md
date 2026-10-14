@@ -11,6 +11,11 @@ Directiva global y permanente para todas las respuestas:
 - **Datos técnicos siempre en listas esquemáticas o tablas**, nunca en párrafos.
 - **Excepción:** los avisos de seguridad o de riesgo de producción no se omiten ni se recortan por brevedad.
 
+## Gobernanza de tareas técnicas
+
+- Las tareas técnicas complejas o que involucren múltiples repositorios deben ser coordinadas por Roberto y el Gran Consejo, indicando qué agentes participaron en el informe final.
+- Las tareas simples de un solo repositorio se ejecutan directamente.
+
 ## Proyectos
 
 > Nota de mapeo: la columna **Carpeta** es la ruta local; **Repo GitHub** es el nombre en `github.com/jaimefaena-max/`. No siempre coinciden (p. ej. `Agencia_Solucionesconia\` → repo `solucionesconia`). Mantener ambas columnas sincronizadas para no reintroducir drift.
