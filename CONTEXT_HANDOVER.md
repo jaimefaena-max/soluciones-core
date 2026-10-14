@@ -282,7 +282,10 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 
 ## 4 · El paso exacto siguiente
 
-✅ **SOL-23 CERRADO (23:16 UTC del 13-oct): autonomía de los 5 agentes técnicos APLICADA.** `autoMode.allow` en `.claude/settings.json` (`claude-skills` `91105c5`) + `CONSEJO_V4.md` §5.4 (raíz `37b036b`). Desde la próxima sesión, SSH a 161.35.85.101 y push a `main` no se bloquean en modo automático (vale para toda la sesión). ### Añadido el 14-oct (00:00–01:05 UTC), misma sesión 2026-10-13-c
+✅ **SOL-23 CERRADO (23:16 UTC del 13-oct): autonomía de los 5 agentes técnicos APLICADA.** `autoMode.allow` en `.claude/settings.json` (`claude-skills` `91105c5`) + `CONSEJO_V4.md` §5.4 (raíz `37b036b`). Desde la próxima sesión, SSH a 161.35.85.101 y push a `main` no se bloquean en modo automático (vale para toda la sesión). ### Telemetría 2026-10-13-d (tramo 22:55Z–01:12Z del mismo transcript)
+Medida con un transcript recortado (`~/.claude/projects/_tramos-cierre/`) para no duplicar la -c: **137,3 min activos, $80.092 CLP**, `zasa-orchestrator` `ae6d8cb` (`/health` = `ae6d8cb`). En ese deploy (run `38494633830`) ya corrió el paso nuevo: «Retención de respaldos (modo: informe)» → «nada fuera de la ventana». Quedó sin rastrear `src/data/telemetry.ts.bak-20261014011414.` (respaldo del script; borrarlo es de Jaime).
+
+### Añadido el 14-oct (00:00–01:05 UTC), misma sesión 2026-10-13-c
 
 - ✅ **SOL-8 CERRADO:** `EF_ORCHESTRATOR_TOKEN` no existe en el VPS y su valor histórico en git es inerte; `ANTHROPIC_API_KEY` vacía en EF. La del orquestador se **rotó** (`37b40014` → `0733994e`, tecleada por Jaime con `read -s`; scp + `ssh -t`, porque `bash -s` con `<` no da tty). La vieja da **401**.
 - ⏸️ **SOL-40 (respaldos del orquestador):** `backups/` en 700/600 (no había exposición real). Pasó de 170 a 31 entradas: 132 + 7 copias del `.env` destruidas con `shred` (scripts `~/diag/sol40-*.sh`, simulados y lanzados por Jaime). Retención automática en `desplegar.sh` (`8344aa7`) en modo **informe**: **pausado hasta el primer deploy posterior al 14-oct 14:31 UTC**; luego, con el OK de Jaime, `RETENCION_MODO=aplicar`. 🔴 Un cambio en `desplegar.sh` surte efecto un deploy después.
