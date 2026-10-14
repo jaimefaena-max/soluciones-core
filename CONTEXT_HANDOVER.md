@@ -301,7 +301,7 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 **Primero (Claude): SOL-40**, en el run del primer deploy de `zasa-orchestrator` posterior al **14-oct 14:31 UTC** (el de la telemetría `1c6bc9a`, a las ~02:50 UTC, todavía no cuenta). Buscar el paso «Retención de respaldos (modo: informe)»: debe listar solo carpetas `AAAAMMDD-HHMMSS` de más de 7 días que no estén entre las 10 últimas. Si es así, OK de Jaime → commit con `RETENCION_MODO` por defecto en `aplicar` (surte efecto **un deploy después**) → cerrar SOL-40.
 
 **De Jaime:**
-1. «Probar» en el webhook de WhatsApp del panel de Meta (o un WhatsApp a la tienda), avisando la hora. Claude busca el POST 200 en `access.log` (query oculta) y cierra SOL-35.
+1. ✅ **SOL-35 CERRADO (03:14 UTC del 14-oct).** El WhatsApp real de Jaime NO generó ningún POST: el número vive en la app **WhatsApp Business** del móvil y Meta solo notifica los números de la Cloud API. Se cerró con un POST sintético firmado (`META_APP_SECRET` cargado vía `config.php` dentro del VPS) por el camino público: 200 + `ACEPTADO mensajes=0`; firma falsa → 401. 🔴 **Nuevo SOL-41 (High, de Jaime):** los WhatsApp de clientes nunca llegan al webhook. Decidir entre coexistencia app + Cloud API, migrar el número o dejarlo así. Relacionado con SOL-37.
 2. Borrar `/root/backups-nginx/sol10-20261014T015127Z/`, que guarda los secretos del comentario viejo.
 3. Borrar en zasa `src/data/telemetry.ts.bak-20261014011414.` y `.bak-20261014025137.`. El primero hace fallar `endSessionDesdeJson` en local; en CI no aparece.
 4. Limpiar los leads y eventos de Calendar de prueba (22-sep, 10 y 12-oct).
