@@ -1,9 +1,11 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-13-e (embudo anónimo de la landing en producción; SOL-9/10/19/21/33 cerrados; SOL-35 a falta de Meta)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-14-a (ExamenFácil: auditoría, 5 hallazgos cerrados, matriz de precios, crear_suscripcion blindado; conexión estable a Meta pendiente)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-2026-10-17` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..40`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
-> **Última sesión: 2026-10-13-e** (conversación `b0e0c037…`), 01:47–02:51 UTC del 14-oct (empezó el 13-oct en hora de Chile), **63,1 min activos**, **$36.808 CLP**, telemetría `zasa-orchestrator` `1c6bc9a` (`/health` = `1c6bc9a`; `2026-10-13-e` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.o y al principio de §4.
+> Memoria de arranque: `arranque-tras-2026-10-14-a` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..51`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
+> **Última sesión: 2026-10-14-a** (conversación `11b3fe75…`), 20:21 UTC del 14-oct – 04:35 UTC del 15-oct, **189 min activos**, **$110.250 CLP**, telemetría `zasa-orchestrator` `ee3e555` (run `38682317179` success; `/health` = `ee3e555`; `2026-10-14-a` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.p, §3 y al principio de §4. **Primera tarea: SOL-47 (portfolio comercial de Meta), de Jaime.**
+>
+> Sesión 2026-10-13-e (anterior) (conversación `b0e0c037…`), 01:47–02:51 UTC del 14-oct (empezó el 13-oct en hora de Chile), **63,1 min activos**, **$36.808 CLP**, telemetría `zasa-orchestrator` `1c6bc9a` (`/health` = `1c6bc9a`; `2026-10-13-e` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.o y al principio de §4.
 >
 > Sesión 2026-10-13-c (anterior) (conversación `273502bd…`), 19:54–22:55 UTC del 13-oct, **162,5 min activos**, **$94.792 CLP**, telemetría `zasa-orchestrator` `e2cba69`. Lo nuevo está en §0.n, §3 y §4. El id `-c` deja `-b` libre para medir la sesión `d0e8c4f0…` (SOL-25).
 >
@@ -218,6 +220,26 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 | 🟡 **SOL-35, Gambusas.** (1) Cabeceras duplicadas en la API (`webhook_wa`: CSP, Referrer-Policy con 2 valores y nosniff; `webhook_mp`: nosniff): la única fuente pasa a ser nginx. (2) `location ~ ^/api/webhook_(wa\|mp)\.php$` con `limit_req zone=webhook_limit burst=60 nodelay` + 429 | `gambusaschile` `e88c1d0` (deploy `38502271905`); vhost VPS (respaldo `/root/backups-nginx/gambusaschile.cl.sol35-20261014T024449Z`) | 0 duplicados vía CF; WA sin token 403, MP sin firma 401, tienda 200; ráfaga en loopback de 400 → **176 × 429**. Falta el «Probar» de Meta (Jaime). La zona la comparte `/api/webhook` de El Rincón (`burst=50`). El vhost de Gambusas **no está versionado** |
 | Revisión de uso real (SOL-11/12/13) en `access.log` desde el 06-oct | Linear | 0 logins de cliente, 0 descargas de operador. 5 × `POST /api/webhook/leads` 200 (10 y 12-oct) = **pruebas de Jaime**: la entrega del webhook funciona, pero no hay ninguna reserva real |
 
+### 0.p · 2026-10-14-a — ExamenFácil: auditoría, seguridad, precios y Meta
+
+Todo en `examenfacil-cl`, desplegado por `deploy.yml` (runs en verde) y verificado por loopback y desde fuera. Producción = `0d2753a`. Linear: SOL-47..51.
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **Skill `/ingenieria-flujo`** (4 pasos obligatorios). Jaime añadió después auditoría preventiva (GET 405 + rate limit) y pen-test básico: **sin commitear** | `claude-skills` `235f001` (pusheado); `.claude/skills/ingenieria-flujo/SKILL.md` modificado | SOL-51 |
+| **Auditoría integral de solo lectura** (estructura, dependencias, credenciales, monetización): 6 hallazgos | Informe en el chat | SOL-49 |
+| 🔴→✅ **Token de Meta Ads literal** en `admin/finanzas.php` (en git desde `f4c88f9`, 14-may) → constante `META_ACCESS_TOKEN`; sin la constante el bloque de ROI se omite | `4504ecb` | 0 literales en el árbol; **el token viejo sigue en el historial y se vio en parte en el chat: revocarlo (SOL-47)** |
+| `api/voz/interpretar.php`: control de acceso de `get_informe.php` + rate limit (antes leía `informes/<payment_id>.json` sin auth) | `9e1c583` (sesión paralela; `limitador_tasa.php` nuevo, falla abierto) | 405 a GET; camino autenticado sin E2E |
+| Rate limit 10/15 min en `crear_preferencia.php` | `a5ef0fa` | Desplegado |
+| Guardia CLI en `auditoria_12h`, `vigilancia_qa`, `ab_engine`, `sync_dev_costs` | `560e382` | 403 |
+| `my-video/`, `scratch/`, `stitch_output/`, `playwright.config.ts`, `package.json` fuera del web root, en **dos tandas** por `--max-delete=40` | `36ca2b2` (37 borrados) + `52c8d3f` (32) | 404 |
+| **Precios**: mostrados = cobrados (`97aeb54`), luego matriz nueva: informe $2.990, Personal $4.990/mes, Familiar $9.990/mes «hasta 5 integrantes» + texto «+$2.990/mes por integrante adicional» (**no se cobra**: no hay gestión de integrantes). 3 meses de prueba | `97aeb54`, `fbea62a` | Producción sirve los precios nuevos; sin suscripción real de prueba (SOL-50) |
+| **`crear_suscripcion.php` blindado**: un GET sin parámetros creaba un `preapproval_plan` real en MP. Ahora solo POST (405), rate limit, `nivel` ∈ {2,3} y email válido (400), errores de MP solo al log | `0d2753a` | Loopback: 405/400/400; sha del VPS = commit |
+| **Meta en el VPS**: `META_ACCESS_TOKEN` y `META_PAGE_ID` (`2401780186813670`) en `/etc/examenfacil/config_secret.php`, ahora **`root:www-data 640`** y carpeta `root:www-data 750` (antes `www-data` dueño). Script **`/root/bin/ef-meta-token`** (root 700): pide el token con `read -s` (o `-f fichero`), respaldo, sustitución atómica por stdin, `php -l`, permisos, y solo imprime el HTTP de `/me` | VPS; respaldos en `/root/backups-examenfacil/` (020701, 022910-meta, 040723-pageid; el de 03:20 se borró con `shred`) | El token cargado (de usuario) **ya es inválido** (190/467). `META_PAGE_ID` no lo lee ningún código todavía |
+| **Conector MCP de Meta Ads** validado en lectura: cuenta `857378264622577` activa, CLP, mínimo diario 993; **sin portfolio comercial**, sin campañas, sin píxel, sin Instagram; página «Examen Facil» (leadgen ToS sin aceptar). Crea en **modo borrador** (no publica hasta `ads_activate_entity`). No hace publicación orgánica | MCP | — |
+| **Plan de conexión estable** (investigado): Usuario del sistema con token sin caducidad + app Business en Live + publicador propio en el VPS + skill con aprobación humana | SOL-47 (Fase 1, Jaime) y SOL-48 (Fases 2-3, Claude) | — |
+| Diagnóstico de salud final: servicios activos, `nginx -t` ok, disco 14 %, cert de origen hasta 25-nov-2026, `health.php` autenticado OK. Único 500: UptimeRobot a las 01:07:34 UTC, **dentro de la ventana de un deploy** (el deploy de EF no es atómico) | VPS | — |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -269,6 +291,7 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 - **Al cierre de 2026-10-13-a:** `examenfacil-cl` `main` = `origin/main` = producción en `882ebd2`. `zasa-orchestrator` = `36c81dc` (telemetría). `claude-skills`: `agents/support.md` sin commit (no es de Claude). Repo raíz: `.gitignore` + `doctrina/` siguen sin commit (§1.10) + este handover.
 - **Al cierre de 2026-10-13-b:** `claude-skills` `main` = `origin/main` = `cddda7f` (limpio). Repo raíz `main` = `origin/main` = `44b3c1e` + este handover. Los repos de producción no se tocaron.
 - **Al cierre de 2026-10-13-c:** `examenfacil-cl` `main` = `origin/main` = producción en `aa75935`. `zasa-orchestrator` = `e2cba69` (telemetría). `claude-skills` = `origin` en `90f0ccf` (limpio). `solucionesconia` = `6b9bacd` en producción, con `docs/informe-propuesta-valor-2026-10-10.md` sin rastrear (SOL-21). Repo raíz: solo este handover.
+- **Al cierre de 2026-10-14-a:** `examenfacil-cl` `main` = `origin/main` = producción en `0d2753a`. `zasa-orchestrator` = `ee3e555` (telemetría, en producción). `claude-skills` = `origin` en `235f001` + `skills/ingenieria-flujo/SKILL.md` **modificado por Jaime sin commit**. `Elrincon-backend` y `AuditorLegal` con cambios ajenos sin commit (no tocados).
 - **`GambusasChile`:** `ea3e118` (CI, 12-oct).
 - **`AuditorLegal`:** cambios ajenos sin commitear; no se tocaron.
 
@@ -290,13 +313,32 @@ Todo en repos **sin CI**: no despliega nada. Doctrina completa en `Workspace_Age
 - **Un subagente SÍ puede delegar** (hasta 3 niveles, `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). La auditoría del 11-oct y el primer protocolo de Roberto decían lo contrario.
 - 🔴 **Vhost de EF antes del push (2026-10-13-c):** `deploy.yml` corre `ef-nginx-verificar` en modo verificar y pone el job en ROJO si el vhost vivo ≠ `examenfacil.cl.nginx`; nunca lo aplica. Un cambio de vhost va así: `ssh … 'EF_VHOST_MODO=aplicar /usr/local/sbin/ef-nginx-verificar' < examenfacil.cl.nginx` (respaldo + `nginx -t` + reload) y DESPUÉS el push. Entre medias, cualquier otro push a EF sale en rojo.
 - **Modo automático (2026-10-13-c):** bloquea de forma intermitente las escrituras en Linear («External System Writes») y, siempre, dar permisos a agentes o al clasificador («Permission Grant», incluso para leer el fichero en esa tarea; «Self-Modification» al editar `settings`). Escrituras en el VPS: «Remote Shell Writes», que pasó al segundo intento con orden explícita de Jaime. Claude no hace borrados permanentes de ficheros: los lanza Jaime.
+- 🔴 **Verificar un endpoint de pago con GET puede crear objetos reales** (2026-10-14): un `curl` a `crear_suscripcion.php` creó un `preapproval_plan` en Mercado Pago. Ya da 405, pero ante cualquier endpoint que hable con MP: leer el código antes de llamarlo.
+- **Tokens de usuario de Meta no sirven para producción**: caducan en horas o se invalidan (190/463, 190/467). Solo Usuario del sistema (SOL-47). Ningún token por el chat: `ef-meta-token` en una pestaña del panel Terminal (`run_in_terminal`) deja a Jaime teclearlo sin eco.
+- **`sed -i` en Git Bash cambió todos los finales de línea** de `api_handler.php` (diff de 931 líneas): para ediciones por línea usar `perl -i -pe 'BEGIN{binmode STDIN; binmode STDOUT}'` o la herramienta Edit, y mirar `git diff --numstat`.
+- **Nunca imprimir con `grep`/`od` una línea que contenga un secreto** (2026-10-14 se vieron ~130 caracteres del token de Meta): contar coincidencias o comparar dentro de un proceso.
+- **`--max-delete=40` de EF cuenta ficheros Y carpetas**: retiradas grandes, en tandas.
 - **Cerrar una sesión desde otra:** `end_session.js` mide por defecto el transcript más reciente (el de la sesión que cierra). Pasarle `--transcript <ruta>.jsonl` de la sesión que se audita, y `-SessionId` a `session-audit.ps1`.
 
 ---
 
 ## 4 · El paso exacto siguiente
 
-### Tras 2026-10-13-e (vigente)
+### Tras 2026-10-14-a (vigente)
+
+🔴 **Primero (de Jaime): SOL-47, crear el portfolio comercial de Meta.** Es la tarea larga de la próxima sesión. Pasos: portfolio → añadir cuenta publicitaria `857378264622577`, Página «Examen Facil» e Instagram profesional (vincularlo antes a la Página) → app **Business** del portfolio en **Live** → Usuario del sistema rol Empleado con esos activos → token caducidad **Nunca** con `pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish, ads_read` → cargarlo con `ef-meta-token` (pestaña de Terminal) → **revocar el token viejo** del historial de git. Claude guía paso a paso y valida (debug_token: SYSTEM_USER, expires_at 0).
+
+**Después (Claude): SOL-48**, publicador de Meta en el VPS y skill de publicación diaria con aprobación humana.
+
+**De Jaime, rápidos:**
+1. Borrar en el panel de Mercado Pago el `preapproval_plan` vacío ($9.990, email `guest_…`) creado el 15-oct ~01:10 UTC (SOL-50).
+2. Decidir el copy de `pago.html` («pago único, sin suscripción») frente a las membresías (SOL-50).
+3. Commitear y empujar su cambio en `skills/ingenieria-flujo/SKILL.md` (`/git-sync`).
+4. Cerrar la pestaña de Terminal «Cargar token Meta» si sigue abierta (Ctrl-C).
+
+**Sigue vigente de antes:** SOL-41 (WhatsApp de clientes) y la limpieza del respaldo con secretos `sol10-…`. SOL-40 ya está cerrado en Linear (`9383c4f`).
+
+### Tras 2026-10-13-e (anterior)
 
 **Primero (Claude): SOL-40**, en el run del primer deploy de `zasa-orchestrator` posterior al **14-oct 14:31 UTC** (el de la telemetría `1c6bc9a`, a las ~02:50 UTC, todavía no cuenta). Buscar el paso «Retención de respaldos (modo: informe)»: debe listar solo carpetas `AAAAMMDD-HHMMSS` de más de 7 días que no estén entre las 10 últimas. Si es así, OK de Jaime → commit con `RETENCION_MODO` por defecto en `aplicar` (surte efecto **un deploy después**) → cerrar SOL-40.
 
