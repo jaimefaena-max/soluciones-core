@@ -1,9 +1,11 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-14-a (ExamenFácil: auditoría, 5 hallazgos cerrados, matriz de precios, crear_suscripcion blindado; conexión estable a Meta pendiente)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-15-a (dominio examenfacil.cl verificado en Meta) · antes 2026-10-14-a (ExamenFácil: auditoría, 5 hallazgos cerrados, matriz de precios, crear_suscripcion blindado; conexión estable a Meta pendiente)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-tras-2026-10-14-a` (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
+> Memoria de arranque: `arranque-tras-2026-10-14-a` (actualizada tras la 2026-10-15-a) (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
 > 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..51`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
-> **Última sesión: 2026-10-14-a** (conversación `11b3fe75…`), 20:21 UTC del 14-oct – 04:35 UTC del 15-oct, **189 min activos**, **$110.250 CLP**, telemetría `zasa-orchestrator` `ee3e555` (run `38682317179` success; `/health` = `ee3e555`; `2026-10-14-a` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.p, §3 y al principio de §4. **Primera tarea: SOL-47 (portfolio comercial de Meta), de Jaime.**
+> **Última sesión: 2026-10-15-a** (conversación `340b94ab…`), 05:10–05:19 UTC del 15-oct, **8,6 min activos**, **$5.017 CLP**, telemetría `zasa-orchestrator` `423d562` (`/health` = `423d562`; `2026-10-15-a` en `dist/data/telemetry.js`). **SOL-47 avanza:** Jaime creó el portfolio comercial «examenfacil.cl» y el dominio quedó **Verificado** en Meta con la metaetiqueta en el `<head>` de `index.html` (`examenfacil-cl` `88d02c7` + `fdfaa04`; el primero llevaba el token mal transcrito, `a` por `s`). Respaldos en `/root/backups-examenfacil/2026-10-15_*-fb-verif*`. Producción EF = `fdfaa04`. **No quitar esa metaetiqueta**: Meta puede re-verificar.
+>
+> Sesión 2026-10-14-a (anterior) (conversación `11b3fe75…`), 20:21 UTC del 14-oct – 04:35 UTC del 15-oct, **189 min activos**, **$110.250 CLP**, telemetría `zasa-orchestrator` `ee3e555` (run `38682317179` success; `/health` = `ee3e555`; `2026-10-14-a` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.p, §3 y al principio de §4. **Primera tarea: SOL-47 (portfolio comercial de Meta), de Jaime.**
 >
 > Sesión 2026-10-13-e (anterior) (conversación `b0e0c037…`), 01:47–02:51 UTC del 14-oct (empezó el 13-oct en hora de Chile), **63,1 min activos**, **$36.808 CLP**, telemetría `zasa-orchestrator` `1c6bc9a` (`/health` = `1c6bc9a`; `2026-10-13-e` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.o y al principio de §4.
 >
@@ -324,9 +326,9 @@ Todo en `examenfacil-cl`, desplegado por `deploy.yml` (runs en verde) y verifica
 
 ## 4 · El paso exacto siguiente
 
-### Tras 2026-10-14-a (vigente)
+### Tras 2026-10-15-a (vigente)
 
-🔴 **Primero (de Jaime): SOL-47, crear el portfolio comercial de Meta.** Es la tarea larga de la próxima sesión. Pasos: portfolio → añadir cuenta publicitaria `857378264622577`, Página «Examen Facil» e Instagram profesional (vincularlo antes a la Página) → app **Business** del portfolio en **Live** → Usuario del sistema rol Empleado con esos activos → token caducidad **Nunca** con `pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish, ads_read` → cargarlo con `ef-meta-token` (pestaña de Terminal) → **revocar el token viejo** del historial de git. Claude guía paso a paso y valida (debug_token: SYSTEM_USER, expires_at 0).
+🔴 **Primero (de Jaime): seguir SOL-47 en el portfolio «examenfacil.cl»** (ya creado; dominio verificado el 15-oct). Pasos restantes: añadir cuenta publicitaria `857378264622577`, Página «Examen Facil» e Instagram profesional (vincularlo antes a la Página) → app **Business** del portfolio en **Live** → Usuario del sistema rol Empleado con esos activos → token caducidad **Nunca** con `pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish, ads_read` → cargarlo con `ef-meta-token` (pestaña de Terminal) → **revocar el token viejo** del historial de git. Claude guía paso a paso y valida (debug_token: SYSTEM_USER, expires_at 0).
 
 **Después (Claude): SOL-48**, publicador de Meta en el VPS y skill de publicación diaria con aprobación humana.
 
