@@ -1,9 +1,11 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-15-b (razón social en examenfacil.cl para la verificación de negocio de Meta) · 2026-10-15-a (dominio verificado) · antes 2026-10-14-a (ExamenFácil: auditoría, 5 hallazgos cerrados, matriz de precios, crear_suscripcion blindado; conexión estable a Meta pendiente)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-15-c (ExamenFácil: publicador de Meta en producción, primeros post y Reel, embudo anónimo SOL-53 fases 0-4) · 2026-10-15-b (razón social en examenfacil.cl para la verificación de negocio de Meta) · 2026-10-15-a (dominio verificado) · antes 2026-10-14-a (ExamenFácil: auditoría, 5 hallazgos cerrados, matriz de precios, crear_suscripcion blindado; conexión estable a Meta pendiente)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: `arranque-tras-2026-10-14-a` (actualizada tras la 2026-10-15-a) (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`) en `~/.claude/projects/C--Proyectos/memory/`.
-> 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..51`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
-> **Última sesión: 2026-10-15-b** (misma conversación `340b94ab…`, medida desde el fin de la -a), 05:18–05:36 UTC del 15-oct, **17,4 min activos**, **$10.150 CLP**, telemetría `zasa-orchestrator` `3edf81d` (`/health` = `3edf81d`; `2026-10-15-b` en `dist/data/telemetry.js`). Meta **rechazó la verificación de negocio**: el nombre legal no aparecía en el sitio, que además decía «Examen Fácil SpA» (no existe). Corregido en `examenfacil-cl` `1d13eb3`: **MINIMARKET NOGALES SPA**, RUT 78.079.206-K, Jose del Carmen Godoy 191, Nogales, hola@examenfacil.cl, en el pie de `index.html` y `paso1_oncologico.html`, en Términos y Privacidad (operador y responsable del tratamiento; fecha 15-oct-2026) y en el JSON-LD (`legalName`, `taxID`, `address`). Respaldo `/root/backups-examenfacil/2026-10-15_053144-razon-social`. Producción EF = `1d13eb3`, verificado por loopback (0 restos de «Examen Fácil SpA»). Una SpA puede operar varias marcas y dominios: no hace falta una empresa por sitio, basta su nombre legal en cada uno.
+> Memoria de arranque: **`arranque-tras-2026-10-15-c`** (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`; reglas nuevas: `regla-oro-publicaciones-sin-razon-social`, `no-proponer-cerrar-sesion`) en `~/.claude/projects/C--Proyectos/memory/`.
+> 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..57`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
+> **Última sesión: 2026-10-15-c** (conversación `f913386a…`), 22:40 del 15-oct → 08:11 del 16-oct (hora de Chile), **198,9 min activos**, **$116.025 CLP**, telemetría `zasa-orchestrator` `a66875d` (`/health` = `a66875d`; `2026-10-15-c` en `dist/data/telemetry.js`). Lo nuevo está en §0.q y al principio de §4. **Primer paso: SOL-53 Fase 5 (insights de Meta 24/72 h).**
+>
+> Sesión 2026-10-15-b (anterior) (misma conversación `340b94ab…`, medida desde el fin de la -a), 05:18–05:36 UTC del 15-oct, **17,4 min activos**, **$10.150 CLP**, telemetría `zasa-orchestrator` `3edf81d` (`/health` = `3edf81d`; `2026-10-15-b` en `dist/data/telemetry.js`). Meta **rechazó la verificación de negocio**: el nombre legal no aparecía en el sitio, que además decía «Examen Fácil SpA» (no existe). Corregido en `examenfacil-cl` `1d13eb3`: **MINIMARKET NOGALES SPA**, RUT 78.079.206-K, Jose del Carmen Godoy 191, Nogales, hola@examenfacil.cl, en el pie de `index.html` y `paso1_oncologico.html`, en Términos y Privacidad (operador y responsable del tratamiento; fecha 15-oct-2026) y en el JSON-LD (`legalName`, `taxID`, `address`). Respaldo `/root/backups-examenfacil/2026-10-15_053144-razon-social`. Producción EF = `1d13eb3`, verificado por loopback (0 restos de «Examen Fácil SpA»). Una SpA puede operar varias marcas y dominios: no hace falta una empresa por sitio, basta su nombre legal en cada uno.
 >
 > Sesión 2026-10-15-a (anterior) (conversación `340b94ab…`), 05:10–05:19 UTC del 15-oct, **8,6 min activos**, **$5.017 CLP**, telemetría `zasa-orchestrator` `423d562` (`/health` = `423d562`; `2026-10-15-a` en `dist/data/telemetry.js`). **SOL-47 avanza:** Jaime creó el portfolio comercial «examenfacil.cl» y el dominio quedó **Verificado** en Meta con la metaetiqueta en el `<head>` de `index.html` (`examenfacil-cl` `88d02c7` + `fdfaa04`; el primero llevaba el token mal transcrito, `a` por `s`). Respaldos en `/root/backups-examenfacil/2026-10-15_*-fb-verif*`. Producción EF = `fdfaa04`. **No quitar esa metaetiqueta**: Meta puede re-verificar.
 >
@@ -244,6 +246,21 @@ Todo en `examenfacil-cl`, desplegado por `deploy.yml` (runs en verde) y verifica
 | **Plan de conexión estable** (investigado): Usuario del sistema con token sin caducidad + app Business en Live + publicador propio en el VPS + skill con aprobación humana | SOL-47 (Fase 1, Jaime) y SOL-48 (Fases 2-3, Claude) | — |
 | Diagnóstico de salud final: servicios activos, `nginx -t` ok, disco 14 %, cert de origen hasta 25-nov-2026, `health.php` autenticado OK. Único 500: UptimeRobot a las 01:07:34 UTC, **dentro de la ventana de un deploy** (el deploy de EF no es atómico) | VPS | — |
 
+### 0.q · 2026-10-15-c — Meta estable, publicador en producción y embudo anónimo (fases 0-4)
+
+Todo en `examenfacil-cl` (push a main = deploy, runs en verde) salvo lo indicado. Producción EF = `6c459e0`.
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **SOL-47 casi cerrado**: verificación de negocio aprobada (15-oct); cuenta publicitaria `857378264622577` e IG `17841418692590130` en el portfolio `416040459257296`; app «ExamenFacil» `1703697990765821` en **Live**; Usuario del sistema **`ef-publicador` `61595660661121` (Employee)** con Página (Contenido+Estadísticas), Ads (Ver rendimiento), App (Desarrollar). El permiso directo de IG falla siempre (`oidclink` de Meta): no hace falta, IG se publica vía la Página | Meta Business Suite; `/etc/examenfacil/config_secret.php` (respaldo `/root/backups-examenfacil/20261016-031654-meta-1295800`) | debug_token: SYSTEM_USER, expires_at 0, data_access_expires_at 0, 8 scopes; `content_publishing_limit` 100/24 h. ⚠️ «ExamenFacil-Bot» (Admin) existe de antes: no usar ni revocar sin saber si algo lo usa |
+| **SOL-48 cerrado (fases A–E)**: `cli/social.php` (cola, reclamo atómico, estado por red, topes 08–22 h / 3 por día / 3 h, alertas), `cli/meta_graph.php`, `cli/social_filtro.php`; vhost `/cli/` 404 y `/social/` solo jpg/png/mp4; `--exclude='/social/'`; cron `/etc/cron.d/ef-social` (www-data: publicar */10, salud 12:30 UTC) + logrotate | `b70fc3f`, `146f64f`; cron/logrotate a mano en el VPS | 1.ª vuelta del cron OK; post #1 (FB + IG) y Reel #2 (FB `/reel/1754028152343438/`, IG `reel/Deir_P4iSeU`) publicados con aprobación de Jaime |
+| **Filtro legal (criterio de Nacho) + REGLA DE ORO B16**: nunca razón social, domicilio ni RUT en redes (siguen solo en el sitio) | `7ee0001`, versión `2026-10-16.3` | 53/53 pruebas; post #1 corregido en FB por API; en IG lo editó Jaime a mano (la API no edita captions; a las 04:41 UTC aún salía el texto viejo) |
+| **Plantillas Remotion gratis** `PostEF` (4:5) y `ReelEF` (9:16, 16,5 s) + `my-video/render-reel.sh` (yuv420p, AAC silencioso) | `fef694c`, `4356815` | Usadas en los 2 posts reales |
+| **GA4/GTM retirado** (opción A de Jaime) y **privacidad.html** con el texto de Nacho | `81e49fc`, `5df6601` | 0 restos de GTM por loopback y CF |
+| 🔴→✅ **Fase 0**: `webhook_mp.php` llamaba a `enviarEmailConfirmacion()` antes de su require (desde `49d88f4`, 25-may) → fatal en cada pago aprobado, cliente sin enlace mágico. Latente (0 pagos aprobados desde el 29-abr). Emails y datos de salud fuera de los logs de pago | `89a5855` | sha = commit; falta un pago real |
+| **SOL-53 fases 2–4**: `agg_embudo_diario` + `evento_embudo.php` (POST, Origin exacto, 512 B, 120/10 min HMAC(IP)+pimienta diaria, sin access_log) + `cli/embudo.php`; contadores de servidor `pago_iniciado`/`pago_aprobado` blindados (tras responder / tras el correo, try/catch Throwable); `embudo.js?v=20261016` en index y pago | `7291f2a`, `6a1df6a`, `6c459e0`, `0e812af` | Loopback 19/19; Chromium real: visita instagram + campaña del Reel en la tabla (borrada). QA de Ana en cada fase |
+| **Linear**: SOL-52 (condiciones de Nacho para autonomía, aceptadas), SOL-53..56 (crecimiento: medición, panel, estratega, investigación), SOL-57 (módulo «Publicaciones» del Cockpit). SOL-54 movido al Cockpit | Linear | — |
+
 ---
 
 ## 1 · Abierto, por cercanía a producción
@@ -328,7 +345,24 @@ Todo en `examenfacil-cl`, desplegado por `deploy.yml` (runs en verde) y verifica
 
 ## 4 · El paso exacto siguiente
 
-### Tras 2026-10-15-a (vigente)
+### Tras 2026-10-15-c (vigente)
+
+🟢 **Primero (Claude, no bloqueado): SOL-53 Fase 5 — recolector de insights de Meta a 24/72 h**, pedido expreso de Jaime al cerrar. Diseño del Consejo en el comentario de Roberto en SOL-53 y en la memoria `arranque-tras-2026-10-15-c` (tabla `agg_social_insights`, `cli/social_insights.php medir`, cron `17 * * * *` www-data con flock, Graph v21→v24/25, métricas vigentes, una por llamada). Validar primero con una llamada real sobre los posts #1 y #2. `/ingenieria-flujo` + revisión de Ana antes de desplegar.
+
+**Después:** Fase 6 (metadata de MP saneada + `ef_cmp`, pago por campaña; Nacho: antes del 01-12-2026) → SOL-57 (hash de caption/pantalla/hora al aprobar + módulo Publicaciones en el Cockpit) → SOL-54 → SOL-55 (3 skills: `/ef-estratega-diario`, `/ef-retro-semanal`, `/ef-investigacion-mercado`, sin hooks) → SOL-56.
+
+**De Jaime:**
+1. Borrar el `mp_debug.log` viejo (datos de salud de agosto), desde la pestaña de Terminal:
+   `ssh -i ~/.ssh/elrincon_deploy root@161.35.85.101 'F=/var/www/examenfacil.cl/logs/mp_debug.log; test ! -L "$F" && shred -u "$F" && echo borrado'`
+2. Un pago real de $2.990: confirma el correo con enlace (fase 0) y los contadores `pago_iniciado`/`pago_aprobado`.
+3. Revocar el token viejo de Meta del historial de git (`f4c88f9:admin/finanzas.php`; la comprobación automática la bloqueó el modo automático).
+4. Bio de Instagram: hoy enlaza a `www.saludfacil.cl`; cambiarla a `https://examenfacil.cl/?utm_source=instagram&utm_content=<código>`.
+5. Revisar que el post #1 de IG ya no muestre la razón social.
+6. Borrar `zasa-orchestrator/src/data/telemetry.ts.bak-20261016111224.`.
+
+**Trampas nuevas:** ver memoria `arranque-tras-2026-10-15-c` (loopback del embudo en 429 10 min; no borrar la pimienta de producción en pruebas como root; IG no edita captions por API; vhost de EF antes del push; saltar topes del publicador solo con `php -d auto_prepend_file=` temporal y con OK de Jaime).
+
+### Tras 2026-10-15-a (anterior)
 
 🔴 **Primero (de Jaime): en Meta, «Vuelve a la verificación del negocio»** (la razón social ya está en el sitio, `1d13eb3`). Si vuelve a rechazar, subir un documento acreditativo (p. ej. e-RUT del SII). **Después, seguir SOL-47 en el portfolio «examenfacil.cl»** (creado; dominio verificado el 15-oct). Pasos restantes: añadir cuenta publicitaria `857378264622577`, Página «Examen Facil» e Instagram profesional (vincularlo antes a la Página) → app **Business** del portfolio en **Live** → Usuario del sistema rol Empleado con esos activos → token caducidad **Nunca** con `pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish, ads_read` → cargarlo con `ef-meta-token` (pestaña de Terminal) → **revocar el token viejo** del historial de git. Claude guía paso a paso y valida (debug_token: SYSTEM_USER, expires_at 0).
 
