@@ -1,9 +1,11 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-15-c (ExamenFácil: publicador de Meta en producción, primeros post y Reel, embudo anónimo SOL-53 fases 0-4) · 2026-10-15-b (razón social en examenfacil.cl para la verificación de negocio de Meta) · 2026-10-15-a (dominio verificado) · antes 2026-10-14-a (ExamenFácil: auditoría, 5 hallazgos cerrados, matriz de precios, crear_suscripcion blindado; conexión estable a Meta pendiente)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-16-a (SOL-53 fases 5 y 6 + SOL-57 F0 y F1) · antes 2026-10-15-c (publicador de Meta y embudo fases 0-4) · 2026-10-15-b (razón social en examenfacil.cl) · 2026-10-15-a (dominio verificado en Meta)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: **`arranque-tras-2026-10-15-c`** (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`; reglas nuevas: `regla-oro-publicaciones-sin-razon-social`, `no-proponer-cerrar-sesion`) en `~/.claude/projects/C--Proyectos/memory/`.
+> Memoria de arranque: **`arranque-tras-2026-10-16-a`** (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`; reglas: `regla-oro-publicaciones-sin-razon-social`, `no-proponer-cerrar-sesion`, `mysql-triggers-exigen-root-1419`) en `~/.claude/projects/C--Proyectos/memory/`.
 > 🟣 **Desde el 2026-10-13 el backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, proyectos `P-SOL-1..7`, issues `SOL-5..57`): memoria `linear-workspace-soluciones`. Este handover sigue siendo el relato; **Linear manda en el estado de cada tarea**.
-> **Última sesión: 2026-10-15-c** (conversación `f913386a…`), 22:40 del 15-oct → 08:11 del 16-oct (hora de Chile), **198,9 min activos**, **$116.025 CLP**, telemetría `zasa-orchestrator` `a66875d` (`/health` = `a66875d`; `2026-10-15-c` en `dist/data/telemetry.js`). Lo nuevo está en §0.q y al principio de §4. **Primer paso: SOL-53 Fase 5 (insights de Meta 24/72 h).**
+> **Última sesión: 2026-10-16-a** (conversación `a330faa1…`), 00:28–06:03 UTC del 17-oct (empezó el 16-oct en hora de Chile), **153,6 min activos**, **$89.600 CLP**, telemetría `zasa-orchestrator` `2834563` (`/health` = `2834563`; `2026-10-16-a` presente en `dist/data/telemetry.js`). Lo nuevo está en §0.r y al principio de §4.
+>
+> 🔴 **PRIMER PASO: activar F1 de SOL-57** — `PUBLICACIONES_HABILITADO=admin` en el `.env` del VPS + `pm2 restart --update-env`, y un GET autenticado con la sesión de Jaime. Es lo único de F1 sin verificar.
 >
 > Sesión 2026-10-15-b (anterior) (misma conversación `340b94ab…`, medida desde el fin de la -a), 05:18–05:36 UTC del 15-oct, **17,4 min activos**, **$10.150 CLP**, telemetría `zasa-orchestrator` `3edf81d` (`/health` = `3edf81d`; `2026-10-15-b` en `dist/data/telemetry.js`). Meta **rechazó la verificación de negocio**: el nombre legal no aparecía en el sitio, que además decía «Examen Fácil SpA» (no existe). Corregido en `examenfacil-cl` `1d13eb3`: **MINIMARKET NOGALES SPA**, RUT 78.079.206-K, Jose del Carmen Godoy 191, Nogales, hola@examenfacil.cl, en el pie de `index.html` y `paso1_oncologico.html`, en Términos y Privacidad (operador y responsable del tratamiento; fecha 15-oct-2026) y en el JSON-LD (`legalName`, `taxID`, `address`). Respaldo `/root/backups-examenfacil/2026-10-15_053144-razon-social`. Producción EF = `1d13eb3`, verificado por loopback (0 restos de «Examen Fácil SpA»). Una SpA puede operar varias marcas y dominios: no hace falta una empresa por sitio, basta su nombre legal en cada uno.
 >
@@ -39,8 +41,6 @@
 > Sesiones anteriores:
 > Sesión del 2026-10-06, de 10:30 a 20:04 UTC: **436,8 min activos**, **$254.800 CLP**.
 > Telemetría `2026-10-06-a` en `zasa-orchestrator` `66aa65d` (la del 05-oct: `2026-10-05-a` y `2026-10-05-b`).
-
----
 
 ## 0 · Lo que deja la sesión (todo en producción y verificado)
 
@@ -246,6 +246,22 @@ Todo en `examenfacil-cl`, desplegado por `deploy.yml` (runs en verde) y verifica
 | **Plan de conexión estable** (investigado): Usuario del sistema con token sin caducidad + app Business en Live + publicador propio en el VPS + skill con aprobación humana | SOL-47 (Fase 1, Jaime) y SOL-48 (Fases 2-3, Claude) | — |
 | Diagnóstico de salud final: servicios activos, `nginx -t` ok, disco 14 %, cert de origen hasta 25-nov-2026, `health.php` autenticado OK. Único 500: UptimeRobot a las 01:07:34 UTC, **dentro de la ventana de un deploy** (el deploy de EF no es atómico) | VPS | — |
 
+
+### 0.r · 2026-10-16-a — SOL-53 cerrado (fases 5 y 6) y SOL-57 arrancado (F0 y F1)
+
+Todo en `examenfacil-cl` (push a main = deploy) salvo lo indicado. Producción EF = `a45b890` + `8e59501`; orquestador = `2834563`.
+
+| Qué | Dónde | Verificación |
+|---|---|---|
+| **SOL-53 fase 5: insights de Meta a 24/72 h.** Tabla `agg_social_insights` (PK uid/red/ventana/métrica), `cli/social_insights.php` (instalar \| medir \| ver), versión de Graph por constructor en `meta_graph.php`. Tolerancia de 12 h, corte tras 5 fallos de red, correo si una ventana vence sin medir, solo el error 100 (salvo 100/33) se guarda como definitivo | `35cb60c`; cron `/etc/cron.d/ef-social-insights` a :17 con flock + logrotate | Tests 40/40. **Sonda real con v24.0** (la lanzó Jaime): permisos `read_insights` + `instagram_manage_insights` OK; IG foto 9/9, IG Reel 9 (sin `profile_visits`/`follows`, que Meta no da para Reels), FB Reel 5/5. Retiradas confirmadas: `impressions`, `plays`, `post_impressions_unique`. 🔴 El post #1 de FB **ya no existe** (lo borró Jaime): su ventana se pierde y manda un correo, es esperable |
+| **SOL-53 fase 6: metadata de MP sin datos de salud** (condición de Nacho, vencía el 01-12-2026). Nombre, email, WhatsApp, semáforo, hallazgos, condición y archivo pasan a `pagos_checkout` bajo `external_reference` aleatoria `EF-<32 hex>`; a MP solo van `ef_ref`, `ef_src` y `ef_cmp`, y el ítem tiene descripción neutra. Webhook, `estado_pago` e `informe_completo` leen de ahí y caen a la metadata vieja en preferencias anteriores. El webhook borra la fila tras guardar los datos clínicos | `1adbf36` (librería sola, para que el rsync no deje un `require_once` roto) + `43b49c6`; cron `/etc/cron.d/ef-checkout` a :47 | Tests 46/46. Caducidad **24 h** y purga **48 h** (Nacho: alineado con la vida del examen subido). **Probado en real** el 16-oct a las 22:24: MP aceptó `expiration_date_to`, mostró el pago de $2.990, `pagos_checkout` con 1 fila y `pago_iniciado instagram 1`. Falta el pago aprobado |
+| **SOL-57 F0: la cola gana rastro auditable.** Huella de aprobación (lo que cambia tras aprobarse vuelve a borrador); `cli/social_cola.php` con `SELECT … FOR UPDATE` y el rastro en la MISMA transacción (si falla el rastro, no hay aprobación), también los intentos denegados; `social_revisiones` solo-append, `social_comentarios` a 90 días, `social_salud`; `cli/social_panel.php` (contrato JSON por stdin/stdout, lista blanca, solo `humano:*` aprueba); `ver`, `pedir-cambio`, `purgar`, reenvío por `agregar` | `f16976f` + `825ca0b` + `a45b890` | Tests 83/83 y 51/51. **Smoke contra la base real 31/31** con fila desechable programada en 2027 y borrada. Destapó un fallo real (`a45b890`): un comentario rechazado por datos personales no dejaba rastro |
+| **SOL-57 F1: módulo Publicaciones en el orquestador, solo lectura.** `execFile` sin shell del CLI de EF, hijo a www-data con entorno mínimo, watchdog con SIGKILL, 2 procesos a la vez; `GET /api/admin/social/semana\|indicadores` con rol admin, 405, cuota por operador, 502 sin filtrar nada de EF y 503 si está ocupada | `zasa-orchestrator` `b8646ef` + `687c629` | Tests 67/67 (incluido el ejecutor real con node haciendo de PHP). **Desplegado con el módulo APAGADO**: sin `PUBLICACIONES_HABILITADO` no existe ninguna ruta |
+| **El CI de EF ya mira el PHP**: `php -l` de los 87 ficheros y 6 suites antes de desplegar. Antes un error de sintaxis llegaba a producción y solo se veía en un 500 | `825ca0b`, run `39006089876` | «Sintaxis OK en 87 ficheros» + las 6 suites en verde en el propio run |
+| **Hallazgos de Nacho fuera de alcance, cerrados** en una sesión aparte: logs de pago sin el mensaje crudo de las excepciones (un «Duplicate entry» dejaba el email en claro), prompt de Gemini sin el nombre del paciente, enlace de términos en `pago.html` | `8e59501` | Deploy en verde; 0 líneas de la fase 6 tocadas |
+| **Arquitectura de SOL-57 decidida con el Gran Consejo** (Roberto, Felipe, Marco, Valentina, Nacho): **opción B** (el orquestador ejecuta la CLI de EF). Descartadas la A (usuario MySQL en la base clínica: obligaría a duplicar huella y filtro en TypeScript) y la C (endpoint HMAC en loopback: aflojaría las guardas de solo-CLI y añadiría un secreto). Nacho la aprobó con 10 condiciones, todas aplicadas en F0 | Linear SOL-57 | — |
+
+**QA de Ana en las 4 fases, con 3 hallazgos serios aplicados:** (1) en la fase 5, el error 100/33 («sin permiso u objeto») se guardaba como definitivo y habría quemado la primera ventana; (2) en F0, `desaprobarPorCambio` podía pisar lo que otro cron acababa de publicar; (3) en F1, `SOCIAL_CLI_UID=0` solo dejaba un aviso y el plugin se registraba igual, así que la CLI de EF habría corrido **como root** sobre ficheros que www-data puede escribir.
 ### 0.q · 2026-10-15-c — Meta estable, publicador en producción y embudo anónimo (fases 0-4)
 
 Todo en `examenfacil-cl` (push a main = deploy, runs en verde) salvo lo indicado. Producción EF = `6c459e0`.
@@ -298,6 +314,8 @@ Todo en `examenfacil-cl` (push a main = deploy, runs en verde) salvo lo indicado
 
 ## 2 · Estado de los repos al cierre
 
+- **Al cierre de 2026-10-16-a:** `examenfacil-cl` `main` = `origin/main` = producción en `8e59501` (último de código; `a45b890` fue el anterior). `zasa-orchestrator` = `2834563` (telemetría; código en producción `687c629`), con DOS respaldos sueltos sin rastrear: `src/data/telemetry.ts.bak-20261016111224.` y `...bak-20261017060427.`, que hacen fallar 2 tests de la suite local. `Elrincon-backend` y `AuditorLegal` siguen con cambios ajenos sin commitear (no tocados). El repo raíz tiene `CLAUDE.md` modificado por Jaime (reglas de ahorro de tokens) + este handover.
+
 - **`zasa-orchestrator`:** limpio; `main` = `origin/main`; producción en `d52903e` (verificado por `/health` el 2026-10-08 a las 22:45 UTC). `e995a96` = refactor AUTHZ_VIP; `d52903e` = telemetría 2026-10-08-a. Cadena de la Brecha 2: `ae67d08` → `e6f22e9` → `31ca36b` → `fb81202` → `2621c00`, todos con Actions success.
 - **nginx del VPS:** = plantillas de `2621c00` (`--comprobar`: admin., vip., realip y seg «idénticas a la viva»). Respaldos de la Brecha 2 en `/root/backups-nginx/instalar-plantillas-20261008-*` y `/root/backups-brecha2/`.
 - **Postgres:** inquilinos `demovip`, `forte-spa`, `yami-spa` activos; `liset` suspendido.
@@ -345,7 +363,58 @@ Todo en `examenfacil-cl` (push a main = deploy, runs en verde) salvo lo indicado
 
 ## 4 · El paso exacto siguiente
 
-### Tras 2026-10-15-c (vigente)
+### Tras 2026-10-16-a (vigente)
+
+🟢 **Primero (Claude, no bloqueado): activar F1 de SOL-57.** En el VPS, añadir
+`PUBLICACIONES_HABILITADO=admin` a `/opt/zasa-orchestrator/.env` y
+`pm2 restart zasa-orchestrator --update-env`. Las `SOCIAL_CLI_*` pueden
+omitirse: los valores por defecto ya son los del VPS (`/usr/bin/php`,
+`/var/www/examenfacil.cl/cli/social_panel.php`, uid/gid 33).
+**Lo único de F1 sin verificar** es un GET autenticado, que necesita la sesión
+de admin de Jaime:
+`https://admin.solucionesconia.cl/api/admin/social/indicadores?desde=2026-10-12`
+debe dar 200 con los recuentos, y `audit_log` no debe tener filas
+`social.cola.error`.
+
+**Después:** F2 (vista de solo lectura en la SPA `admin_solucionesconia`:
+`config/modulos.ts` + `SoloAdmin` + patrón de Novedades, calendario con CSS grid
+sin librería nueva). Luego F3→F6 de SOL-57, SOL-54, SOL-55 y SOL-56.
+
+Antes de F2, dos hallazgos de Ana que quedaron abiertos en F1: proyectar los
+campos que salen al navegador y filtrar `ultimo_error` (en EF ya se guarda
+redactado por `MetaGraph::redactar`), y la ventana fija de la cuota.
+
+**De Jaime:**
+1. Un pago real de $2.990 con `?utm_source=instagram&utm_content=<uid>`: cierra
+   la fase 6 (webhook leyendo `pagos_checkout`, correo con el enlace mágico,
+   fila borrada y `pago_aprobado` con campaña).
+2. Borrar los dos respaldos sueltos de telemetría en `zasa-orchestrator`
+   (`src/data/telemetry.ts.bak-20261016111224.` y `...bak-20261017060427.`):
+   **hacen fallar 2 tests de la suite local**, no el CI.
+3. Preferencias viejas de Mercado Pago, que no caducan y llevan datos de salud:
+   script de un solo uso (PUT con `expires=true` y cada clave de metadata
+   vaciada), probado antes con una sola preferencia; y pedido ARCO a MP por los
+   pagos ya hechos. Retirar la vuelta a metadata antes del 01-12-2026.
+4. Bio de Instagram: sigue enlazando a `www.saludfacil.cl`.
+5. Revocar el token viejo de Meta del historial de git.
+
+**Trampas nuevas de esta sesión:**
+- 🔴 **`ef_admin` no puede crear triggers** en el MySQL del VPS: `@@log_bin=1` y
+  `@@log_bin_trust_function_creators=0` dan **error 1419**. Los crea root con
+  `mysql < fichero.sql` y `DELIMITER //` (un `mysql -e` parte el `BEGIN…END`).
+  El respaldo nocturno ya usa `--triggers`, así que los incluye. Memoria
+  `mysql-triggers-exigen-root-1419`.
+- El vhost de EF se aplica **desde el blob ya commiteado**
+  (`git show HEAD:examenfacil.cl.nginx | ssh … EF_VHOST_MODO=aplicar …`) y
+  ANTES del push, o el job sale en rojo al comparar.
+- `uid`/`gid` en `child_process` **no existen en Windows** (ENOTSUP): pasarlos
+  solo donde `process.getuid` está definido, o los tests locales no corren.
+- Un cambio que mueve lógica entre ficheros PHP se valida con `php -l` del VPS
+  por stdin (`ssh … 'php -l' < fichero`): no hay PHP en el portátil.
+- El smoke contra la base real se hace con una fila programada **en 2027**, para
+  que el cron no pueda publicarla ni aunque quede aprobada.
+
+### Tras 2026-10-15-c (anterior)
 
 🟢 **Primero (Claude, no bloqueado): SOL-53 Fase 5 — recolector de insights de Meta a 24/72 h**, pedido expreso de Jaime al cerrar. Diseño del Consejo en el comentario de Roberto en SOL-53 y en la memoria `arranque-tras-2026-10-15-c` (tabla `agg_social_insights`, `cli/social_insights.php medir`, cron `17 * * * *` www-data con flock, Graph v21→v24/25, métricas vigentes, una por llamada). Validar primero con una llamada real sobre los posts #1 y #2. `/ingenieria-flujo` + revisión de Ana antes de desplegar.
 
