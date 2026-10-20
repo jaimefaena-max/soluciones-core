@@ -1,0 +1,3 @@
+﻿# Módulo Core de Soluciones con IA
+VERSION = "1.0.0"
+STATUS = "Active Zero Trust"
