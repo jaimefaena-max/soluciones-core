@@ -1,11 +1,24 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-20-a (Portal VIP de Yami al 10/10 + Linear integrado al cierre) · antes 2026-10-16-a (SOL-53 fases 5-6 + SOL-57 F0-F1)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-21-b (web pública y Portal VIP en DS v2 + compras con IA DeepSeek + eliminar facturas desde el Cockpit) · antes 2026-10-20-a (Portal VIP de Yami al 10/10)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
-> Memoria de arranque: **`arranque-tras-2026-10-20-a`** (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`; reglas: `regla-oro-publicaciones-sin-razon-social`, `no-proponer-cerrar-sesion`, `mysql-triggers-exigen-root-1419`) en `~/.claude/projects/C--Proyectos/memory/`.
+>
+> 🟩 **Sesión 2026-10-21-b** (conversación `f533a6be…`), 2026-10-21 20:31 → 2026-10-22 15:44 UTC, **438 min activos**, **$255.558 CLP**, telemetría `zasa-orchestrator` `5c06e32`. Todo en producción y verificado:
+> - **Landing** (`solucionesconia`, `deploy.sh` a mano): `DESIGN.md` DS v2 (`f2d0296`), hero Embajador webp (`b43db75`, `2fd54ec`, `9056a38`), rediseño enterprise mediana/gran empresa (`5aae77f`), `/acceso` con la línea de la home (`53b01a8`).
+> - **Portal VIP** (zasa PR #30–#34): rediseño DS v2, logo grande y redondo, «Instalar app» siempre visible sin texto de Android.
+> - **Compras con IA** (zasa PR #35 → #36 → #37 `c77e5a8`): subir foto/PDF en Facturas › Compras; lector **DeepSeek** (`COMPRAS_IA_PROVEEDOR` vacío = deepseek, `deepseek-flash`; fotos como imagen, PDF → solo texto con `unpdf`; escaneado → `pdf_sin_texto`). Gemini gratis quedó de alternativa (saturaba, 38 s). **Encendido solo para `yami-spa`** (`COMPRAS_IA_INQUILINOS=yami-spa`). Yami ya sabe que se procesa en DeepSeek (China): **cerrado, no es pendiente**. nginx de vip. con `client_max_body_size 11m` y timeout 90 s.
+> - **Cockpit › Portales › Facturas con Eliminar** (zasa #38 `88e2377` + admin #3 `f104adb`, QA de Ana aplicada): papelera 30 días en `data/facturas/<slug>/papelera/`, auditoría `facturacion.factura.eliminada` con actor. Eliminar solo borra de NUESTRO sistema, nunca del SII: el hallazgo de conservación de ventas queda **cerrado por decisión de Jaime**. Probado por Jaime (auditoría y papelera verificadas).
+> - **Sofía**: `DEEPSEEK_API_KEY` daba 401; Jaime puso una nueva (saldo USD 1,92, respaldo `/root/backups-env/env-20261022-042130`). Falta ver una conversación real de Sofía.
+> - 🔴 **Incidente**: un `sed` sobre `vip-portal.conf` imprimió secretos de borde en el chat → rotados con `rotar-secretos-borde.sh --aplicar`. Respaldos con secretos viejos por borrar (Jaime): `/root/backups-rotacion/secretos-borde-20261022-0{30620,32255}`, `/root/backups-nginx/20261022-030444-compras`.
+>
+> 🔴 **PRIMER PASO:** comprobar una conversación real con Sofía en la landing (tras el cambio de llave) y cerrar `sc-sofia-deepseek-llave-renovada`. Luego, la cola anterior: hito 9 de Yami o SOL-47 (Meta).
+>
+> Memoria de arranque: **`arranque-tras-2026-10-21-b`** (antes `arranque-tras-2026-10-20-a`) (y el rol pedido por Jaime: `rol-coo-formato-micro-fases`; reglas: `regla-oro-publicaciones-sin-razon-social`, `no-proponer-cerrar-sesion`, `mysql-triggers-exigen-root-1419`) en `~/.claude/projects/C--Proyectos/memory/`.
 > 🟣 **El backlog vive en Linear** (workspace SOLUCIONES, equipo SOL, `P-SOL-1..7`, issues `SOL-5..63`): memoria `linear-workspace-soluciones`. **Desde esta sesión, `/cierre-sesion` sincroniza Linear solo (Paso 5d) y crea issues sin OK.** Linear manda en el estado de cada tarea.
 > **Última sesión: 2026-10-20-a** (conversación `e0112dd7…`), 2026-10-20 15:11 → 2026-10-21 15:44 UTC, **644 min activos**, **$375.667 CLP**, telemetría `zasa-orchestrator` `36dbd89`.
 >
 > **Qué se hizo:** Portal VIP de Yami en producción — facturación (módulo, sumatoria, selector cliente/proveedor, descarga PDF; PRs #23/#24/#25, SOL-58), documentos con descarga (PR #27, SOL-59), avance agrupado + RUT de empresa en la ficha (PRs #28/#29, SOL-60), carga real de datos de Yami (4 facturas, 7 docs, 2 cobros, ficha 89%; SOL-61), ojo de contraseña en la landing (SOL-62), limpieza del .bak del cierre (PR #22, SOL-63), e integración de Linear al cierre (SOL skill Paso 5d).
+>
+> 🟦 **Sesión 2026-10-21-a** (conversación `8b6d6516…`, 9,8 min, $5.717, telemetría `ccff00f` verificada en `/health`): **forasteroenamerica.cl** (12.º repo, `Workspace_Clientes\forasteroenamerica`, aún no en CLAUDE.md) lo sirve **Cloudflare (Pages probable), NO el VPS**; push a `main` publica. Producción ≡ `68e74c2`. SOL-64 Done, SOL-65 Backlog (`www` sin DNS). Memoria `forasteroenamerica-hosting`. ⚠️ Hubo otra sesión en paralelo hoy (`f533a6be…`, commit `5aae77f` en la landing) que aún no tiene cierre propio.
 >
 > 🔴 **PRIMER PASO:** no hay bloqueador abierto del Portal VIP. Esperar a que Yami abra su cuenta corriente (marcar hito 9 completado → avance 100% con `privado_agencia/Clientes/yami-spa/state/sync-ficha-yami.sh`), o retomar **SOL-47** (Todo, Meta: Usuario del sistema + token sin caducidad).
 >
