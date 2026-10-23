@@ -1,6 +1,16 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-22-a (pago por transferencia, IVA del mes, demo comercial y FORTE al estándar con cobro F29 + respaldo) · antes 2026-10-21-b (DS v2, compras con IA)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-23-a (Portal VIP y /acceso en escritorio) · antes 2026-10-22-a (pago por transferencia, IVA del mes, demo, FORTE + F29)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
+>
+> 🟩 **Sesión 2026-10-23-a** (conversación `8c7f1deb…`), 2026-10-23 03:54 → 04:46 UTC, **~33 min activos**, **~$19.133 CLP**, telemetría `zasa-orchestrator` `ce8fdd7`. Solo la visual de PC; **el celular no se tocó** (comprobado caja a caja a 375 px):
+> - **Portal VIP en escritorio** (zasa #46 `3143710`): desde 1024 px la barra inferior pasa a **columna lateral fija** (marca + navegación + bloque «Tu expediente, protegido»); desde 1200 px Inicio a dos columnas, ficha + anillo lado a lado, documentos de dos en dos; compacta con alto ≤ 820 px. Todo dentro de `@media (min-width: 1024px)` en `ds-v2/components.css`; `.solo-escritorio`/`.solo-movil` para textos distintos. Jaime lo revisó en FORTE: aprobado.
+> - **`/acceso` en escritorio** (`solucionesconia` `95a1d56`, `deploy.sh` OK, respaldo `/root/backups-solucionesconia/20261023-043603/`): pantalla dividida con panel «aliado» (logo junto a «Soluciones con IA», «Tu empresa avanza. Y tú nunca avanzas solo.», 3 pilares, «Tu éxito es nuestro proyecto.») y el formulario a la derecha.
+> - **Regla de copy de confianza:** solo hechos del sistema (HTTPS, contraseña personal, descarga por sesión, respaldo cifrado nocturno). Nada de «cifrado de punta a punta» (Cloudflare termina TLS) ni sellos/certificaciones.
+> - Landing (fase 3 del plan): **descartada por Jaime** («todo lo demás está bien»). Opcional: logo sin el texto impreso en `/acceso` (el actual repite «SOLUCIONES CON IA .cl» junto al nombre) si Jaime aporta esa versión.
+>
+> 🔴 **PRIMER PASO (próxima sesión):** sigue siendo la **tarea de Sofía** que Jaime anunciará — comprobar una conversación real en la landing y cerrar `sc-sofia-deepseek-llave-renovada`.
+>
+> Memoria de arranque: **`arranque-tras-2026-10-23-a`**.
 >
 > 🟩 **Sesión 2026-10-22-a** (conversación `5efe127b…`), 2026-10-22 18:50 → 2026-10-23 03:11 UTC, **~229 min activos**, **~$133.500 CLP**, telemetría `zasa-orchestrator` `1ef1188`. Todo en producción y verificado por loopback:
 > - **Pago por transferencia** (zasa #39 `a761456` + admin #4 `4e40a8b`): cualquier «Pagar» abre `/vip/<slug>/pagar` con el detalle de TODO lo pendiente, el total y Scotiabank (cuenta en `src/modulos/facturacion/datosTransferencia.ts`). Un comprobante cubre N cobros (`billing_payment_proofs` + `_items`, índice único parcial); el envío lleva `?cobros=` y si la lista cambió → 409 `cobros_cambiaron`. Cockpit › Gestión de cobros: «Pagos por aprobar» por transferencia, visor (imagen como data: URL, CSP de vip. sin blob:), Aprobar/Rechazar. Aviso por correo a supervisión. **Mercado Pago quedó dormido** (código intacto, sin usar).
