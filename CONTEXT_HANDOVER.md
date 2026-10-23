@@ -1,6 +1,19 @@
-# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-21-b (web pública y Portal VIP en DS v2 + compras con IA DeepSeek + eliminar facturas desde el Cockpit) · antes 2026-10-20-a (Portal VIP de Yami al 10/10)
+# CONTEXT HANDOVER — Workspace ZASA · tras la sesión 2026-10-22-a (pago por transferencia, IVA del mes, demo comercial y FORTE al estándar con cobro F29 + respaldo) · antes 2026-10-21-b (DS v2, compras con IA)
 
 > Hand-off para retomar sin releer el transcript. Abrir Claude Code en `C:\Proyectos`.
+>
+> 🟩 **Sesión 2026-10-22-a** (conversación `5efe127b…`), 2026-10-22 18:50 → 2026-10-23 03:11 UTC, **~229 min activos**, **~$133.500 CLP**, telemetría `zasa-orchestrator` `1ef1188`. Todo en producción y verificado por loopback:
+> - **Pago por transferencia** (zasa #39 `a761456` + admin #4 `4e40a8b`): cualquier «Pagar» abre `/vip/<slug>/pagar` con el detalle de TODO lo pendiente, el total y Scotiabank (cuenta en `src/modulos/facturacion/datosTransferencia.ts`). Un comprobante cubre N cobros (`billing_payment_proofs` + `_items`, índice único parcial); el envío lleva `?cobros=` y si la lista cambió → 409 `cobros_cambiaron`. Cockpit › Gestión de cobros: «Pagos por aprobar» por transferencia, visor (imagen como data: URL, CSP de vip. sin blob:), Aprobar/Rechazar. Aviso por correo a supervisión. **Mercado Pago quedó dormido** (código intacto, sin usar).
+> - **IVA del mes** (zasa #40 `83efa6f`): tarjeta bajo el filtro de Período en Facturas; débito (ventas) − crédito (solo FACTURAS de compra; boletas/exentas guardadas con IVA 0). Sin mes elegido usa el mes en curso. F29 vence el 20 del mes siguiente.
+> - **Demo comercial** (zasa #41 `dbddb78`): inquilino `demo` (Comercial Demo SpA), login `demo@solucionesconia.cl` (clave en memoria `demo-comercial-y-onboarding`), IA de compras apagada. **`scripts/seed-demo.ts` es la plantilla de alta de clientes nuevos** (cambiar `DATOS_DEMO`). El código vive en el VPS en **`/opt/zasa-orchestrator/app`** (no en `/opt/zasa-orchestrator`).
+> - **FORTE al estándar** (zasa #42 `196baca`): barra inferior + Facturas; acceso fijado con `clientesService.fijarCredencialCliente` (staff, auditada) → correo `curzuae@gmail.com`. Su ficha real ya existía (RUT obtenido, 90%) y no se tocó. 🟡 **Razón social vacía en la ficha** → completar en Cockpit › Portales (`cockpit-forte-razon-social`).
+> - **Cobro F29 de FORTE** (zasa #43 `9bd28ea`): `FORTE-F29-2026-09`, $30.000, pendiente, vence 30-10-2026.
+> - **F29 como respaldo del cobro** (zasa #44 `b9e4453`): `billing_statements.respaldo_documento_id`; en Pagos y en Pagar sale «Respaldo del cobro · Descargar» (solo docs del propio expediente). FORTE: «F29 agosto 2026» y «F29 septiembre 2026» en Documentos (doc #14 vinculado). Mes siguiente: añadir línea en `scripts/respaldo-f29-forte.ts`, dejar el PDF en `/root/forte-f29/` y correr.
+> - **Patrón de trabajo confirmado:** Claude escribe código + script, el merge lo autoriza Jaime en el chat (el modo automático bloquea «merge sin revisión»), y **los scripts de datos los corre Jaime en el VPS** (`cd /opt/zasa-orchestrator/app && npx tsx scripts/<x>.ts --comprobar` → sin flag), guiado paso a paso.
+>
+> 🔴 **PRIMER PASO (próxima sesión, nueva conversación): tarea de SOFÍA** que Jaime anunciará. Empezar por comprobar una conversación real con Sofía en la landing (llave DeepSeek renovada el 22-oct) y cerrar `sc-sofia-deepseek-llave-renovada`.
+>
+> Memoria de arranque: **`arranque-tras-2026-10-22-a`**.
 >
 > 🟩 **Sesión 2026-10-21-b** (conversación `f533a6be…`), 2026-10-21 20:31 → 2026-10-22 15:44 UTC, **438 min activos**, **$255.558 CLP**, telemetría `zasa-orchestrator` `5c06e32`. Todo en producción y verificado:
 > - **Landing** (`solucionesconia`, `deploy.sh` a mano): `DESIGN.md` DS v2 (`f2d0296`), hero Embajador webp (`b43db75`, `2fd54ec`, `9056a38`), rediseño enterprise mediana/gran empresa (`5aae77f`), `/acceso` con la línea de la home (`53b01a8`).
